@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useAppStore } from './stores/appStore';
+import { HeaderNav } from './components/HeaderNav';
 import { BottomNav } from './components/BottomNav';
 import { SmartToday } from './components/SmartToday';
+import { GoalsWorkspace } from './components/GoalsWorkspace';
 import { UniversityWorkspace } from './components/UniversityWorkspace';
+import { LearningWorkspace } from './components/LearningWorkspace';
 import { BookLibrary } from './components/BookLibrary';
 import { FalconWorkspace } from './components/FalconWorkspace';
 import { JournalWorkspace } from './components/JournalWorkspace';
@@ -49,16 +52,21 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-md w-full mx-auto px-3 sm:px-4">
+      {/* Responsive Top Header Navigation (Tablet & Desktop) */}
+      <HeaderNav />
+
+      {/* Main Responsive Container */}
+      <main className="flex-1 max-w-md sm:max-w-3xl lg:max-w-6xl w-full mx-auto px-3 sm:px-6">
         {activeTab === 'TODAY' && <SmartToday />}
+        {activeTab === 'GOALS' && <GoalsWorkspace />}
         {activeTab === 'UNIVERSITY' && <UniversityWorkspace />}
+        {activeTab === 'LEARNING' && <LearningWorkspace />}
         {activeTab === 'BOOKS' && <BookLibrary />}
         {activeTab === 'FALCON' && <FalconWorkspace />}
         {activeTab === 'JOURNAL' && (
           <div className="space-y-3 pb-24 pt-3">
             {/* Segmented Switcher between Journaling & Scientific Ladder Analytics */}
-            <div className="grid grid-cols-2 p-1 rounded-2xl bg-slate-950/80 neo-sunken border border-slate-800 text-xs font-bold">
+            <div className="grid grid-cols-2 p-1 rounded-2xl bg-slate-950/80 neo-sunken border border-slate-800 text-xs font-bold max-w-md mx-auto">
               <button
                 type="button"
                 onClick={() => setJournalSubTab('JOURNAL')}
@@ -93,7 +101,7 @@ export const App: React.FC = () => {
       {/* Floating Quick Capture Modal */}
       <QuickCaptureModal />
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation for Mobile */}
       <BottomNav />
 
       {/* Global Toast Notification */}

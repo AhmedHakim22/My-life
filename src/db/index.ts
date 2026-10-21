@@ -21,7 +21,12 @@ import type {
   TimetableSlot,
   AcademicQuiz,
   AcademicAssignment,
-  StudentActivityTask
+  StudentActivityTask,
+  CustomCategory,
+  GoalMilestone,
+  GoalLink,
+  CourseModule,
+  CourseLesson
 } from '../types';
 
 export class MasaarDatabase extends Dexie {
@@ -47,6 +52,12 @@ export class MasaarDatabase extends Dexie {
   academicQuizzes!: Table<AcademicQuiz, string>;
   academicAssignments!: Table<AcademicAssignment, string>;
   studentActivities!: Table<StudentActivityTask, string>;
+  // Version 3 Entities
+  categories!: Table<CustomCategory, string>;
+  goalMilestones!: Table<GoalMilestone, string>;
+  goalLinks!: Table<GoalLink, string>;
+  courseModules!: Table<CourseModule, string>;
+  courseLessons!: Table<CourseLesson, string>;
 
   constructor() {
     super('MasaarLifeOSDB');
@@ -77,6 +88,18 @@ export class MasaarDatabase extends Dexie {
       academicAssignments: 'id, subjectId, deadline, completed, submitted',
       studentActivities: 'id, activityName, deadline, done'
     });
+
+    this.version(3).stores({
+      categories: 'id, parentId, type, sortOrder, isArchived',
+      goalMilestones: 'id, goalId, targetDate, status, sortOrder',
+      goalLinks: 'id, goalId, entityType, entityId, [goalId+entityId]',
+      courseModules: 'id, courseResourceId, sortOrder',
+      courseLessons: 'id, moduleId, courseResourceId, status, sortOrder',
+      goals: 'id, domainId, parentGoalId, horizon, status, isArchived',
+      skills: 'id, parentSkillId, category, categoryId, sortOrder',
+      learningResources: 'id, type, status, categoryId',
+      tasks: 'id, priority, status, dueDate, postponementCount, goalId, skillId, studySessionId'
+    });
   }
 }
 
@@ -88,7 +111,8 @@ export const db = new MasaarDatabase();
  */
 export async function seedInitialDataIfNeeded(): Promise<void> {
   const domainsCount = await db.domains.count();
-  if (domainsCount > 0) return; // already seeded
+  const habitsCount = await db.habits.count();
+  if (domainsCount > 0 || habitsCount > 0) return; // already seeded
 
   const now = new Date().toISOString();
   const todayStr = new Date().toISOString().split('T')[0];
@@ -146,124 +170,16 @@ export async function seedInitialDataIfNeeded(): Promise<void> {
       updatedAt: now
     }
   ];
-  await db.domains.bulkAdd(domains);
+  await db.domains.bulkPut(domains);
 
-  // 2. University Subjects (Nanotechnology)
-  const subjects: UniversitySubject[] = [
-    {
-      id: 'subj-semiconductors',
-      name: 'فيزياء وتكنولوجيا أشباه الموصلات',
-      code: 'NANO-301',
-      academicYear: 3,
-      semester: 1,
-      professor: 'د. رئيس قسم النانو',
-      examDate: '2026-11-15',
-      difficulty: 'HARD',
-      createdAt: now,
-      updatedAt: now
-    },
-    {
-      id: 'subj-characterization',
-      name: 'طرق التوصيف المجهري والطيفي (SEM/TEM)',
-      code: 'NANO-302',
-      academicYear: 3,
-      semester: 1,
-      professor: 'د. أستاذ المجهر الإلكتروني',
-      examDate: '2026-11-20',
-      difficulty: 'MEDIUM',
-      createdAt: now,
-      updatedAt: now
-    }
-  ];
-  await db.universitySubjects.bulkAdd(subjects);
-
-  // 3. Study Sessions / Lectures
-  const sessions: StudySession[] = [
-    {
-      id: 'sess-semi-lec3',
-      subjectId: 'subj-semiconductors',
-      type: 'LECTURE',
-      title: 'محاضرة 3: Band Gap Engineering & Quantum Wells',
-      status: 'UNDERSTOOD',
-      fsrsStability: 2.1,
-      fsrsDifficulty: 6.5,
-      fsrsLastReview: now,
-      fsrsNextReview: todayStr
-    },
-    {
-      id: 'sess-semi-sheet1',
-      subjectId: 'subj-semiconductors',
-      type: 'ASSIGNMENT',
-      title: 'شيت 1: حسابات كثافة الشحنات وفجوة الطاقة',
-      status: 'SOLVED',
-      submittedDate: undefined,
-      fsrsStability: 0,
-      fsrsDifficulty: 0
-    }
-  ];
-  await db.studySessions.bulkAdd(sessions);
-
-  // 4. Skills
-  const skills: Skill[] = [
-    {
-      id: 'skill-python',
-      name: 'Python for Science & ML',
-      category: 'تقني',
-      baselineLevel: 2,
-      targetLevel: 5,
-      contentProgress: 45,
-      demonstratedCompetence: 30,
-      sortOrder: 1,
-      createdAt: now,
-      updatedAt: now
-    },
-    {
-      id: 'skill-semiconductors',
-      name: 'Semiconductor Device Physics',
-      category: 'علمي',
-      baselineLevel: 2,
-      targetLevel: 5,
-      contentProgress: 60,
-      demonstratedCompetence: 40,
-      sortOrder: 2,
-      createdAt: now,
-      updatedAt: now
-    }
-  ];
-  await db.skills.bulkAdd(skills);
-
-  // 5. Books & Reading Habit
-  const bookResource: LearningResource = {
-    id: 'res-book-nanotech',
-    type: 'BOOK',
-    title: 'Nanotechnology: Understanding Small Systems',
-    description: 'مرجع شامل في فيزياء وتطبيقات أنظمة النانو',
-    sourceUrl: 'https://openlibrary.org',
-    provider: 'Open Library',
-    status: 'IN_PROGRESS',
-    createdAt: now,
-    updatedAt: now
-  };
-  await db.learningResources.add(bookResource);
-
-  const bookDetail: BookDetails = {
-    resourceId: 'res-book-nanotech',
-    author: 'Ben Rogers, Jesse Adams',
-    totalPages: 412,
-    currentPage: 48,
-    shelf: 'Reading',
-    rating: 5
-  };
-  await db.bookDetails.add(bookDetail);
-
-  // 6. Habit: Read 2 Pages daily
+  // 2. Habits (Honest zero baseline — no fabricated streaks)
   const habits: Habit[] = [
     {
       id: 'habit-read-2-pages',
-      title: 'قراءة صفحتين يومياً في كتاب النانو',
+      title: 'قراءة صفحتين يومياً',
       targetType: 'PAGES',
       targetValue: 2,
-      streakCount: 5,
+      streakCount: 0,
       consecutiveMisses: 0,
       restDays: [5], // الجمعة راحة
       lastCompletedDate: undefined,
@@ -275,7 +191,7 @@ export async function seedInitialDataIfNeeded(): Promise<void> {
       title: 'الورد القرآني اليومي',
       targetType: 'BOOLEAN',
       targetValue: 1,
-      streakCount: 12,
+      streakCount: 0,
       consecutiveMisses: 0,
       restDays: [],
       lastCompletedDate: undefined,
@@ -283,52 +199,101 @@ export async function seedInitialDataIfNeeded(): Promise<void> {
       updatedAt: now
     }
   ];
-  await db.habits.bulkAdd(habits);
+  await db.habits.bulkPut(habits);
 
-  // 7. Initial Tasks
-  const tasks: Task[] = [
-    {
-      id: 'task-semi-review',
-      title: 'مراجعة محاضرة Band Gap Engineering وحل مسألة عليها',
-      priority: 'P1_URGENT_IMPORTANT',
-      status: 'TODO',
-      dueDate: todayStr,
-      estimatedMinutes: 35,
-      isLocked: false,
-      postponementCount: 0,
-      studySessionId: 'sess-semi-lec3',
-      createdAt: now,
-      updatedAt: now
-    },
-    {
-      id: 'task-falcon-packaging',
-      title: 'متابعة تصميم الكفرات الجديدة مع المورد واعتماد عينة التغليف',
-      priority: 'P2_IMPORTANT',
-      status: 'TODO',
-      dueDate: todayStr,
-      estimatedMinutes: 25,
-      isLocked: false,
-      postponementCount: 0,
-      goalId: undefined,
-      createdAt: now,
-      updatedAt: now
-    }
-  ];
-  await db.tasks.bulkAdd(tasks);
-
-  // 8. Initial XP transaction
-  const initialXP: XPTransaction = {
-    id: 'xp-init',
-    idempotencyKey: 'INIT_BONUS_ONBOARDING',
-    amount: 150,
-    category: 'MILESTONE',
-    reason: 'بدء استخدام نظام مَسار وتفعيل مساحات النانو وفالكون',
-    createdAt: now
-  };
-  await db.xpTransactions.add(initialXP);
-
-  // 9. Seed Ahmed's Real Study Planner System
+  // 3. Seed Ahmed's Real Nanotechnology Curriculum & Timetable
   await seedAhmedStudyPlannerIfNeeded();
+}
+
+/**
+ * Saves a pre-migration JSON snapshot in localStorage for safe rollback.
+ */
+export async function takePreMigrationSnapshot(): Promise<void> {
+  try {
+    const backup: Record<string, any[]> = {};
+    const tableNames = db.tables.map(t => t.name);
+    for (const name of tableNames) {
+      backup[name] = await db.table(name).toArray();
+    }
+    localStorage.setItem('MASAAR_PRE_MIGRATION_BACKUP_V2', JSON.stringify({
+      timestamp: new Date().toISOString(),
+      tables: backup
+    }));
+  } catch (err) {
+    console.warn('Could not save local pre-migration snapshot:', err);
+  }
+}
+
+/**
+ * Opt-in demo dataset for testing purposes only.
+ * NEVER invoked silently on production data.
+ */
+export async function seedDemoProgressForTesting(): Promise<void> {
+  const now = new Date().toISOString();
+  const todayStr = now.split('T')[0];
+
+  await db.transaction('rw', [
+    db.goals,
+    db.goalMilestones,
+    db.skills,
+    db.learningResources,
+    db.bookDetails,
+    db.tasks,
+    db.habits
+  ], async () => {
+    // Demo Goal
+    await db.goals.put({
+      id: 'demo-goal-semi',
+      title: 'Qualify for a Semiconductor Internship',
+      whyItMatters: 'Build technical foundation in nano-fabrication for industry placement',
+      horizon: 'ANNUAL',
+      targetDate: '2027-06-30',
+      status: 'IN_PROGRESS',
+      progressPercentage: 20,
+      isArchived: false,
+      createdAt: now,
+      updatedAt: now
+    });
+
+    await db.goalMilestones.put({
+      id: 'demo-ms-q1',
+      goalId: 'demo-goal-semi',
+      title: 'Complete Semiconductor Physics & Fabrication Course',
+      targetDate: '2027-03-31',
+      status: 'IN_PROGRESS',
+      sortOrder: 1,
+      weight: 40,
+      createdAt: now,
+      updatedAt: now
+    });
+
+    // Demo Skills
+    await db.skills.put({
+      id: 'demo-skill-semi',
+      name: 'Semiconductor Physics',
+      category: 'علمي',
+      baselineLevel: 1,
+      targetLevel: 5,
+      contentProgress: 15,
+      demonstratedCompetence: 10,
+      sortOrder: 1,
+      createdAt: now,
+      updatedAt: now
+    });
+
+    await db.skills.put({
+      id: 'demo-skill-python',
+      name: 'Python',
+      category: 'تقني',
+      baselineLevel: 1,
+      targetLevel: 5,
+      contentProgress: 25,
+      demonstratedCompetence: 20,
+      sortOrder: 2,
+      createdAt: now,
+      updatedAt: now
+    });
+  });
 }
 
 /**

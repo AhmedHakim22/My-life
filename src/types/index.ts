@@ -20,6 +20,7 @@ export interface LifeDomain {
 export interface Goal {
   id: string;
   domainId?: string;
+  parentGoalId?: string;
   title: string;
   whyItMatters: string;
   horizon: Horizon;
@@ -31,11 +32,48 @@ export interface Goal {
   updatedAt: string;
 }
 
+export interface GoalMilestone {
+  id: string;
+  goalId: string;
+  title: string;
+  targetDate?: string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  sortOrder: number;
+  weight: number;
+  completedAt?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GoalLink {
+  id: string;
+  goalId: string;
+  entityType: 'SKILL' | 'RESOURCE' | 'PROJECT' | 'TASK' | 'SUBJECT';
+  entityId: string;
+  relationship?: 'PRIMARY' | 'SUPPORTING';
+  createdAt: string;
+}
+
+export interface CustomCategory {
+  id: string;
+  name: string;
+  parentId?: string;
+  type: 'SKILL' | 'BOOK' | 'COURSE' | 'RESOURCE' | 'GENERAL';
+  color?: string;
+  icon?: string;
+  sortOrder: number;
+  isArchived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Skill {
   id: string;
   parentSkillId?: string;
   name: string;
-  category: 'تقني' | 'علمي' | 'بزنس' | 'مهارات ناعمة' | 'عام';
+  category: string;
+  categoryId?: string;
   baselineLevel: number;
   targetLevel: number;
   contentProgress: number; // 0 - 100 (Courses/Videos consumed)
@@ -55,9 +93,32 @@ export interface LearningResource {
   description?: string;
   sourceUrl?: string;
   provider?: string;
+  categoryId?: string;
   status: ResourceStatus;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CourseModule {
+  id: string;
+  courseResourceId: string;
+  title: string;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface CourseLesson {
+  id: string;
+  courseResourceId: string;
+  moduleId?: string;
+  title: string;
+  durationMinutes?: number;
+  videoUrl?: string;
+  status: 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED';
+  completedAt?: string;
+  sortOrder: number;
+  notes?: string;
+  createdAt: string;
 }
 
 export interface BookDetails {

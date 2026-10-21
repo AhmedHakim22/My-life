@@ -19,12 +19,14 @@ import {
 import { useAppStore } from '../stores/appStore';
 import { CloudSyncModal } from './CloudSyncModal';
 import { fireConfettiSuccess } from '../lib/confetti';
+import { getCairoDateString } from '../lib/dateUtils';
 
 export const SmartToday: React.FC = () => {
   const { 
     prayers, 
     bestNextAction, 
     tasks, 
+    goals,
     completeTask, 
     postponeTask, 
     readTwoPagesAction,
@@ -40,7 +42,10 @@ export const SmartToday: React.FC = () => {
 
   const currentReadingBook = bookDetails.find(b => b.shelf === 'Reading') || bookDetails[0];
   const pendingTasks = tasks.filter(t => t.status === 'TODO' || t.status === 'IN_PROGRESS');
-  const todayTasks = pendingTasks.slice(0, 3); // Top 3 priorities
+  // Truthful Top 3 ranked priorities according to recommendation engine
+  const todayTasks = bestNextAction 
+    ? [bestNextAction.task, ...bestNextAction.alternativeTasks].slice(0, 3)
+    : pendingTasks.slice(0, 3);
 
   // Format today date in Arabic
   const todayFormatted = new Date().toLocaleDateString('ar-EG', {
@@ -60,7 +65,7 @@ export const SmartToday: React.FC = () => {
   };
 
   const handleToggleHabit = async (habitId: string) => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getCairoDateString();
     const habit = habits.find(h => h.id === habitId);
     if (habit && habit.lastCompletedDate !== todayStr) {
       fireConfettiSuccess();
@@ -308,7 +313,19 @@ export const SmartToday: React.FC = () => {
                   aria-label="إكمال المهمة"
                   className="w-5 h-5 rounded-lg border-2 border-slate-600 hover:border-sky-400 hover:bg-sky-500/20 flex items-center justify-center shrink-0 transition-colors pressable cursor-pointer"
                 />
-                <span className="text-xs font-medium text-slate-200 truncate">{task.title}</span>
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="text-xs font-bold text-slate-200 truncate">{task.title}</span>
+                  {task.goalId && (() => {
+                    const linkedGoal = goals.find(g => g.id === task.goalId);
+                    if (!linkedGoal) return null;
+                    return (
+                      <span className="text-[10px] text-sky-400 font-medium truncate flex items-center gap-1 mt-0.5">
+                        <Target className="w-2.5 h-2.5 shrink-0 text-sky-400" />
+                        <span className="truncate">{linkedGoal.title}</span>
+                      </span>
+                    );
+                  })()}
+                </div>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
@@ -343,7 +360,7 @@ export const SmartToday: React.FC = () => {
 
         <div className="grid grid-cols-2 gap-2.5">
           {habits.map(habit => {
-            const todayStr = new Date().toISOString().split('T')[0];
+            const todayStr = getCairoDateString();
             const isCompleted = habit.lastCompletedDate === todayStr;
 
             return (

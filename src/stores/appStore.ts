@@ -3,9 +3,17 @@ import { db, seedInitialDataIfNeeded } from '../db';
 import type {
   LifeDomain,
   Goal,
+  GoalMilestone,
+  GoalLink,
+  CustomCategory,
   Skill,
   LearningResource,
   BookDetails,
+  CourseDetails,
+  CourseModule,
+  CourseLesson,
+  SkillResource,
+  SkillEvidence,
   UniversitySubject,
   StudySession,
   Task,
@@ -19,6 +27,7 @@ import type {
   StudentActivityTask
 } from '../types';
 import { getCairoPrayerTimes, type DayPrayersResult } from '../engines/prayer';
+import { getCairoDateString, getCairoTomorrowDateString } from '../lib/dateUtils';
 import { recommendBestNextAction, type NextActionRecommendation } from '../engines/recommender';
 import { calculateUserRank, generateXPIdempotencyKey, type UserRankProgress } from '../engines/gamification';
 import { evaluateHabitStreak } from '../engines/habits';
@@ -30,7 +39,7 @@ import {
   processSyncQueue 
 } from '../lib/sync';
 
-export type ActiveTab = 'TODAY' | 'UNIVERSITY' | 'BOOKS' | 'FALCON' | 'JOURNAL';
+export type ActiveTab = 'TODAY' | 'GOALS' | 'UNIVERSITY' | 'LEARNING' | 'BOOKS' | 'FALCON' | 'JOURNAL' | 'MORE';
 
 interface AppState {
   // Navigation
@@ -41,9 +50,17 @@ interface AppState {
   isLoaded: boolean;
   domains: LifeDomain[];
   goals: Goal[];
+  goalMilestones: GoalMilestone[];
+  goalLinks: GoalLink[];
+  categories: CustomCategory[];
   skills: Skill[];
   learningResources: LearningResource[];
   bookDetails: BookDetails[];
+  courseDetails: CourseDetails[];
+  courseModules: CourseModule[];
+  courseLessons: CourseLesson[];
+  skillResources: SkillResource[];
+  skillEvidence: SkillEvidence[];
   universitySubjects: UniversitySubject[];
   studySessions: StudySession[];
   tasks: Task[];
@@ -77,8 +94,29 @@ interface AppState {
   
   // 2. Task Actions
   completeTask: (taskId: string) => Promise<void>;
-  postponeTask: (taskId: string, reason?: string) => Promise<void>;
-  addTask: (title: string, priority: Task['priority'], estimatedMinutes?: number, dueDate?: string) => Promise<void>;
+  postponeTask: (taskId: string, reason?: string, targetNewDate?: string) => Promise<void>;
+  addTask: (title: string, priority: Task['priority'], estimatedMinutes?: number, dueDate?: string, goalId?: string, skillId?: string, studySessionId?: string) => Promise<void>;
+
+  // Goal Center Actions
+  createGoal: (goal: Omit<Goal, 'id' | 'createdAt' | 'updatedAt' | 'progressPercentage'>) => Promise<string>;
+  updateGoal: (id: string, updates: Partial<Omit<Goal, 'id' | 'createdAt'>>) => Promise<void>;
+  archiveGoal: (id: string) => Promise<void>;
+  deleteGoal: (id: string) => Promise<void>;
+  addGoalMilestone: (milestone: Omit<GoalMilestone, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
+  toggleMilestone: (id: string) => Promise<void>;
+  deleteMilestone: (id: string) => Promise<void>;
+  recalculateGoalProgress: (goalId: string) => Promise<void>;
+  linkEntityToGoal: (goalId: string, entityType: GoalLink['entityType'], entityId: string) => Promise<void>;
+  unlinkEntityFromGoal: (goalId: string, entityId: string) => Promise<void>;
+
+  // Category Actions
+  addCategory: (category: Omit<CustomCategory, 'id' | 'createdAt' | 'updatedAt' | 'isArchived'>) => Promise<string>;
+  deleteCategory: (id: string) => Promise<void>;
+
+  // Skills & Learning Graph Actions
+  linkSkillResource: (skillId: string, resourceId: string) => Promise<void>;
+  unlinkSkillResource: (skillId: string, resourceId: string) => Promise<void>;
+  addSkillEvidence: (evidence: Omit<SkillEvidence, 'id'>) => Promise<string>;
 
   // 3. University Study Actions
   addUniversitySubject: (subject: Omit<UniversitySubject, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
@@ -112,8 +150,8 @@ interface AppState {
   updateBookPage: (resourceId: string, newPage: number) => Promise<void>;
 
   // 5. Skill & Course Actions
-  addSkill: (name: string, category: Skill['category'], targetLevel?: number) => Promise<void>;
-  addCourseResource: (title: string, sourceUrl?: string, instructor?: string, durationMinutes?: number) => Promise<void>;
+  addSkill: (name: string, category: string, targetLevel?: number) => Promise<void>;
+  addCourseResource: (title: string, sourceUrl?: string, instructor?: string, durationMinutes?: number, totalLessons?: number) => Promise<string>;
 
   // 6. Habit Actions
   toggleHabitToday: (habitId: string) => Promise<void>;
@@ -145,9 +183,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   isLoaded: false,
   domains: [],
   goals: [],
+  goalMilestones: [],
+  goalLinks: [],
+  categories: [],
   skills: [],
   learningResources: [],
   bookDetails: [],
+  courseDetails: [],
+  courseModules: [],
+  courseLessons: [],
+  skillResources: [],
+  skillEvidence: [],
   universitySubjects: [],
   studySessions: [],
   tasks: [],
@@ -212,6 +258,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     set(state => ({ syncStatus: { ...state.syncStatus, isSyncing: true, error: null } }));
     get().showToast('جارِ مزامنة البيانات مع سحابة سوبا بيز... 🔄');
 
+    // 1. Pull changes first to reconcile
+    await pullAllFromSupabase();
+
+    // 2. Push local state
     const pushRes = await pushAllToSupabase();
     if (!pushRes.success) {
       set(state => ({
@@ -221,7 +271,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           error: pushRes.error || 'فشلت المزامنة'
         }
       }));
-      get().showToast(`فشلت المزامنة: ${pushRes.error}`);
+      get().showToast(`تنبيه: ${pushRes.error}`);
       return;
     }
 
@@ -247,9 +297,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     const [
       domains,
       goals,
+      goalMilestones,
+      goalLinks,
+      categories,
       skills,
       learningResources,
       bookDetails,
+      courseDetails,
+      courseModules,
+      courseLessons,
+      skillResources,
+      skillEvidence,
       universitySubjects,
       studySessions,
       tasks,
@@ -264,9 +322,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     ] = await Promise.all([
       db.domains.toArray(),
       db.goals.toArray(),
+      db.goalMilestones.toArray(),
+      db.goalLinks.toArray(),
+      db.categories.toArray(),
       db.skills.toArray(),
       db.learningResources.toArray(),
       db.bookDetails.toArray(),
+      db.courseDetails.toArray(),
+      db.courseModules.toArray(),
+      db.courseLessons.toArray(),
+      db.skillResources.toArray(),
+      db.skillEvidence.toArray(),
       db.universitySubjects.toArray(),
       db.studySessions.toArray(),
       db.tasks.toArray(),
@@ -281,16 +347,24 @@ export const useAppStore = create<AppState>((set, get) => ({
     ]);
 
     const prayers = getCairoPrayerTimes();
-    const bestNextAction = recommendBestNextAction(tasks, prayers, universitySubjects, studySessions);
+    const bestNextAction = recommendBestNextAction(tasks, prayers, universitySubjects, studySessions, new Date(), goals);
     const rankProgress = calculateUserRank(xpTransactions);
 
     set({
       isLoaded: true,
       domains,
       goals,
+      goalMilestones,
+      goalLinks,
+      categories,
       skills,
       learningResources,
       bookDetails,
+      courseDetails,
+      courseModules,
+      courseLessons,
+      skillResources,
+      skillEvidence,
       universitySubjects,
       studySessions,
       tasks,
@@ -311,13 +385,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().checkCloudStatus().catch(console.warn);
   },
 
-  // 1. One-Tap Atomic Read 2 Pages
+  // 1. One-Tap Atomic Read 2 Pages Action (Safe, Transactional, Validated)
   readTwoPagesAction: async (bookResourceId) => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getCairoDateString();
     const now = new Date().toISOString();
 
     // Default to the first in-progress reading book
-    let targetBook = get().bookDetails[0];
+    let targetBook = get().bookDetails.find(b => b.shelf === 'Reading') || get().bookDetails[0];
     if (bookResourceId) {
       targetBook = get().bookDetails.find(b => b.resourceId === bookResourceId) || targetBook;
     }
@@ -328,67 +402,85 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     const startPage = targetBook.currentPage;
+    if (startPage >= targetBook.totalPages) {
+      get().showToast('أنت أتممت قراءة هذا الكتاب بالكامل بالفعل! 🎉');
+      return;
+    }
+
     const endPage = Math.min(targetBook.totalPages, startPage + 2);
     const pagesRead = endPage - startPage;
+    if (pagesRead <= 0) return;
 
-    // A. Update Book Details
-    await db.bookDetails.update(targetBook.resourceId, {
-      currentPage: endPage,
-      shelf: endPage >= targetBook.totalPages ? 'Finished' : 'Reading'
-    });
+    const bookResource = get().learningResources.find(r => r.id === targetBook.resourceId);
+    const bookTitle = bookResource?.title || 'الكتاب';
 
-    // B. Record Reading Session
-    await db.readingSessions.add({
-      id: `read-${Date.now()}`,
-      bookResourceId: targetBook.resourceId,
-      pagesRead,
-      startPage,
-      endPage,
-      date: todayStr,
-      notes: 'قراءة صفحتين سريعة',
-      createdAt: now
-    });
-
-    // C. Update or Complete Reading Habit
-    const readingHabit = get().habits.find(h => h.id === 'habit-read-2-pages' || h.targetType === 'PAGES');
-    if (readingHabit) {
-      const evalRes = evaluateHabitStreak(
-        readingHabit,
-        { id: `log-${Date.now()}`, habitId: readingHabit.id, date: todayStr, status: 'COMPLETED', valueRecorded: 2 },
-        new Date()
-      );
-      await db.habits.update(readingHabit.id, {
-        streakCount: evalRes.updatedStreak,
-        consecutiveMisses: 0,
-        lastCompletedDate: todayStr
+    // Atomic transaction across all affected tables
+    await db.transaction('rw', [
+      db.bookDetails,
+      db.readingSessions,
+      db.habits,
+      db.habitLogs,
+      db.xpTransactions
+    ], async () => {
+      // A. Update Book Details
+      await db.bookDetails.update(targetBook.resourceId, {
+        currentPage: endPage,
+        shelf: endPage >= targetBook.totalPages ? 'Finished' : 'Reading'
       });
-      await db.habitLogs.put({
-        id: `hlog-${readingHabit.id}-${todayStr}`,
-        habitId: readingHabit.id,
+
+      // B. Record Reading Session
+      await db.readingSessions.add({
+        id: `read-${Date.now()}`,
+        bookResourceId: targetBook.resourceId,
+        pagesRead,
+        startPage,
+        endPage,
         date: todayStr,
-        status: 'COMPLETED',
-        valueRecorded: 2,
-        triggerSource: 'READ_2_PAGES_ACTION'
-      });
-    }
-
-    // D. Award Idempotent XP (+15 XP)
-    const idempotencyKey = generateXPIdempotencyKey('READ_2_PAGES', targetBook.resourceId, todayStr);
-    try {
-      await db.xpTransactions.add({
-        id: `xp-${Date.now()}`,
-        idempotencyKey,
-        amount: 15,
-        category: 'READING',
-        reason: `قراءة ${pagesRead} صفحة في كتاب النانو`,
+        notes: 'قراءة صفحتين سريعة',
         createdAt: now
       });
-    } catch (e) {
-      // Ignored if already awarded today
-    }
+
+      // C. Update or Complete Reading Habit
+      const readingHabit = get().habits.find(h => h.id === 'habit-read-2-pages' || h.targetType === 'PAGES');
+      if (readingHabit) {
+        const evalRes = evaluateHabitStreak(
+          readingHabit,
+          { id: `log-${Date.now()}`, habitId: readingHabit.id, date: todayStr, status: 'COMPLETED', valueRecorded: pagesRead },
+          new Date()
+        );
+        await db.habits.update(readingHabit.id, {
+          streakCount: evalRes.updatedStreak,
+          consecutiveMisses: 0,
+          lastCompletedDate: todayStr
+        });
+        await db.habitLogs.put({
+          id: `hlog-${readingHabit.id}-${todayStr}`,
+          habitId: readingHabit.id,
+          date: todayStr,
+          status: 'COMPLETED',
+          valueRecorded: pagesRead,
+          triggerSource: 'READ_2_PAGES_ACTION'
+        });
+      }
+
+      // D. Award Idempotent XP (+15 XP)
+      const idempotencyKey = generateXPIdempotencyKey('READ_2_PAGES', targetBook.resourceId, todayStr);
+      try {
+        await db.xpTransactions.add({
+          id: `xp-${Date.now()}`,
+          idempotencyKey,
+          amount: 15,
+          category: 'READING',
+          reason: `قراءة ${pagesRead} صفحة في "${bookTitle}"`,
+          createdAt: now
+        });
+      } catch (e) {
+        // Ignored if already awarded today
+      }
+    });
 
     await get().loadAllData();
-    get().showToast(`عاش! صفحتين اتسجلوا في كتاب النانو، وعادة القراءة كملت (+15 XP) 🎉`);
+    get().showToast(`عاش! تم تسجيل ${pagesRead} صفحة في "${bookTitle}"، وعادة القراءة كملت (+15 XP) 🎉`);
   },
 
   // 2. Task Actions
@@ -397,7 +489,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!task) return;
 
     const now = new Date().toISOString();
-    const todayStr = now.split('T')[0];
+    const todayStr = getCairoDateString();
 
     await db.tasks.update(taskId, {
       status: 'DONE',
@@ -421,21 +513,27 @@ export const useAppStore = create<AppState>((set, get) => ({
       // Already awarded
     }
 
+    // Check if task is linked to a goal or milestone to recalculate
+    if (task.goalId) {
+      await get().recalculateGoalProgress(task.goalId);
+    }
+
     await get().loadAllData();
     get().showToast(`تم إنجاز المهمة بنجاح! (+${xpAmount} XP) ⚡`);
   },
 
-  postponeTask: async (taskId, reason) => {
+  postponeTask: async (taskId, reason, targetNewDate) => {
     const task = get().tasks.find(t => t.id === taskId);
     if (!task) return;
 
+    if (task.isLocked) {
+      get().showToast('هذه المهمة موعد ثابت محمي لا يمكن ترحيلها تلقائياً 🔒');
+      return;
+    }
+
     const newCount = task.postponementCount + 1;
     const now = new Date().toISOString();
-    
-    // Propose tomorrow as new due date
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const newDueDate = tomorrow.toISOString().split('T')[0];
+    const newDueDate = targetNewDate || getCairoTomorrowDateString();
 
     await db.tasks.update(taskId, {
       postponementCount: newCount,
@@ -447,7 +545,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       id: `postpone-${Date.now()}`,
       taskId,
       postponedAt: now,
-      reason: reason || 'تأجيل اختياري',
+      reason: reason || 'تأجيل تفاوضي',
       newDueDate
     });
 
@@ -456,16 +554,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (newCount >= 3) {
       get().showToast(`المهمة دي اتأجلت 3 مرات! بنقترح تقسيمها أو تخفيف نطاقها.`);
     } else {
-      get().showToast(`تم ترحيل المهمة لبكرة (${newCount} من 3 تأجيلات).`);
+      get().showToast(`تم ترحيل المهمة إلى ${newDueDate} (${newCount} من 3 تأجيلات).`);
     }
   },
 
-  addTask: async (title, priority, estimatedMinutes = 30, dueDate) => {
+  addTask: async (title, priority, estimatedMinutes = 30, dueDate, goalId, skillId, studySessionId) => {
     const now = new Date().toISOString();
-    const todayStr = now.split('T')[0];
+    const todayStr = getCairoDateString();
 
+    const id = `task-${Date.now()}`;
     await db.tasks.add({
-      id: `task-${Date.now()}`,
+      id,
       title,
       priority,
       status: 'TODO',
@@ -473,12 +572,218 @@ export const useAppStore = create<AppState>((set, get) => ({
       estimatedMinutes,
       isLocked: false,
       postponementCount: 0,
+      goalId,
+      skillId,
+      studySessionId,
       createdAt: now,
       updatedAt: now
     });
 
+    if (goalId) {
+      await db.goalLinks.put({
+        id: `glink-task-${Date.now()}`,
+        goalId,
+        entityType: 'TASK',
+        entityId: id,
+        relationship: 'PRIMARY',
+        createdAt: now
+      });
+      await get().recalculateGoalProgress(goalId);
+    }
+
     await get().loadAllData();
     get().showToast('تمت إضافة المهمة بنجاح');
+  },
+
+  // Goal Center Actions
+  createGoal: async (goalData) => {
+    const now = new Date().toISOString();
+    const id = `goal-${Date.now()}`;
+    await db.goals.add({
+      ...goalData,
+      id,
+      progressPercentage: 0,
+      isArchived: false,
+      createdAt: now,
+      updatedAt: now
+    });
+    await get().loadAllData();
+    get().showToast(`تم إنشاء الهدف "${goalData.title}" بنجاح 🎯`);
+    return id;
+  },
+
+  updateGoal: async (id, updates) => {
+    const now = new Date().toISOString();
+    await db.goals.update(id, { ...updates, updatedAt: now });
+    await get().loadAllData();
+    get().showToast('تم تحديث الهدف بنجاح');
+  },
+
+  archiveGoal: async (id) => {
+    const goal = get().goals.find(g => g.id === id);
+    if (!goal) return;
+    const now = new Date().toISOString();
+    await db.goals.update(id, { isArchived: !goal.isArchived, updatedAt: now });
+    await get().loadAllData();
+    get().showToast(goal.isArchived ? 'تم استرجاع الهدف من الأرشيف' : 'تمت أرشفة الهدف بنجاح 📁');
+  },
+
+  deleteGoal: async (id) => {
+    await db.goals.delete(id);
+    await db.goalMilestones.where('goalId').equals(id).delete();
+    await db.goalLinks.where('goalId').equals(id).delete();
+    await get().loadAllData();
+    get().showToast('تم حذف الهدف ومعالمه المرتبطة');
+  },
+
+  addGoalMilestone: async (ms) => {
+    const now = new Date().toISOString();
+    const id = `ms-${Date.now()}`;
+    await db.goalMilestones.add({
+      ...ms,
+      id,
+      createdAt: now,
+      updatedAt: now
+    });
+    await get().recalculateGoalProgress(ms.goalId);
+    await get().loadAllData();
+    get().showToast(`تمت إضافة المعلم: ${ms.title}`);
+    return id;
+  },
+
+  toggleMilestone: async (id) => {
+    const ms = get().goalMilestones.find(m => m.id === id);
+    if (!ms) return;
+    const nextStatus = ms.status === 'COMPLETED' ? 'PENDING' : 'COMPLETED';
+    const now = new Date().toISOString();
+    await db.goalMilestones.update(id, {
+      status: nextStatus,
+      completedAt: nextStatus === 'COMPLETED' ? now : undefined,
+      updatedAt: now
+    });
+    await get().recalculateGoalProgress(ms.goalId);
+    await get().loadAllData();
+  },
+
+  deleteMilestone: async (id) => {
+    const ms = get().goalMilestones.find(m => m.id === id);
+    if (!ms) return;
+    await db.goalMilestones.delete(id);
+    await get().recalculateGoalProgress(ms.goalId);
+    await get().loadAllData();
+  },
+
+  recalculateGoalProgress: async (goalId: string) => {
+    const milestones = await db.goalMilestones.where('goalId').equals(goalId).toArray();
+    const linkedTasks = await db.tasks.where('goalId').equals(goalId).toArray();
+
+    let milestoneProgress = 0;
+    if (milestones.length > 0) {
+      const totalWeight = milestones.reduce((sum, m) => sum + (m.weight || 1), 0);
+      const completedWeight = milestones
+        .filter(m => m.status === 'COMPLETED')
+        .reduce((sum, m) => sum + (m.weight || 1), 0);
+      milestoneProgress = Math.round((completedWeight / totalWeight) * 100);
+    }
+
+    let taskProgress = 0;
+    if (linkedTasks.length > 0) {
+      const doneCount = linkedTasks.filter(t => t.status === 'DONE').length;
+      taskProgress = Math.round((doneCount / linkedTasks.length) * 100);
+    }
+
+    // Combined explainable progress: 70% milestones, 30% tasks (or 100% of available)
+    let finalPercentage = 0;
+    if (milestones.length > 0 && linkedTasks.length > 0) {
+      finalPercentage = Math.round(milestoneProgress * 0.7 + taskProgress * 0.3);
+    } else if (milestones.length > 0) {
+      finalPercentage = milestoneProgress;
+    } else if (linkedTasks.length > 0) {
+      finalPercentage = taskProgress;
+    }
+
+    await db.goals.update(goalId, {
+      progressPercentage: finalPercentage,
+      status: finalPercentage === 100 ? 'ACHIEVED' : finalPercentage > 0 ? 'IN_PROGRESS' : 'NOT_STARTED',
+      updatedAt: new Date().toISOString()
+    });
+  },
+
+  linkEntityToGoal: async (goalId, entityType, entityId) => {
+    const id = `glink-${Date.now()}`;
+    await db.goalLinks.put({
+      id,
+      goalId,
+      entityType,
+      entityId,
+      relationship: 'PRIMARY',
+      createdAt: new Date().toISOString()
+    });
+
+    if (entityType === 'TASK') {
+      await db.tasks.update(entityId, { goalId, updatedAt: new Date().toISOString() });
+      await get().recalculateGoalProgress(goalId);
+    }
+
+    await get().loadAllData();
+    get().showToast('تم ربط العنصر بالهدف بنجاح 🔗');
+  },
+
+  unlinkEntityFromGoal: async (goalId, entityId) => {
+    await db.goalLinks.where('goalId').equals(goalId).filter(l => l.entityId === entityId).delete();
+    const task = await db.tasks.get(entityId);
+    if (task && task.goalId === goalId) {
+      await db.tasks.update(entityId, { goalId: undefined, updatedAt: new Date().toISOString() });
+      await get().recalculateGoalProgress(goalId);
+    }
+    await get().loadAllData();
+    get().showToast('تم فك الارتباط عن الهدف');
+  },
+
+  // Category Actions
+  addCategory: async (catData) => {
+    const now = new Date().toISOString();
+    const id = `cat-${Date.now()}`;
+    await db.categories.add({
+      ...catData,
+      id,
+      isArchived: false,
+      createdAt: now,
+      updatedAt: now
+    });
+    await get().loadAllData();
+    get().showToast(`تمت إضافة التصنيف "${catData.name}"`);
+    return id;
+  },
+
+  deleteCategory: async (id) => {
+    await db.categories.delete(id);
+    await get().loadAllData();
+    get().showToast('تم حذف التصنيف');
+  },
+
+  // Skills & Learning Graph Actions
+  linkSkillResource: async (skillId, resourceId) => {
+    await db.skillResources.put({ skillId, resourceId });
+    await get().loadAllData();
+    get().showToast('تم ربط المورد بالمهارة بنجاح 🔗');
+  },
+
+  unlinkSkillResource: async (skillId, resourceId) => {
+    await db.skillResources.delete([skillId, resourceId]);
+    await get().loadAllData();
+    get().showToast('تم فك ارتباط المورد عن المهارة');
+  },
+
+  addSkillEvidence: async (evidence) => {
+    const id = `ev-${Date.now()}`;
+    await db.skillEvidence.add({
+      ...evidence,
+      id
+    });
+    await get().loadAllData();
+    get().showToast('تم تسجيل شاهد الكفاءة والإتقان 🏆');
+    return id;
   },
 
   // 3. University Study Actions
@@ -859,7 +1164,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().showToast(`تمت إضافة مهارة "${name}" إلى شجرة المهارات 🌳`);
   },
 
-  addCourseResource: async (title, sourceUrl, instructor, durationMinutes = 120) => {
+  addCourseResource: async (title, sourceUrl, instructor, durationMinutes = 120, totalLessons = 0) => {
     const now = new Date().toISOString();
     const resId = `res-course-${Date.now()}`;
 
@@ -877,13 +1182,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     await db.courseDetails.add({
       resourceId: resId,
       instructor: instructor || 'المحاضر',
-      totalLessons: 10,
+      totalLessons,
       completedLessons: 0,
       durationMinutes
     });
 
     await get().loadAllData();
     get().showToast(`تمت إضافة الكورس إلى مركز الموارد التعليمية 🎓`);
+    return resId;
   },
 
   // 6. Habit Actions
@@ -891,7 +1197,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const habit = get().habits.find(h => h.id === habitId);
     if (!habit) return;
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getCairoDateString();
     const existingLog = get().habitLogs.find(l => l.habitId === habitId && l.date === todayStr);
 
     if (existingLog && existingLog.status === 'COMPLETED') {
@@ -957,21 +1263,34 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().showToast('تم حفظ اليومية بخصوصية وأمان تام محلياً 🔒');
   },
 
-  // 8. Backup / Export / Restore
+  // 8. Complete Backup / Export / Restore (Version 2 with 26 Tables)
   exportBackupJSON: async () => {
     const allData = {
-      version: 1,
+      version: 2,
+      schemaVersion: 3,
       exportedAt: new Date().toISOString(),
       domains: await db.domains.toArray(),
       goals: await db.goals.toArray(),
+      goalMilestones: await db.goalMilestones.toArray(),
+      goalLinks: await db.goalLinks.toArray(),
+      categories: await db.categories.toArray(),
       skills: await db.skills.toArray(),
       learningResources: await db.learningResources.toArray(),
       bookDetails: await db.bookDetails.toArray(),
       readingSessions: await db.readingSessions.toArray(),
       courseDetails: await db.courseDetails.toArray(),
+      courseModules: await db.courseModules.toArray(),
+      courseLessons: await db.courseLessons.toArray(),
+      skillResources: await db.skillResources.toArray(),
+      skillEvidence: await db.skillEvidence.toArray(),
       universitySubjects: await db.universitySubjects.toArray(),
       studySessions: await db.studySessions.toArray(),
+      timetableSlots: await db.timetableSlots.toArray(),
+      academicQuizzes: await db.academicQuizzes.toArray(),
+      academicAssignments: await db.academicAssignments.toArray(),
+      studentActivities: await db.studentActivities.toArray(),
       tasks: await db.tasks.toArray(),
+      taskPostponements: await db.taskPostponements.toArray(),
       habits: await db.habits.toArray(),
       habitLogs: await db.habitLogs.toArray(),
       xpTransactions: await db.xpTransactions.toArray(),
@@ -988,14 +1307,26 @@ export const useAppStore = create<AppState>((set, get) => ({
       await db.transaction('rw', [
         db.domains,
         db.goals,
+        db.goalMilestones,
+        db.goalLinks,
+        db.categories,
         db.skills,
         db.learningResources,
         db.bookDetails,
         db.readingSessions,
         db.courseDetails,
+        db.courseModules,
+        db.courseLessons,
+        db.skillResources,
+        db.skillEvidence,
         db.universitySubjects,
         db.studySessions,
+        db.timetableSlots,
+        db.academicQuizzes,
+        db.academicAssignments,
+        db.studentActivities,
         db.tasks,
+        db.taskPostponements,
         db.habits,
         db.habitLogs,
         db.xpTransactions,
@@ -1003,13 +1334,26 @@ export const useAppStore = create<AppState>((set, get) => ({
       ], async () => {
         if (data.domains?.length) await db.domains.bulkPut(data.domains);
         if (data.goals?.length) await db.goals.bulkPut(data.goals);
+        if (data.goalMilestones?.length) await db.goalMilestones.bulkPut(data.goalMilestones);
+        if (data.goalLinks?.length) await db.goalLinks.bulkPut(data.goalLinks);
+        if (data.categories?.length) await db.categories.bulkPut(data.categories);
         if (data.skills?.length) await db.skills.bulkPut(data.skills);
         if (data.learningResources?.length) await db.learningResources.bulkPut(data.learningResources);
         if (data.bookDetails?.length) await db.bookDetails.bulkPut(data.bookDetails);
         if (data.readingSessions?.length) await db.readingSessions.bulkPut(data.readingSessions);
+        if (data.courseDetails?.length) await db.courseDetails.bulkPut(data.courseDetails);
+        if (data.courseModules?.length) await db.courseModules.bulkPut(data.courseModules);
+        if (data.courseLessons?.length) await db.courseLessons.bulkPut(data.courseLessons);
+        if (data.skillResources?.length) await db.skillResources.bulkPut(data.skillResources);
+        if (data.skillEvidence?.length) await db.skillEvidence.bulkPut(data.skillEvidence);
         if (data.universitySubjects?.length) await db.universitySubjects.bulkPut(data.universitySubjects);
         if (data.studySessions?.length) await db.studySessions.bulkPut(data.studySessions);
+        if (data.timetableSlots?.length) await db.timetableSlots.bulkPut(data.timetableSlots);
+        if (data.academicQuizzes?.length) await db.academicQuizzes.bulkPut(data.academicQuizzes);
+        if (data.academicAssignments?.length) await db.academicAssignments.bulkPut(data.academicAssignments);
+        if (data.studentActivities?.length) await db.studentActivities.bulkPut(data.studentActivities);
         if (data.tasks?.length) await db.tasks.bulkPut(data.tasks);
+        if (data.taskPostponements?.length) await db.taskPostponements.bulkPut(data.taskPostponements);
         if (data.habits?.length) await db.habits.bulkPut(data.habits);
         if (data.habitLogs?.length) await db.habitLogs.bulkPut(data.habitLogs);
         if (data.xpTransactions?.length) await db.xpTransactions.bulkPut(data.xpTransactions);

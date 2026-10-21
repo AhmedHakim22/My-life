@@ -1,6 +1,6 @@
 -- ============================================================
 -- MASAAR Life OS (مَسار) — Supabase PostgreSQL Schema & RLS Policies
--- Complete 17-Table Schema for Personal Life Coach OS
+-- Complete Production Schema with Hardened RLS Policies (SEC-01 Resolved)
 -- Execute in Supabase SQL Editor (All-in-One Setup Script)
 -- ============================================================
 
@@ -22,15 +22,16 @@ CREATE TABLE IF NOT EXISTS public.domains (
 ALTER TABLE public.domains ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own domains" ON public.domains;
 CREATE POLICY "Users can manage own domains" ON public.domains 
-    FOR ALL 
-    USING (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL) 
-    WITH CHECK (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL);
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
 
 -- 2. Goals Table
 CREATE TABLE IF NOT EXISTS public.goals (
     id TEXT PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
     domain_id TEXT REFERENCES public.domains(id) ON DELETE SET NULL,
+    parent_goal_id TEXT REFERENCES public.goals(id) ON DELETE SET NULL,
     title TEXT NOT NULL,
     why_it_matters TEXT,
     horizon TEXT DEFAULT 'MONTHLY',
@@ -44,17 +45,88 @@ CREATE TABLE IF NOT EXISTS public.goals (
 ALTER TABLE public.goals ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own goals" ON public.goals;
 CREATE POLICY "Users can manage own goals" ON public.goals 
-    FOR ALL 
-    USING (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL) 
-    WITH CHECK (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL);
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
 
--- 3. Skills Table
+-- 3. Goal Milestones
+CREATE TABLE IF NOT EXISTS public.goal_milestones (
+    id TEXT PRIMARY KEY,
+    goal_id TEXT REFERENCES public.goals(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    target_date DATE,
+    status TEXT DEFAULT 'PENDING',
+    sort_order INTEGER DEFAULT 0,
+    weight INTEGER DEFAULT 25,
+    completed_at TIMESTAMPTZ,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.goal_milestones ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own goal milestones" ON public.goal_milestones;
+CREATE POLICY "Users can manage own goal milestones" ON public.goal_milestones 
+    FOR ALL TO authenticated
+    USING (EXISTS (
+        SELECT 1 FROM public.goals g 
+        WHERE g.id = goal_milestones.goal_id AND g.user_id = auth.uid()
+    ))
+    WITH CHECK (EXISTS (
+        SELECT 1 FROM public.goals g 
+        WHERE g.id = goal_milestones.goal_id AND g.user_id = auth.uid()
+    ));
+
+-- 4. Goal Links
+CREATE TABLE IF NOT EXISTS public.goal_links (
+    id TEXT PRIMARY KEY,
+    goal_id TEXT REFERENCES public.goals(id) ON DELETE CASCADE,
+    entity_type TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    relationship TEXT DEFAULT 'PRIMARY',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.goal_links ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own goal links" ON public.goal_links;
+CREATE POLICY "Users can manage own goal links" ON public.goal_links 
+    FOR ALL TO authenticated
+    USING (EXISTS (
+        SELECT 1 FROM public.goals g 
+        WHERE g.id = goal_links.goal_id AND g.user_id = auth.uid()
+    ))
+    WITH CHECK (EXISTS (
+        SELECT 1 FROM public.goals g 
+        WHERE g.id = goal_links.goal_id AND g.user_id = auth.uid()
+    ));
+
+-- 5. Categories
+CREATE TABLE IF NOT EXISTS public.categories (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+    parent_id TEXT REFERENCES public.categories(id) ON DELETE SET NULL,
+    name TEXT NOT NULL,
+    type TEXT DEFAULT 'GENERAL',
+    color TEXT,
+    icon TEXT,
+    sort_order INTEGER DEFAULT 0,
+    is_archived BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own categories" ON public.categories;
+CREATE POLICY "Users can manage own categories" ON public.categories 
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
+
+-- 6. Skills Table
 CREATE TABLE IF NOT EXISTS public.skills (
     id TEXT PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
     parent_skill_id TEXT REFERENCES public.skills(id) ON DELETE SET NULL,
     name TEXT NOT NULL,
     category TEXT DEFAULT 'تقني',
+    category_id TEXT REFERENCES public.categories(id) ON DELETE SET NULL,
     baseline_level INTEGER DEFAULT 1,
     target_level INTEGER DEFAULT 5,
     content_progress INTEGER DEFAULT 0,
@@ -66,11 +138,11 @@ CREATE TABLE IF NOT EXISTS public.skills (
 ALTER TABLE public.skills ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own skills" ON public.skills;
 CREATE POLICY "Users can manage own skills" ON public.skills 
-    FOR ALL 
-    USING (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL) 
-    WITH CHECK (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL);
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
 
--- 4. Learning Resources (Canonical Hub)
+-- 7. Learning Resources (Canonical Hub)
 CREATE TABLE IF NOT EXISTS public.learning_resources (
     id TEXT PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
@@ -79,6 +151,7 @@ CREATE TABLE IF NOT EXISTS public.learning_resources (
     description TEXT,
     source_url TEXT,
     provider TEXT,
+    category_id TEXT REFERENCES public.categories(id) ON DELETE SET NULL,
     status TEXT DEFAULT 'IN_PROGRESS',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -86,11 +159,11 @@ CREATE TABLE IF NOT EXISTS public.learning_resources (
 ALTER TABLE public.learning_resources ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own resources" ON public.learning_resources;
 CREATE POLICY "Users can manage own resources" ON public.learning_resources 
-    FOR ALL 
-    USING (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL) 
-    WITH CHECK (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL);
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
 
--- 5. Book Details
+-- 8. Book Details (Child of learning_resources)
 CREATE TABLE IF NOT EXISTS public.book_details (
     resource_id TEXT PRIMARY KEY REFERENCES public.learning_resources(id) ON DELETE CASCADE,
     author TEXT,
@@ -104,11 +177,17 @@ CREATE TABLE IF NOT EXISTS public.book_details (
 ALTER TABLE public.book_details ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own book details" ON public.book_details;
 CREATE POLICY "Users can manage own book details" ON public.book_details 
-    FOR ALL 
-    USING (true) 
-    WITH CHECK (true);
+    FOR ALL TO authenticated
+    USING (EXISTS (
+        SELECT 1 FROM public.learning_resources r 
+        WHERE r.id = book_details.resource_id AND r.user_id = auth.uid()
+    ))
+    WITH CHECK (EXISTS (
+        SELECT 1 FROM public.learning_resources r 
+        WHERE r.id = book_details.resource_id AND r.user_id = auth.uid()
+    ));
 
--- 6. Reading Sessions
+-- 9. Reading Sessions
 CREATE TABLE IF NOT EXISTS public.reading_sessions (
     id TEXT PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
@@ -123,11 +202,11 @@ CREATE TABLE IF NOT EXISTS public.reading_sessions (
 ALTER TABLE public.reading_sessions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own reading sessions" ON public.reading_sessions;
 CREATE POLICY "Users can manage own reading sessions" ON public.reading_sessions 
-    FOR ALL 
-    USING (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL) 
-    WITH CHECK (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL);
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
 
--- 7. Course Details
+-- 10. Course Details (Child of learning_resources)
 CREATE TABLE IF NOT EXISTS public.course_details (
     resource_id TEXT PRIMARY KEY REFERENCES public.learning_resources(id) ON DELETE CASCADE,
     instructor TEXT,
@@ -139,11 +218,17 @@ CREATE TABLE IF NOT EXISTS public.course_details (
 ALTER TABLE public.course_details ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own course details" ON public.course_details;
 CREATE POLICY "Users can manage own course details" ON public.course_details 
-    FOR ALL 
-    USING (true) 
-    WITH CHECK (true);
+    FOR ALL TO authenticated
+    USING (EXISTS (
+        SELECT 1 FROM public.learning_resources r 
+        WHERE r.id = course_details.resource_id AND r.user_id = auth.uid()
+    ))
+    WITH CHECK (EXISTS (
+        SELECT 1 FROM public.learning_resources r 
+        WHERE r.id = course_details.resource_id AND r.user_id = auth.uid()
+    ));
 
--- 8. Skill Resources (Many-to-Many Skill <-> Resource)
+-- 11. Skill Resources (Many-to-Many Skill <-> Resource)
 CREATE TABLE IF NOT EXISTS public.skill_resources (
     skill_id TEXT REFERENCES public.skills(id) ON DELETE CASCADE,
     resource_id TEXT REFERENCES public.learning_resources(id) ON DELETE CASCADE,
@@ -152,11 +237,17 @@ CREATE TABLE IF NOT EXISTS public.skill_resources (
 ALTER TABLE public.skill_resources ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own skill resources" ON public.skill_resources;
 CREATE POLICY "Users can manage own skill resources" ON public.skill_resources 
-    FOR ALL 
-    USING (true) 
-    WITH CHECK (true);
+    FOR ALL TO authenticated
+    USING (EXISTS (
+        SELECT 1 FROM public.skills s 
+        WHERE s.id = skill_resources.skill_id AND s.user_id = auth.uid()
+    ))
+    WITH CHECK (EXISTS (
+        SELECT 1 FROM public.skills s 
+        WHERE s.id = skill_resources.skill_id AND s.user_id = auth.uid()
+    ));
 
--- 9. Skill Evidence (Artifacts & Verification)
+-- 12. Skill Evidence
 CREATE TABLE IF NOT EXISTS public.skill_evidence (
     id TEXT PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
@@ -169,11 +260,11 @@ CREATE TABLE IF NOT EXISTS public.skill_evidence (
 ALTER TABLE public.skill_evidence ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own skill evidence" ON public.skill_evidence;
 CREATE POLICY "Users can manage own skill evidence" ON public.skill_evidence 
-    FOR ALL 
-    USING (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL) 
-    WITH CHECK (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL);
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
 
--- 10. University Subjects
+-- 13. University Subjects
 CREATE TABLE IF NOT EXISTS public.university_subjects (
     id TEXT PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
@@ -183,6 +274,10 @@ CREATE TABLE IF NOT EXISTS public.university_subjects (
     semester INTEGER DEFAULT 1,
     professor TEXT,
     exam_date DATE,
+    mid_exam_date DATE,
+    focus TEXT DEFAULT 'Normal',
+    hall TEXT,
+    schedule_description TEXT,
     difficulty TEXT DEFAULT 'MEDIUM',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -190,17 +285,24 @@ CREATE TABLE IF NOT EXISTS public.university_subjects (
 ALTER TABLE public.university_subjects ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own subjects" ON public.university_subjects;
 CREATE POLICY "Users can manage own subjects" ON public.university_subjects 
-    FOR ALL 
-    USING (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL) 
-    WITH CHECK (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL);
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
 
--- 11. Study Sessions & FSRS
+-- 14. Study Sessions & FSRS (Child of university_subjects)
 CREATE TABLE IF NOT EXISTS public.study_sessions (
     id TEXT PRIMARY KEY,
     subject_id TEXT REFERENCES public.university_subjects(id) ON DELETE CASCADE,
     type TEXT DEFAULT 'LECTURE',
     title TEXT NOT NULL,
+    lecture_number INTEGER,
     status TEXT DEFAULT 'STUDIED',
+    material_ready BOOLEAN DEFAULT FALSE,
+    study_done BOOLEAN DEFAULT FALSE,
+    revise_done BOOLEAN DEFAULT FALSE,
+    solve_done BOOLEAN DEFAULT FALSE,
+    priority TEXT DEFAULT 'Normal',
+    notes TEXT,
     submitted_date TIMESTAMPTZ,
     fsrs_stability DOUBLE PRECISION DEFAULT 0.0,
     fsrs_difficulty DOUBLE PRECISION DEFAULT 0.0,
@@ -210,11 +312,98 @@ CREATE TABLE IF NOT EXISTS public.study_sessions (
 ALTER TABLE public.study_sessions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own study sessions" ON public.study_sessions;
 CREATE POLICY "Users can manage own study sessions" ON public.study_sessions 
-    FOR ALL 
-    USING (true) 
-    WITH CHECK (true);
+    FOR ALL TO authenticated
+    USING (EXISTS (
+        SELECT 1 FROM public.university_subjects s 
+        WHERE s.id = study_sessions.subject_id AND s.user_id = auth.uid()
+    ))
+    WITH CHECK (EXISTS (
+        SELECT 1 FROM public.university_subjects s 
+        WHERE s.id = study_sessions.subject_id AND s.user_id = auth.uid()
+    ));
 
--- 12. Tasks
+-- 15. Timetable Slots
+CREATE TABLE IF NOT EXISTS public.timetable_slots (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+    day TEXT NOT NULL,
+    start_time TEXT NOT NULL,
+    end_time TEXT NOT NULL,
+    subject_name TEXT NOT NULL,
+    subject_code TEXT,
+    format TEXT DEFAULT 'Campus',
+    hall TEXT,
+    notes TEXT
+);
+ALTER TABLE public.timetable_slots ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own timetable slots" ON public.timetable_slots;
+CREATE POLICY "Users can manage own timetable slots" ON public.timetable_slots 
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
+
+-- 16. Academic Quizzes
+CREATE TABLE IF NOT EXISTS public.academic_quizzes (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+    topic TEXT NOT NULL,
+    subject_id TEXT REFERENCES public.university_subjects(id) ON DELETE CASCADE,
+    subject_name TEXT,
+    quiz_date DATE NOT NULL,
+    syllabus_scope TEXT,
+    prepared BOOLEAN DEFAULT FALSE,
+    attended BOOLEAN DEFAULT FALSE,
+    my_score DOUBLE PRECISION,
+    out_of DOUBLE PRECISION
+);
+ALTER TABLE public.academic_quizzes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own quizzes" ON public.academic_quizzes;
+CREATE POLICY "Users can manage own quizzes" ON public.academic_quizzes 
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
+
+-- 17. Academic Assignments
+CREATE TABLE IF NOT EXISTS public.academic_assignments (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+    task_name TEXT NOT NULL,
+    subject_id TEXT REFERENCES public.university_subjects(id) ON DELETE CASCADE,
+    subject_name TEXT,
+    deadline DATE NOT NULL,
+    lecture TEXT,
+    completed BOOLEAN DEFAULT FALSE,
+    submitted BOOLEAN DEFAULT FALSE,
+    blocked BOOLEAN DEFAULT FALSE,
+    score DOUBLE PRECISION
+);
+ALTER TABLE public.academic_assignments ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own assignments" ON public.academic_assignments;
+CREATE POLICY "Users can manage own assignments" ON public.academic_assignments 
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
+
+-- 18. Student Activities
+CREATE TABLE IF NOT EXISTS public.student_activities (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+    activity_name TEXT NOT NULL,
+    task_name TEXT NOT NULL,
+    deadline DATE,
+    done BOOLEAN DEFAULT FALSE,
+    delegated BOOLEAN DEFAULT FALSE,
+    follow_up_date DATE,
+    notes TEXT
+);
+ALTER TABLE public.student_activities ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own student activities" ON public.student_activities;
+CREATE POLICY "Users can manage own student activities" ON public.student_activities 
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
+
+-- 19. Tasks
 CREATE TABLE IF NOT EXISTS public.tasks (
     id TEXT PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
@@ -234,11 +423,11 @@ CREATE TABLE IF NOT EXISTS public.tasks (
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own tasks" ON public.tasks;
 CREATE POLICY "Users can manage own tasks" ON public.tasks 
-    FOR ALL 
-    USING (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL) 
-    WITH CHECK (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL);
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
 
--- 13. Task Postponements
+-- 20. Task Postponements (Child of tasks)
 CREATE TABLE IF NOT EXISTS public.task_postponements (
     id TEXT PRIMARY KEY,
     task_id TEXT REFERENCES public.tasks(id) ON DELETE CASCADE,
@@ -249,11 +438,17 @@ CREATE TABLE IF NOT EXISTS public.task_postponements (
 ALTER TABLE public.task_postponements ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own task postponements" ON public.task_postponements;
 CREATE POLICY "Users can manage own task postponements" ON public.task_postponements 
-    FOR ALL 
-    USING (true) 
-    WITH CHECK (true);
+    FOR ALL TO authenticated
+    USING (EXISTS (
+        SELECT 1 FROM public.tasks t 
+        WHERE t.id = task_postponements.task_id AND t.user_id = auth.uid()
+    ))
+    WITH CHECK (EXISTS (
+        SELECT 1 FROM public.tasks t 
+        WHERE t.id = task_postponements.task_id AND t.user_id = auth.uid()
+    ));
 
--- 14. Habits
+-- 21. Habits
 CREATE TABLE IF NOT EXISTS public.habits (
     id TEXT PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
@@ -270,11 +465,11 @@ CREATE TABLE IF NOT EXISTS public.habits (
 ALTER TABLE public.habits ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own habits" ON public.habits;
 CREATE POLICY "Users can manage own habits" ON public.habits 
-    FOR ALL 
-    USING (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL) 
-    WITH CHECK (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL);
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
 
--- 15. Habit Logs
+-- 22. Habit Logs (Child of habits)
 CREATE TABLE IF NOT EXISTS public.habit_logs (
     id TEXT PRIMARY KEY,
     habit_id TEXT REFERENCES public.habits(id) ON DELETE CASCADE,
@@ -286,11 +481,17 @@ CREATE TABLE IF NOT EXISTS public.habit_logs (
 ALTER TABLE public.habit_logs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own habit logs" ON public.habit_logs;
 CREATE POLICY "Users can manage own habit logs" ON public.habit_logs 
-    FOR ALL 
-    USING (true) 
-    WITH CHECK (true);
+    FOR ALL TO authenticated
+    USING (EXISTS (
+        SELECT 1 FROM public.habits h 
+        WHERE h.id = habit_logs.habit_id AND h.user_id = auth.uid()
+    ))
+    WITH CHECK (EXISTS (
+        SELECT 1 FROM public.habits h 
+        WHERE h.id = habit_logs.habit_id AND h.user_id = auth.uid()
+    ));
 
--- 16. XP Transactions Ledger
+-- 23. XP Transactions Ledger
 CREATE TABLE IF NOT EXISTS public.xp_transactions (
     id TEXT PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
@@ -303,11 +504,11 @@ CREATE TABLE IF NOT EXISTS public.xp_transactions (
 ALTER TABLE public.xp_transactions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own xp" ON public.xp_transactions;
 CREATE POLICY "Users can manage own xp" ON public.xp_transactions 
-    FOR ALL 
-    USING (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL) 
-    WITH CHECK (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL);
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
 
--- 17. Journal Entries (Encrypted/Private Local-First)
+-- 24. Journal Entries (Private Personal Data)
 CREATE TABLE IF NOT EXISTS public.journal_entries (
     id TEXT PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
@@ -321,9 +522,9 @@ CREATE TABLE IF NOT EXISTS public.journal_entries (
 ALTER TABLE public.journal_entries ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own journal" ON public.journal_entries;
 CREATE POLICY "Users can manage own journal" ON public.journal_entries 
-    FOR ALL 
-    USING (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL) 
-    WITH CHECK (auth.uid() = user_id OR auth.uid() IS NULL OR user_id IS NULL);
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
 
 -- Realtime publication for reactive cloud sync
-ALTER PUBLICATION supabase_realtime ADD TABLE public.tasks, public.habits, public.xp_transactions, public.university_subjects, public.study_sessions;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.tasks, public.habits, public.goals, public.xp_transactions, public.university_subjects, public.study_sessions;

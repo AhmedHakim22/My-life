@@ -1,5 +1,6 @@
-import type { Task, UniversitySubject, StudySession } from '../types';
+import type { Task, UniversitySubject, StudySession, Goal } from '../types';
 import type { DayPrayersResult } from './prayer';
+import { getCairoDateString } from '../lib/dateUtils';
 
 export interface NextActionRecommendation {
   task: Task;
@@ -17,13 +18,14 @@ export function recommendBestNextAction(
   prayers: DayPrayersResult,
   subjects: UniversitySubject[] = [],
   sessions: StudySession[] = [],
-  currentDate: Date = new Date()
+  currentDate: Date = new Date(),
+  goals: Goal[] = []
 ): NextActionRecommendation | null {
   const pendingTasks = tasks.filter(t => t.status === 'TODO' || t.status === 'IN_PROGRESS');
   if (pendingTasks.length === 0) return null;
 
   const freeWindow = prayers.freeWindowMinutes; // minutes to next prayer
-  const todayStr = currentDate.toISOString().split('T')[0];
+  const todayStr = getCairoDateString(currentDate);
 
   // Map subjects for easy exam date lookup
   const subjectMap = new Map<string, UniversitySubject>();
@@ -37,21 +39,36 @@ export function recommendBestNextAction(
     sessionMap.set(sess.id, sess);
   }
 
+  // Map goals for direct lookup
+  const goalMap = new Map<string, Goal>();
+  for (const g of goals) {
+    goalMap.set(g.id, g);
+  }
+
   const scoredTasks = pendingTasks.map(task => {
     let score = 50; // base score
     let rationale = '';
     let category: 'STUDY' | 'BUSINESS' | 'HABIT' | 'GENERAL' = 'GENERAL';
 
-    // 1. Priority weighting
-    if (task.priority === 'P1_URGENT_IMPORTANT') {
-      score += 35;
-      rationale = 'مهمة ذات أولوية قصوى وأثر مباشر';
-    } else if (task.priority === 'P2_IMPORTANT') {
-      score += 20;
-      rationale = 'مهمة استراتيجية هامة';
+    // 1. Goal impact weighting (High strategic alignment)
+    if (task.goalId) {
+      const linkedGoal = goalMap.get(task.goalId);
+      if (linkedGoal && !linkedGoal.isArchived) {
+        score += 30;
+        rationale = `تدفع مباشرة نحو هدفك: "${linkedGoal.title}"`;
+      }
     }
 
-    // 2. Proximity to Exam or Hard Deadline
+    // 2. Priority weighting
+    if (task.priority === 'P1_URGENT_IMPORTANT') {
+      score += 35;
+      rationale = rationale ? `${rationale} (أولوية قصوى P1)` : 'مهمة ذات أولوية قصوى وأثر مباشر';
+    } else if (task.priority === 'P2_IMPORTANT') {
+      score += 20;
+      if (!rationale) rationale = 'مهمة استراتيجية هامة P2';
+    }
+
+    // 3. Proximity to Exam or Hard Deadline
     if (task.studySessionId) {
       category = 'STUDY';
       const session = sessionMap.get(task.studySessionId);
@@ -75,7 +92,7 @@ export function recommendBestNextAction(
       if (!rationale) rationale = 'مسؤولية ريادية لتطوير فالكون';
     }
 
-    // 3. Due Date proximity
+    // 4. Due Date proximity
     if (task.dueDate) {
       if (task.dueDate <= todayStr) {
         score += 25;
@@ -83,7 +100,7 @@ export function recommendBestNextAction(
       }
     }
 
-    // 4. Prayer Time Window Fit
+    // 5. Prayer Time Window Fit
     const fitsTimeWindow = task.estimatedMinutes <= freeWindow;
     if (fitsTimeWindow) {
       score += 15;
@@ -92,7 +109,7 @@ export function recommendBestNextAction(
       score -= 10;
     }
 
-    // 5. Postponement Check (3-miss threshold)
+    // 6. Postponement Check (3-miss threshold)
     const isPostponementIntervention = task.postponementCount >= 3;
     let interventionProposal: string | undefined;
 
