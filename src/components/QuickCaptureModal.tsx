@@ -1,0 +1,320 @@
+import React, { useState } from 'react';
+import { X, Check, Book, Video, FileText, CheckSquare, Loader2 } from 'lucide-react';
+import { useAppStore } from '../stores/appStore';
+import { fireConfettiSuccess } from '../lib/confetti';
+
+export const QuickCaptureModal: React.FC = () => {
+  const { isQuickCaptureOpen, setQuickCaptureOpen, addTask, addBook, addCourseResource, addJournalEntry } = useAppStore();
+  const [tab, setTab] = useState<'TASK' | 'BOOK' | 'COURSE' | 'NOTE'>('TASK');
+
+  // Task form
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskPriority, setTaskPriority] = useState<'P1_URGENT_IMPORTANT' | 'P2_IMPORTANT' | 'P3_NORMAL'>('P2_IMPORTANT');
+  const [taskMinutes, setTaskMinutes] = useState(30);
+
+  // Book form & lookup
+  const [bookTitle, setBookTitle] = useState('');
+  const [bookAuthor, setBookAuthor] = useState('');
+  const [bookPages, setBookPages] = useState(250);
+  const [bookCover, setBookCover] = useState('');
+  const [isSearchingBook, setIsSearchingBook] = useState(false);
+
+  // Course form & lookup
+  const [courseUrl, setCourseUrl] = useState('');
+  const [courseTitle, setCourseTitle] = useState('');
+  const [courseInstructor, setCourseInstructor] = useState('');
+  const [isSearchingCourse, setIsSearchingCourse] = useState(false);
+
+  // Note form
+  const [noteContent, setNoteContent] = useState('');
+  const [noteTags, setNoteTags] = useState('#تأمل');
+
+  if (!isQuickCaptureOpen) return null;
+
+  const handleBookLookup = async () => {
+    if (!bookTitle.trim()) return;
+    setIsSearchingBook(true);
+    try {
+      const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(bookTitle)}&limit=1`);
+      const data = await res.json();
+      if (data.docs && data.docs.length > 0) {
+        const doc = data.docs[0];
+        setBookTitle(doc.title || bookTitle);
+        if (doc.author_name?.[0]) setBookAuthor(doc.author_name[0]);
+        if (doc.number_of_pages_median) setBookPages(doc.number_of_pages_median);
+        if (doc.cover_i) setBookCover(`https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSearchingBook(false);
+    }
+  };
+
+  const handleCourseLookup = async () => {
+    if (!courseUrl.trim()) return;
+    setIsSearchingCourse(true);
+    try {
+      if (courseUrl.includes('youtube.com') || courseUrl.includes('youtu.be')) {
+        const res = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(courseUrl)}&format=json`);
+        const data = await res.json();
+        if (data.title) setCourseTitle(data.title);
+        if (data.author_name) setCourseInstructor(data.author_name);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSearchingCourse(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (tab === 'TASK' && taskTitle.trim()) {
+      await addTask(taskTitle, taskPriority, taskMinutes);
+      setTaskTitle('');
+    } else if (tab === 'BOOK' && bookTitle.trim()) {
+      await addBook(bookTitle, bookAuthor, bookPages, bookCover);
+      setBookTitle('');
+      setBookAuthor('');
+      setBookCover('');
+    } else if (tab === 'COURSE' && courseTitle.trim()) {
+      await addCourseResource(courseTitle, courseUrl, courseInstructor);
+      setCourseUrl('');
+      setCourseTitle('');
+      setCourseInstructor('');
+    } else if (tab === 'NOTE' && noteContent.trim()) {
+      const tags = noteTags.split(' ').filter(t => t.startsWith('#'));
+      await addJournalEntry(noteContent, 'FREE_WRITING', tags);
+      setNoteContent('');
+    }
+    fireConfettiSuccess();
+    setQuickCaptureOpen(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-2 sm:p-4">
+      <div className="bg-[#131b2e] border border-slate-700/80 rounded-t-3xl sm:rounded-3xl w-full max-w-md p-4 space-y-4 shadow-2xl animate-in fade-in slide-in-from-bottom duration-200">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <h2 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
+            ⚡ تسجيل سريع (Quick Capture)
+          </h2>
+          <button
+            type="button"
+            onClick={() => setQuickCaptureOpen(false)}
+            aria-label="إغلاق"
+            className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-slate-100 flex items-center justify-center"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Tab Selector */}
+        <div className="grid grid-cols-4 gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+          <button
+            type="button"
+            onClick={() => setTab('TASK')}
+            className={`py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1 transition-colors ${
+              tab === 'TASK' ? 'bg-sky-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <CheckSquare className="w-3.5 h-3.5" />
+            مهمة
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('BOOK')}
+            className={`py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1 transition-colors ${
+              tab === 'BOOK' ? 'bg-sky-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Book className="w-3.5 h-3.5" />
+            كتاب
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('COURSE')}
+            className={`py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1 transition-colors ${
+              tab === 'COURSE' ? 'bg-sky-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Video className="w-3.5 h-3.5" />
+            كورس
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('NOTE')}
+            className={`py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1 transition-colors ${
+              tab === 'NOTE' ? 'bg-sky-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            فكرة
+          </button>
+        </div>
+
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="space-y-3">
+          {tab === 'TASK' && (
+            <>
+              <input
+                type="text"
+                value={taskTitle}
+                onChange={e => setTaskTitle(e.target.value)}
+                placeholder="عنوان المهمة (مثلاً: تجهيز بوست فالكون أو شيت النانو)..."
+                autoFocus
+                required
+                className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-500"
+              />
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTaskPriority('P1_URGENT_IMPORTANT')}
+                  className={`py-2 text-[11px] rounded-lg border font-bold ${
+                    taskPriority === 'P1_URGENT_IMPORTANT' ? 'bg-red-950/60 border-red-500 text-red-300' : 'border-slate-800 text-slate-400'
+                  }`}
+                >
+                  عاجل ومهم 🔴
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTaskPriority('P2_IMPORTANT')}
+                  className={`py-2 text-[11px] rounded-lg border font-bold ${
+                    taskPriority === 'P2_IMPORTANT' ? 'bg-sky-950/60 border-sky-500 text-sky-300' : 'border-slate-800 text-slate-400'
+                  }`}
+                >
+                  استراتيجي 🔵
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTaskPriority('P3_NORMAL')}
+                  className={`py-2 text-[11px] rounded-lg border font-bold ${
+                    taskPriority === 'P3_NORMAL' ? 'bg-slate-800 border-slate-600 text-slate-200' : 'border-slate-800 text-slate-400'
+                  }`}
+                >
+                  عادي ⚪
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400">الوقت التقديري:</span>
+                {[15, 30, 45, 60].map(mins => (
+                  <button
+                    key={mins}
+                    type="button"
+                    onClick={() => setTaskMinutes(mins)}
+                    className={`px-2.5 py-1 text-[11px] rounded-md font-mono border ${
+                      taskMinutes === mins ? 'bg-sky-500 text-slate-950 border-sky-400 font-bold' : 'border-slate-800 text-slate-400'
+                    }`}
+                  >
+                    {mins}د
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {tab === 'BOOK' && (
+            <>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={bookTitle}
+                  onChange={e => setBookTitle(e.target.value)}
+                  placeholder="عنوان الكتاب..."
+                  autoFocus
+                  required
+                  className="flex-1 bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleBookLookup}
+                  disabled={isSearchingBook}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 rounded-xl border border-slate-700 flex items-center gap-1"
+                >
+                  {isSearchingBook ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'بحث غلاف'}
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  value={bookAuthor}
+                  onChange={e => setBookAuthor(e.target.value)}
+                  placeholder="اسم المؤلف (اختياري)..."
+                  className="bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-500"
+                />
+                <input
+                  type="number"
+                  value={bookPages}
+                  onChange={e => setBookPages(Number(e.target.value))}
+                  placeholder="عدد الصفحات..."
+                  className="bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-500"
+                />
+              </div>
+            </>
+          )}
+
+          {tab === 'COURSE' && (
+            <>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={courseUrl}
+                  onChange={e => setCourseUrl(e.target.value)}
+                  placeholder="رابط يوتيوب أو المنصة التعليمية..."
+                  autoFocus
+                  className="flex-1 bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-500 text-left"
+                  dir="ltr"
+                />
+                <button
+                  type="button"
+                  onClick={handleCourseLookup}
+                  disabled={isSearchingCourse}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 rounded-xl border border-slate-700 flex items-center gap-1"
+                >
+                  {isSearchingCourse ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'جلب بيانات'}
+                </button>
+              </div>
+              <input
+                type="text"
+                value={courseTitle}
+                onChange={e => setCourseTitle(e.target.value)}
+                placeholder="عنوان الكورس أو المحاضرة..."
+                required
+                className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-500"
+              />
+            </>
+          )}
+
+          {tab === 'NOTE' && (
+            <>
+              <textarea
+                value={noteContent}
+                onChange={e => setNoteContent(e.target.value)}
+                placeholder="اكتب فكرة سريعة، خاطرة، أو مراجعة شخصية..."
+                rows={3}
+                autoFocus
+                required
+                className="w-full bg-slate-900 border border-slate-700/80 rounded-xl p-3 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-500 leading-relaxed"
+              />
+              <input
+                type="text"
+                value={noteTags}
+                onChange={e => setNoteTags(e.target.value)}
+                placeholder="وسوم مفصولة بمسافة (مثلاً: #فالكون #نانو #فكرة)..."
+                className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-400 placeholder:text-slate-600 focus:outline-none focus:border-sky-500"
+              />
+            </>
+          )}
+
+          <button
+            type="submit"
+            className="w-full bg-gradient-to-r from-sky-500 to-sky-400 text-slate-950 font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 shadow-lg shadow-sky-500/20 active:scale-98 transition-transform"
+          >
+            <Check className="w-4 h-4 stroke-[2.5]" />
+            حفظ فوري في مَسار
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
