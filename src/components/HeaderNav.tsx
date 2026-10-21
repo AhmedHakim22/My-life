@@ -12,7 +12,8 @@ import {
   Sparkles,
   Wifi,
   WifiOff,
-  Moon
+  Moon,
+  Dumbbell
 } from 'lucide-react';
 import { useAppStore, type ActiveTab } from '../stores/appStore';
 
@@ -25,6 +26,7 @@ export const HeaderNav: React.FC = () => {
     { id: 'UNIVERSITY', label: 'الأكاديمية', icon: <GraduationCap className="w-4 h-4" /> },
     { id: 'LEARNING', label: 'التعلم', icon: <Cpu className="w-4 h-4" /> },
     { id: 'FAITH', label: 'العبادات والنيات', icon: <Moon className="w-4 h-4" /> },
+    { id: 'FITNESS', label: 'الرياضة', icon: <Dumbbell className="w-4 h-4" /> },
     { id: 'BOOKS', label: 'المكتبة', icon: <BookOpen className="w-4 h-4" /> },
     { id: 'FALCON', label: 'فالكون', icon: <Briefcase className="w-4 h-4" /> },
     { id: 'JOURNAL', label: 'اليوميات', icon: <BookMarked className="w-4 h-4" /> },

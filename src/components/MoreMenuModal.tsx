@@ -10,7 +10,8 @@ import {
   Sparkles,
   Layers,
   Heart,
-  Moon
+  Moon,
+  Dumbbell
 } from 'lucide-react';
 import { useAppStore, type ActiveTab } from '../stores/appStore';
 
@@ -34,6 +35,13 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({ isOpen, onClose })
           desc: 'مواقيت الصلاة، الورد القرآني (3 صفحات)، قيام الليل، ومكتبة النيات',
           icon: <Moon className="w-5 h-5 text-emerald-400" />,
           color: 'from-emerald-500/10 to-teal-500/10 border-emerald-500/20'
+        },
+        {
+          id: 'FITNESS' as ActiveTab,
+          label: 'الصحة والرياضة',
+          desc: 'تتبع 20 دقيقة حركة يومية، جلسات الجيم، وقواعد النوم والتفرغ',
+          icon: <Dumbbell className="w-5 h-5 text-rose-400" />,
+          color: 'from-rose-500/10 to-orange-500/10 border-rose-500/20'
         },
         {
           id: 'BOOKS' as ActiveTab,
