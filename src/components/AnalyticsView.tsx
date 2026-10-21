@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   GraduationCap, 
   Crown, 
@@ -10,15 +10,25 @@ import {
   Clock, 
   History,
   Award,
-  Layers
+  Layers,
+  RotateCcw,
+  AlertTriangle
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { SCIENTIFIC_RANKS } from '../engines/gamification';
 import { fireConfettiSuccess, fireConfettiLevelUp } from '../lib/confetti';
 
 export const AnalyticsView: React.FC = () => {
-  const { rankProgress, xpTransactions, exportBackupJSON, importBackupJSON, showToast } = useAppStore();
+  const { 
+    rankProgress, 
+    xpTransactions, 
+    exportBackupJSON, 
+    importBackupJSON, 
+    resetXPToZeroBaseline,
+    showToast 
+  } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const handleExport = async () => {
     fireConfettiSuccess();
@@ -44,6 +54,12 @@ export const AnalyticsView: React.FC = () => {
     } else {
       showToast('خطأ في استيراد الملف. تأكد من سلامة ملف الـ JSON');
     }
+  };
+
+  const handleResetZero = async () => {
+    await resetXPToZeroBaseline('إعادة ضبط من واجهة الرتب العلمية');
+    setShowResetConfirm(false);
+    showToast('تمت إعادة ضبط الـ XP إلى نقطة الصفر بأمان 0 XP مع حفظ نسخة احتياطية تلقائياً 🛡️');
   };
 
   return (
@@ -231,6 +247,55 @@ export const AnalyticsView: React.FC = () => {
             className="hidden"
           />
         </div>
+      </section>
+
+      {/* 5. Controlled 0 XP Reset Baseline with Pre-Reset Backup Protection */}
+      <section className="glass-panel rounded-3xl p-4 border border-rose-500/20 bg-rose-950/10 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs font-bold text-rose-300">
+            <RotateCcw className="w-4 h-4 text-rose-400" />
+            <span>نقطة الصفر الصادقة (0 XP Baseline)</span>
+          </div>
+          <span className="text-[10px] bg-rose-950 text-rose-300 border border-rose-800/40 px-2 py-0.5 rounded-full font-bold">
+            محمي بنسخة مسبقة 🛡️
+          </span>
+        </div>
+        <p className="text-[11px] text-slate-400 leading-relaxed">
+          إذا كنت تريد تصفير نقاط الخبرة الوهمية والبدء من نقطة الصفر الحقيقية، يقوم النظام بحفظ نسخة احتياطية قابلة للاستعادة قبل التصفير وتوثيق الحدث في سجل الأمان.
+        </p>
+
+        {showResetConfirm ? (
+          <div className="bg-rose-950/60 p-3 rounded-2xl border border-rose-500/50 space-y-2 text-center">
+            <span className="text-xs font-bold text-rose-200 block">
+              هل أنت متأكد من تصفير الـ XP إلى 0؟ سيتم أخذ نسخة احتياطية فوراً.
+            </span>
+            <div className="flex items-center justify-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleResetZero}
+                className="bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs py-2 px-4 rounded-xl pressable cursor-pointer shadow-lg shadow-rose-900/40"
+              >
+                نعم، صفّر الـ XP الآن
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowResetConfirm(false)}
+                className="bg-slate-800 text-slate-300 font-bold text-xs py-2 px-3.5 rounded-xl pressable cursor-pointer"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowResetConfirm(true)}
+            className="w-full text-xs font-bold text-rose-400 hover:text-rose-300 bg-rose-950/40 hover:bg-rose-950/80 border border-rose-500/30 py-2.5 px-3.5 rounded-2xl transition-all flex items-center justify-center gap-2 pressable cursor-pointer"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>إعادة ضبط الـ XP إلى نقطة الصفر (0 XP)</span>
+          </button>
+        )}
       </section>
     </div>
   );

@@ -1,16 +1,20 @@
-# Project State — Personal Life Coach OS
-**Last Updated:** 2026-10-22T01:50:00+03:00  
-**Current Stage:** YVCF Pass 3 (Vertical Slices: Connected Goal Center & Learning Center Verified)  
-**Working Mode:** LOCAL-FIRST PRODUCTION READY (Cloud Sync Hardened, Awaiting 2-Device Verification Gate)  
+# Project State — Personal Life Coach OS (MASAAR V2)
+**Last Updated:** 2026-10-22T02:55:00+03:00  
+**Current Stage:** MASAAR V2 — Sprints 1–6 Completed & Verified  
+**Working Mode:** LOCAL-FIRST PRODUCTION READY (PWA Offline First, Dexie v4 Schema, Supabase RLS Hardened)  
 **Build Status:** Clean Production Build (`dist/` generated, 0 TypeScript errors, 0 Vite errors)  
 **Security Status:** 0 Vulnerabilities (`npm audit` clean, 0 CVEs, Permissive MIT/Apache licenses, Hardened RLS with User Isolation)  
-**Test Status:** 100% Tests Passing (21/21 tests in 665ms across 6 suites via Vitest)
-**Core Highlights:**
-1. **Goal Center:** Multi-horizon vision (Long-term, Annual, Quarterly, Monthly), milestones checklist, linked tasks, explainable progress engine (`100% * completed / total`).
-2. **Learning Center:** Canonical resources (Books, Courses, Videos, Papers, Projects), custom categories, M:N links to skills/goals without resource duplication, modular course structure (no fake 10 lessons).
-3. **Security & Integrity:** Supabase RLS policies hardened with strict auth ownership and parent-child queries. Backup export/import verified across all 26 tables.
-4. **Smart Coach & Navigation:** Responsive navigation (`TODAY / GOALS / UNIVERSITY / LEARNING / MORE` on mobile, sticky header on tablet/desktop). Smart Today displays top genuinely ranked tasks with goal alignment scoring and 3-miss adaptive interventions.
-5. **Mandatory Demo Proof:** 8-step end-to-end verification passing in Vitest (`mandatory-demo-proof.test.ts`).
+**Test Status:** 100% Tests Passing (42/42 tests passing across 12 test suites via Vitest)
+
+## Core MASAAR V2 Highlights:
+1. **Curriculum Auto-Seed (No Button):** Automatic, idempotent initialization of Ahmed's 8 academic subjects and 8 weekly timetable slots from `Ahmed_Study_Planner_Simple_Smart_v4.xlsx`. Zero exam date hallucinations; Monday Molecular Spectroscopy `endTime: null` rendered as "وقت الانتهاء غير محدد".
+2. **Universal Content Management & Deletion Tombstones:** Edit, Archive, and Delete across Books, Courses, Skills, Categories, Habits, and Workouts with deletion tombstones preventing resurrection on reload or sync.
+3. **Controlled 0 XP Baseline Reset:** Complete reset harness with restorable pre-reset backup and audit ledger in `xpResetEvents`.
+4. **Faith & Intentions Workspace:** Cairo astronomical prayer times with buffers, private Quran reading logger (3 pages/day threshold, actual pages recorded), Qiyam al-Layl tracking with cross-midnight duration calculation (e.g. 23:30–00:20 = 50 min), Intentions library linked to goals, and strictly 0 XP for worship.
+5. **Health & Fitness Workspace:** 20-min daily movement baseline, structured workout logger (sets, reps, weights, exercises), availability rules for sleep and Falcon work.
+6. **Constraint-Based Weekly Scheduler:** Interval union algorithm (`mergeIntervals`) accounting for sleep, university classes, prayer buffers, and travel without double-counting; detects and truthfully reports overload (`unscheduledMinutes`, `isOverloaded: true`) without inventing schedule placements.
+7. **Mobile-First Responsive Layout:** Consolidated above-the-fold layout in `SmartToday.tsx`, >=44px touch targets on 360px phones, 5-destination thumb bottom navigation with floating Quick Capture (+).
+8. **Acceptance Matrix:** All 25 acceptance criteria verified with passing unit and integration tests (`docs/v2/ACCEPTANCE_MATRIX.md`).
 
 ---
 
@@ -31,3 +35,4 @@
 - [x] **Stage 11 (Security Release Gate):** `security/release-gate.md` (GO FOR RELEASE, 0 vulnerabilities)
 - [x] **Stage 12 (Production Deployment):** `deployment/production-guide.md` (Cloudflare Pages + Supabase, $0.00 cost)
 - [x] **Stage 13 (Evolution Plan):** `docs/13-evolution-plan.md`
+- [x] **V2 Upgrades (Sprints 1–6):** `docs/v2/MASTER_UPGRADE_PLAN.md`, `docs/v2/ACCEPTANCE_MATRIX.md`
