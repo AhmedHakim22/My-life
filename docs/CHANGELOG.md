@@ -2,6 +2,36 @@
 
 All notable changes to this project are documented in this file.
 
+## [2.0.0] - 2026-10-22
+### Added
+- **Connected Goals Center (YVCF Slice 3.1)**:
+  - 4 temporal horizons: Long-term Vision, Annual Goals, Quarterly Goals, and Monthly Plans.
+  - Interactive Goal Milestones checklist with auto-calculated, explainable progress (`100% * completed / total`).
+  - Many-to-many relationship linking tasks and skills directly to strategic goals.
+  - Modal workflows for goal creation, milestone creation, and task linking.
+- **Unified Learning Center (YVCF Slice 3.2)**:
+  - Canonical Learning Resources (Books, Courses, Videos, Research Papers, Projects) preventing record duplication.
+  - Flexible Custom Categories and Subcategories eliminating rigid enums.
+  - Modular Course architecture with optional Modules and Lessons (no forced 10 lessons).
+  - True M:N junction links between Skills and Resources with dual progress metrics (Consumption % vs Mastery %).
+- **Hardened Security & Supabase RLS (YVCF Pass 2)**:
+  - Completely removed unauthorized bypass policies (`OR auth.uid() IS NULL`) from `supabase/schema.sql`.
+  - Added additive migration `supabase/migrations/20261022_harden_rls_policies.sql` enforcing strict `TO authenticated` ownership and parent-child relational checks.
+  - Added safe rollback script `supabase/migrations/20261022_rollback_rls.sql`.
+- **Full 26-Table Backup & Integrity Engine**:
+  - Export and restore all 26 IndexedDB stores (including milestones, links, custom categories, academic timetables, task postponements, and logs) in an atomic transaction.
+  - Verified with automated 100% roundtrip test (`backup-roundtrip.test.ts`).
+- **Atomic Book Reading & Cairo Timezone**:
+  - Guarded `readTwoPagesAction` inside `db.transaction`, preventing reading past the final page and zero-page XP exploits.
+  - Added `src/lib/dateUtils.ts` with Cairo astronomical and civil date calculations (`getCairoDateString()`, `getCairoTomorrowDateString()`).
+- **Responsive Adaptive Navigation**:
+  - Mobile bottom navigation with 5 primary thumb targets: `اليوم (Today)`, `الأهداف (Goals)`, `الجامعة (University)`, `التعلم (Learning)`, `المزيد (More)`.
+  - Responsive top header navigation for tablets and desktop (`HeaderNav.tsx`).
+  - Removed restrictive `max-w-md` container constraint, adopting responsive multi-breakpoint layout (`max-w-md sm:max-w-3xl lg:max-w-6xl`).
+- **Mandatory 8-Step Proof Test Suite**:
+  - Automated verification of the full lifecycle: Goal → Milestone → Skill → Canonical Resource → Linked University Task → Recommender Explanation → 3-Miss Postponement Intervention → Full DB Export & Restore (`mandatory-demo-proof.test.ts`).
+  - Total test suite expanded to 21 passing tests across 6 suites.
+
 ## [1.3.0] - 2026-10-22
 ### Added
 - **Ahmed's Study Planner System Integration (Full Academic OS)**:
