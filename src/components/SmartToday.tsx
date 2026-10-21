@@ -14,12 +14,18 @@ import {
   Compass,
   ChevronRight,
   Zap,
-  Target
+  Target,
+  Moon,
+  Dumbbell,
+  Calendar,
+  AlertTriangle,
+  School
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { CloudSyncModal } from './CloudSyncModal';
 import { fireConfettiSuccess } from '../lib/confetti';
 import { getCairoDateString } from '../lib/dateUtils';
+import { generateWeeklySchedulePlan } from '../engines/scheduler';
 
 export const SmartToday: React.FC = () => {
   const { 
@@ -27,6 +33,10 @@ export const SmartToday: React.FC = () => {
     bestNextAction, 
     tasks, 
     goals,
+    timetableSlots,
+    availabilityRules,
+    quranLogs,
+    movementLogs,
     completeTask, 
     postponeTask, 
     readTwoPagesAction,
@@ -48,11 +58,51 @@ export const SmartToday: React.FC = () => {
     : pendingTasks.slice(0, 3);
 
   // Format today date in Arabic
-  const todayFormatted = new Date().toLocaleDateString('ar-EG', {
+  const now = new Date();
+  const todayFormatted = now.toLocaleDateString('ar-EG', {
     weekday: 'long',
     day: 'numeric',
     month: 'long'
   });
+
+  const arabicDays: ('الأحد' | 'الاثنين' | 'الثلاثاء' | 'الأربعاء' | 'الخميس' | 'الجمعة' | 'السبت')[] = [
+    'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'
+  ];
+  const todayArabicDay = arabicDays[now.getDay()];
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const todayStr = getCairoDateString();
+
+  // Next university class today
+  const todaySlots = timetableSlots.filter(s => s.day === todayArabicDay);
+  const upcomingSlots = todaySlots
+    .map(s => {
+      const [h, m] = s.startTime.split(':').map(Number);
+      return { ...s, startMinutes: h * 60 + m };
+    })
+    .filter(s => s.startMinutes >= currentMinutes)
+    .sort((a, b) => a.startMinutes - b.startMinutes);
+  const nextClass = upcomingSlots[0] || null;
+
+  // Domain pulses
+  const todayQuranPages = quranLogs
+    .filter(q => q.date === todayStr)
+    .reduce((sum, q) => sum + q.pagesRead, 0);
+
+  const todayMovementMinutes = movementLogs
+    .filter(m => m.date === todayStr)
+    .reduce((sum, m) => sum + m.durationMinutes, 0);
+
+  const activeGoalsCount = goals.filter(g => !g.isArchived && g.status !== 'ACHIEVED').length;
+
+  // Weekly capacity overload
+  const { plan: weeklyPlan } = generateWeeklySchedulePlan(
+    tasks,
+    timetableSlots,
+    prayers,
+    availabilityRules,
+    goals,
+    0.15
+  );
 
   const handleCompleteTask = async (taskId: string) => {
     fireConfettiSuccess();
@@ -93,7 +143,7 @@ export const SmartToday: React.FC = () => {
           </div>
 
           <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
-            صباح النور يا بطل 👋
+            صباح النور يا أحمد 👋
           </h1>
           <p className="text-xs text-slate-400 font-medium">
             {todayFormatted} • جاهز لإنجاز أهدافك؟
@@ -106,7 +156,7 @@ export const SmartToday: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsSyncModalOpen(true)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-all pressable cursor-pointer ${
+            className={`min-h-[44px] flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-all pressable cursor-pointer ${
               syncStatus.isConnected && syncStatus.tablesFound
                 ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
                 : syncStatus.isConnected
@@ -121,11 +171,11 @@ export const SmartToday: React.FC = () => {
             </span>
           </button>
 
-          {/* Rank Badge with 3D Orbital Glow (Trend 8) */}
+          {/* Rank Badge with 3D Orbital Glow */}
           <button
             type="button"
             onClick={() => setActiveTab('JOURNAL')}
-            className="flex items-center gap-2 bg-gradient-to-r from-purple-950/70 to-slate-900 border border-purple-500/40 hover:border-purple-400/80 rounded-2xl px-3 py-1.5 transition-all pressable cursor-pointer shadow-lg shadow-purple-950/40"
+            className="min-h-[44px] flex items-center gap-2 bg-gradient-to-r from-purple-950/70 to-slate-900 border border-purple-500/40 hover:border-purple-400/80 rounded-2xl px-3 py-1.5 transition-all pressable cursor-pointer shadow-lg shadow-purple-950/40"
           >
             <div className="w-7 h-7 rounded-xl bg-purple-500/20 border border-purple-400/40 flex items-center justify-center text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.3)]">
               <GraduationCap className="w-4 h-4" />
@@ -142,29 +192,153 @@ export const SmartToday: React.FC = () => {
         </div>
       </header>
 
-      {/* 2. Cairo Astronomical Prayer Awareness Bar (Trend 4 Glassmorphism & Trend 3 Gradients) */}
-      <section className="glass-panel-emerald rounded-2xl p-3.5 flex items-center justify-between shadow-lg relative overflow-hidden">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-300 border border-emerald-400/30 shadow-[0_0_12px_rgba(16,185,129,0.3)] shrink-0">
-            <Sun className="w-5 h-5" />
+      {/* Overload Alert Quick Banner */}
+      {weeklyPlan.isOverloaded && (
+        <button
+          type="button"
+          onClick={() => setActiveTab('SCHEDULE')}
+          className="w-full bg-rose-950/70 border border-rose-500/50 p-2.5 rounded-2xl text-xs text-rose-200 flex items-center justify-between gap-2 pressable cursor-pointer shadow-lg hover:border-rose-400 min-h-[44px]"
+        >
+          <div className="flex items-center gap-2 text-right">
+            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span className="font-bold">
+              تنبيه الحمل الزائد: المهام تتجاوز السعة بـ {Math.round((weeklyPlan.unscheduledMinutes / 60) * 10) / 10} ساعة
+            </span>
           </div>
-          <div>
-            <div className="text-xs font-bold text-emerald-200 flex items-center gap-1.5">
-              <span>صلاة {prayers.nextPrayer.nameArabic} القادمة</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-            </div>
-            <div className="text-[11px] text-emerald-300/90 font-mono mt-0.5">
-              الساعة <strong>{prayers.nextPrayer.timeFormatted}</strong> (متبقي {prayers.freeWindowMinutes} دقيقة)
-            </div>
-          </div>
-        </div>
+          <span className="text-[10px] text-rose-300 font-bold bg-rose-900/80 px-2 py-1 rounded-full shrink-0 flex items-center gap-1">
+            <span>المخطط</span>
+            <ChevronRight className="w-3 h-3" />
+          </span>
+        </button>
+      )}
 
-        <div className="flex flex-col items-end gap-1">
-          <span className="text-[10px] font-bold text-emerald-200 bg-emerald-900/60 px-2.5 py-1 rounded-full border border-emerald-600/40 shadow-inner">
+      {/* 2. Contextual Awareness: Next Prayer & Next University Commitment */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {/* Next Prayer Card */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('FAITH')}
+          className="glass-panel-emerald rounded-2xl p-3 flex items-center justify-between shadow-lg relative overflow-hidden text-right pressable cursor-pointer border border-emerald-500/30 hover:border-emerald-400/50 min-h-[56px]"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-300 border border-emerald-400/30 shrink-0">
+              <Sun className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-emerald-200 flex items-center gap-1.5">
+                <span>صلاة {prayers.nextPrayer.nameArabic} القادمة</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              </div>
+              <div className="text-[11px] text-emerald-300/90 font-mono mt-0.5">
+                الساعة <strong>{prayers.nextPrayer.timeFormatted}</strong> (متبقي {prayers.freeWindowMinutes} د)
+              </div>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-600/40">
             القاهرة 📍
           </span>
-          <span className="text-[9px] text-emerald-400/70 font-mono">حساب فلكي دقيق</span>
-        </div>
+        </button>
+
+        {/* Next Academic Commitment Card */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('UNIVERSITY')}
+          className="glass-panel rounded-2xl p-3 flex items-center justify-between shadow-lg relative overflow-hidden text-right pressable cursor-pointer border border-purple-500/30 hover:border-purple-400/50 min-h-[56px]"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-300 border border-purple-400/30 shrink-0">
+              <School className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-purple-200 flex items-center gap-1">
+                <span>الجامعة • {todayArabicDay}</span>
+              </div>
+              <div className="text-[11px] text-purple-300/90 truncate mt-0.5 font-medium">
+                {nextClass ? (
+                  <>
+                    <strong className="text-white">{nextClass.subjectName}</strong> ({nextClass.startTime})
+                  </>
+                ) : todaySlots.length > 0 ? (
+                  'انتهت محاضرات اليوم بحمد الله 🎓'
+                ) : (
+                  'لا توجد محاضرات مجدولة اليوم 🌴'
+                )}
+              </div>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold text-purple-300 bg-purple-950/80 px-2 py-0.5 rounded-full border border-purple-700/40 shrink-0">
+            {todaySlots.length} حصص
+          </span>
+        </button>
+      </section>
+
+      {/* 3. Domain Pulse Quick Glance Row (Faith, Fitness, Goals, Academics) */}
+      <section className="grid grid-cols-4 gap-2">
+        {/* Faith Quran Pulse */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('FAITH')}
+          className="glass-panel p-2.5 rounded-2xl border border-slate-800 text-center pressable cursor-pointer hover:border-emerald-500/40 transition-all min-h-[52px]"
+        >
+          <span className="text-[10px] text-slate-400 font-bold block flex items-center justify-center gap-1">
+            <Moon className="w-3 h-3 text-emerald-400" />
+            <span>القرآن</span>
+          </span>
+          <span className={`text-xs font-black font-mono mt-0.5 block ${
+            todayQuranPages >= 3 ? 'text-emerald-400' : 'text-slate-300'
+          }`}>
+            {todayQuranPages}/3 ص {todayQuranPages >= 3 ? '✓' : ''}
+          </span>
+        </button>
+
+        {/* Fitness Movement Pulse */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('FITNESS')}
+          className="glass-panel p-2.5 rounded-2xl border border-slate-800 text-center pressable cursor-pointer hover:border-rose-500/40 transition-all min-h-[52px]"
+        >
+          <span className="text-[10px] text-slate-400 font-bold block flex items-center justify-center gap-1">
+            <Dumbbell className="w-3 h-3 text-rose-400" />
+            <span>الحركة</span>
+          </span>
+          <span className={`text-xs font-black font-mono mt-0.5 block ${
+            todayMovementMinutes >= 20 ? 'text-rose-400' : 'text-slate-300'
+          }`}>
+            {todayMovementMinutes}/20 د {todayMovementMinutes >= 20 ? '✓' : ''}
+          </span>
+        </button>
+
+        {/* Goals Pulse */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('GOALS')}
+          className="glass-panel p-2.5 rounded-2xl border border-slate-800 text-center pressable cursor-pointer hover:border-sky-500/40 transition-all min-h-[52px]"
+        >
+          <span className="text-[10px] text-slate-400 font-bold block flex items-center justify-center gap-1">
+            <Target className="w-3 h-3 text-sky-400" />
+            <span>الأهداف</span>
+          </span>
+          <span className="text-xs font-black text-sky-400 font-mono mt-0.5 block">
+            {activeGoalsCount} نشطة
+          </span>
+        </button>
+
+        {/* Weekly Schedule Plan */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('SCHEDULE')}
+          className="glass-panel p-2.5 rounded-2xl border border-slate-800 text-center pressable cursor-pointer hover:border-sky-500/40 transition-all min-h-[52px]"
+        >
+          <span className="text-[10px] text-slate-400 font-bold block flex items-center justify-center gap-1">
+            <Calendar className="w-3 h-3 text-sky-400" />
+            <span>المخطط</span>
+          </span>
+          <span className={`text-xs font-black font-mono mt-0.5 block ${
+            weeklyPlan.isOverloaded ? 'text-rose-400' : 'text-teal-400'
+          }`}>
+            {weeklyPlan.isOverloaded ? 'حمل زائد' : 'متزن ✓'}
+          </span>
+        </button>
       </section>
 
       {/* 3. Hero Card: Best Next Action (Explainable Recommender - Trend 10 & Trend 4) */}
@@ -203,7 +377,7 @@ export const SmartToday: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleCompleteTask(bestNextAction.task.id)}
-                className="flex-1 bg-gradient-to-r from-sky-400 via-sky-500 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-slate-950 font-black text-xs py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-sky-500/25 pressable cursor-pointer"
+                className="flex-1 min-h-[48px] bg-gradient-to-r from-sky-400 via-sky-500 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-slate-950 font-black text-xs py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-sky-500/25 pressable cursor-pointer"
               >
                 <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
                 <span>أنجزتها الآن (+25 XP)</span>
@@ -212,7 +386,7 @@ export const SmartToday: React.FC = () => {
               <button
                 type="button"
                 onClick={() => postponeTask(bestNextAction.task.id)}
-                className="bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 font-bold text-xs py-3 px-3.5 rounded-xl flex items-center justify-center gap-1.5 border border-slate-700/60 pressable cursor-pointer"
+                className="min-h-[48px] bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 font-bold text-xs py-3 px-3.5 rounded-xl flex items-center justify-center gap-1.5 border border-slate-700/60 pressable cursor-pointer"
                 title="تأجيل المهمة لوقت لاحق"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -311,7 +485,7 @@ export const SmartToday: React.FC = () => {
                   type="button"
                   onClick={() => handleCompleteTask(task.id)}
                   aria-label="إكمال المهمة"
-                  className="w-5 h-5 rounded-lg border-2 border-slate-600 hover:border-sky-400 hover:bg-sky-500/20 flex items-center justify-center shrink-0 transition-colors pressable cursor-pointer"
+                  className="w-7 h-7 rounded-xl border-2 border-slate-600 hover:border-sky-400 hover:bg-sky-500/20 flex items-center justify-center shrink-0 transition-colors pressable cursor-pointer"
                 />
                 <div className="flex flex-col min-w-0 flex-1">
                   <span className="text-xs font-bold text-slate-200 truncate">{task.title}</span>
