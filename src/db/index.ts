@@ -26,10 +26,23 @@ import type {
   GoalMilestone,
   GoalLink,
   CourseModule,
-  CourseLesson
+  CourseLesson,
+  Tombstone,
+  XPResetEvent,
+  Intention,
+  GoalIntention,
+  WorshipLog,
+  QuranReadingLog,
+  QiyamSession,
+  MovementLog,
+  WorkoutLog,
+  AvailabilityRule,
+  ScheduleBlock,
+  WeeklySchedulePlan
 } from '../types';
 
 export class MasaarDatabase extends Dexie {
+  appMeta!: Table<{ id: string; appliedAt: string }, string>;
   domains!: Table<LifeDomain, string>;
   goals!: Table<Goal, string>;
   skills!: Table<Skill, string>;
@@ -58,6 +71,19 @@ export class MasaarDatabase extends Dexie {
   goalLinks!: Table<GoalLink, string>;
   courseModules!: Table<CourseModule, string>;
   courseLessons!: Table<CourseLesson, string>;
+  // Version 4 Entities (MASAAR V2)
+  tombstones!: Table<Tombstone, string>;
+  xpResetEvents!: Table<XPResetEvent, string>;
+  intentions!: Table<Intention, string>;
+  goalIntentions!: Table<GoalIntention, string>;
+  worshipLogs!: Table<WorshipLog, string>;
+  quranLogs!: Table<QuranReadingLog, string>;
+  qiyamSessions!: Table<QiyamSession, string>;
+  movementLogs!: Table<MovementLog, string>;
+  workoutLogs!: Table<WorkoutLog, string>;
+  availabilityRules!: Table<AvailabilityRule, string>;
+  scheduleBlocks!: Table<ScheduleBlock, string>;
+  schedulePlans!: Table<WeeklySchedulePlan, string>;
 
   constructor() {
     super('MasaarLifeOSDB');
@@ -99,6 +125,22 @@ export class MasaarDatabase extends Dexie {
       skills: 'id, parentSkillId, category, categoryId, sortOrder',
       learningResources: 'id, type, status, categoryId',
       tasks: 'id, priority, status, dueDate, postponementCount, goalId, skillId, studySessionId'
+    });
+
+    this.version(4).stores({
+      appMeta: 'id',
+      tombstones: 'id, [entityType+entityId], entityId, deletedAt',
+      xpResetEvents: 'id, resetAt',
+      intentions: 'id, isArchived, createdAt',
+      goalIntentions: 'id, goalId, intentionId, [goalId+intentionId]',
+      worshipLogs: 'id, date, prayerName, status',
+      quranLogs: 'id, date, pagesRead',
+      qiyamSessions: 'id, date, durationMinutes',
+      movementLogs: 'id, date, activityType, meets20MinBaseline',
+      workoutLogs: 'id, date, activityType',
+      availabilityRules: 'id, dayOfWeek, type',
+      scheduleBlocks: 'id, day, startTime, type, isLocked, taskId',
+      schedulePlans: 'id, weekStartDate, status'
     });
   }
 }
@@ -176,7 +218,7 @@ export async function seedInitialDataIfNeeded(): Promise<void> {
   const habits: Habit[] = [
     {
       id: 'habit-read-2-pages',
-      title: 'قراءة صفحتين يومياً',
+      title: 'قراءة الكتب العامة (صفحتين يومياً)',
       targetType: 'PAGES',
       targetValue: 2,
       streakCount: 0,
@@ -188,9 +230,9 @@ export async function seedInitialDataIfNeeded(): Promise<void> {
     },
     {
       id: 'habit-quran',
-      title: 'الورد القرآني اليومي',
-      targetType: 'BOOLEAN',
-      targetValue: 1,
+      title: 'الورد القرآني (3 صفحات يومياً)',
+      targetType: 'PAGES',
+      targetValue: 3,
       streakCount: 0,
       consecutiveMisses: 0,
       restDays: [],
@@ -200,9 +242,6 @@ export async function seedInitialDataIfNeeded(): Promise<void> {
     }
   ];
   await db.habits.bulkPut(habits);
-
-  // 3. Seed Ahmed's Real Nanotechnology Curriculum & Timetable
-  await seedAhmedStudyPlannerIfNeeded();
 }
 
 /**
@@ -297,203 +336,104 @@ export async function seedDemoProgressForTesting(): Promise<void> {
 }
 
 /**
- * Seeds or updates Ahmed's 8 Nanotechnology subjects, Weekly Timetable, Quizzes, and NASA/Sciora activities.
+ * Automatic versioned curriculum seed from Ahmed_Study_Planner_Simple_Smart_v4.xlsx.
+ * Called on EVERY app load, but applies only once per device/profile; does NOT
+ * require a button or replace user-created subject/timetable records.
+ * Respects tombstones to prevent resurrecting intentionally deleted items.
  */
 export async function seedAhmedStudyPlannerIfNeeded(): Promise<void> {
-  const spectroSubject = await db.universitySubjects.get('subj-spectro');
-  if (spectroSubject) return; // Already seeded Ahmed's curriculum
+  const markerId = 'curriculum-2026-semester1-excel-v2';
+  const marker = await db.appMeta.get(markerId);
+  if (marker) return;
 
+  const { AHMED_CURRICULUM } = await import('./ahmedCurriculum');
   const now = new Date().toISOString();
 
-  // 1. Ahmed's Exact 8 Nanotechnology Subjects (Cairo University)
-  const ahmedSubjects: UniversitySubject[] = [
-    {
-      id: 'subj-spectro',
-      name: 'Molecular Spectroscopy',
-      code: 'NAC 3503',
-      academicYear: 3,
-      semester: 1,
-      professor: 'أ.د. حسين مصطفى',
-      focus: 'High',
-      hall: 'Online',
-      scheduleDescription: 'الاثنين 19:00 (Online)',
-      examDate: '2026-11-18',
-      midExamDate: '2026-11-18',
-      difficulty: 'HARD',
-      createdAt: now,
-      updatedAt: now
-    },
-    {
-      id: 'subj-biomed',
-      name: 'Nanotechnology in Biomedicine',
-      code: 'NAB 3502',
-      academicYear: 3,
-      semester: 1,
-      professor: 'أ.د. طارق عبد الموجود',
-      focus: 'High',
-      hall: 'مدرج 5',
-      scheduleDescription: 'الثلاثاء 12:00 - 14:00',
-      examDate: '2026-11-19',
-      midExamDate: '2026-11-19',
-      difficulty: 'HARD',
-      createdAt: now,
-      updatedAt: now
-    },
-    {
-      id: 'subj-thermo',
-      name: 'Thermodynamics and Phase',
-      code: 'NAC 3510',
-      academicYear: 3,
-      semester: 1,
-      professor: 'د. محمود عادل',
-      focus: 'Normal',
-      hall: 'مدرج 5',
-      scheduleDescription: 'السبت 08:00 - 10:00',
-      examDate: '2026-11-08',
-      midExamDate: '2026-11-08',
-      difficulty: 'HARD',
-      createdAt: now,
-      updatedAt: now
-    },
-    {
-      id: 'subj-quantum',
-      name: 'Quantum Phenomena I',
-      code: 'NAC 3504',
-      academicYear: 3,
-      semester: 1,
-      professor: 'أ.د. محمد شبل',
-      focus: 'Normal',
-      hall: 'مدرج ج',
-      scheduleDescription: 'السبت 10:00 - 12:00',
-      examDate: '2026-11-10',
-      midExamDate: '2026-11-10',
-      difficulty: 'HARD',
-      createdAt: now,
-      updatedAt: now
-    },
-    {
-      id: 'subj-water',
-      name: 'Application of Nanomaterials for Water Treatment',
-      code: 'NAC 3501',
-      academicYear: 3,
-      semester: 1,
-      professor: 'أ.د. رندا محمد',
-      focus: 'Normal',
-      hall: 'مدرج ج',
-      scheduleDescription: 'السبت 14:00 - 16:00',
-      examDate: '2026-11-12',
-      midExamDate: '2026-11-12',
-      difficulty: 'MEDIUM',
-      createdAt: now,
-      updatedAt: now
-    },
-    {
-      id: 'subj-mgmt',
-      name: 'Management and Economics',
-      code: 'NAA 3508',
-      academicYear: 3,
-      semester: 1,
-      professor: 'أ.د. نهى محمد سيد',
-      focus: 'Normal',
-      hall: 'مدرج 7',
-      scheduleDescription: 'الأحد 10:00 - 12:00',
-      examDate: '2026-11-14',
-      midExamDate: '2026-11-14',
-      difficulty: 'EASY',
-      createdAt: now,
-      updatedAt: now
-    },
-    {
-      id: 'subj-solid',
-      name: 'Solid State',
-      code: 'NAP 3509',
-      academicYear: 3,
-      semester: 1,
-      professor: 'أ.د. عبير عبدالله حسن',
-      focus: 'Normal',
-      hall: 'مدرج 23',
-      scheduleDescription: 'الأحد 14:00 - 16:00',
-      examDate: '2026-11-16',
-      midExamDate: '2026-11-16',
-      difficulty: 'HARD',
-      createdAt: now,
-      updatedAt: now
-    },
-    {
-      id: 'subj-cs',
-      name: 'Computer Science',
-      code: 'NAA 3507',
-      academicYear: 3,
-      semester: 1,
-      professor: 'د. محمد الجيار',
-      focus: 'Normal',
-      hall: 'مدرج 5',
-      scheduleDescription: 'الأحد 16:00 - 19:00',
-      examDate: '2026-11-17',
-      midExamDate: '2026-11-17',
-      difficulty: 'MEDIUM',
-      createdAt: now,
-      updatedAt: now
+  await db.transaction('rw', [
+    db.universitySubjects,
+    db.timetableSlots,
+    db.appMeta,
+    db.tombstones
+  ], async () => {
+    const existingSubjects = await db.universitySubjects.toArray();
+    const existingSlots = await db.timetableSlots.toArray();
+    const tombstones = await db.tombstones.toArray();
+
+    // 1. Seed Subjects (missing only, tombstone-guarded)
+    for (const subject of AHMED_CURRICULUM.subjects) {
+      const isDeletedByUser = tombstones.some(t => t.entityType === 'SUBJECT' && t.entityId === subject.id);
+      if (isDeletedByUser) continue;
+
+      const alreadyExists = existingSubjects.some(s =>
+        s.id === subject.id ||
+        (s.code?.trim().toUpperCase() === subject.code &&
+         s.academicYear === 3 && s.semester === 1)
+      );
+
+      if (!alreadyExists) {
+        await db.universitySubjects.add({
+          id: subject.id,
+          name: subject.name,
+          code: subject.code,
+          professor: subject.professor,
+          focus: subject.focus,
+          hall: subject.hall,
+          academicYear: 3,
+          semester: 1,
+          difficulty: subject.focus === 'High' ? 'HARD' : 'MEDIUM',
+          createdAt: now,
+          updatedAt: now
+        });
+      }
     }
-  ];
-  await db.universitySubjects.bulkPut(ahmedSubjects);
 
-  // 2. Ahmed's Initial Sessions
-  const ahmedSessions: StudySession[] = [
-    {
-      id: 'sess-spectro-lec1',
-      subjectId: 'subj-spectro',
-      type: 'LECTURE',
-      title: 'Molecular Spectroscopy — Lecture 1',
-      lectureNumber: 1,
-      status: 'STUDIED',
-      materialReady: true,
-      studyDone: false,
-      reviseDone: false,
-      solveDone: false,
-      priority: 'High',
-      notes: 'ملف المحاضرة متاح — جاهزة للبدء',
-      fsrsStability: 0,
-      fsrsDifficulty: 0
-    },
-    {
-      id: 'sess-biomed-lec1',
-      subjectId: 'subj-biomed',
-      type: 'LECTURE',
-      title: 'Nanotechnology in Biomedicine — Lecture 1',
-      lectureNumber: 1,
-      status: 'STUDIED',
-      materialReady: true,
-      studyDone: false,
-      reviseDone: false,
-      solveDone: false,
-      priority: 'High',
-      notes: 'ملف المحاضرة متاح — جاهزة للبدء',
-      fsrsStability: 0,
-      fsrsDifficulty: 0
+    // 2. Previously shipped fixtures invented midterm dates. Correct only
+    // untouched original seed fingerprints; keep manually edited records.
+    const originalSeedExamDates: Record<string, string> = {
+      'subj-spectro': '2026-11-18', 'subj-biomed': '2026-11-19',
+      'subj-thermo': '2026-11-08', 'subj-quantum': '2026-11-10',
+      'subj-water': '2026-11-12', 'subj-mgmt': '2026-11-14',
+      'subj-solid': '2026-11-16', 'subj-cs': '2026-11-17'
+    };
+
+    for (const old of existingSubjects) {
+      const wrongDate = originalSeedExamDates[old.id];
+      if (wrongDate && old.createdAt === old.updatedAt &&
+          old.examDate === wrongDate && old.midExamDate === wrongDate) {
+        await db.universitySubjects.update(old.id, {
+          examDate: undefined,
+          midExamDate: undefined,
+          updatedAt: now
+        });
+      }
     }
-  ];
-  await db.studySessions.bulkPut(ahmedSessions);
 
-  // 3. Weekly Timetable Slots
-  const timetable: TimetableSlot[] = [
-    { id: 'slot-sat-1', day: 'السبت', startTime: '08:00', endTime: '10:00', subjectName: 'Thermodynamics and Phase', subjectCode: 'NAC 3510', format: 'Campus', hall: 'مدرج 5' },
-    { id: 'slot-sat-2', day: 'السبت', startTime: '10:00', endTime: '12:00', subjectName: 'Quantum Phenomena I', subjectCode: 'NAC 3504', format: 'Campus', hall: 'مدرج ج' },
-    { id: 'slot-sat-3', day: 'السبت', startTime: '14:00', endTime: '16:00', subjectName: 'Application of Nanomaterials for Water Treatment', subjectCode: 'NAC 3501', format: 'Campus', hall: 'مدرج ج' },
-    { id: 'slot-sun-1', day: 'الأحد', startTime: '10:00', endTime: '12:00', subjectName: 'Management and Economics', subjectCode: 'NAA 3508', format: 'Campus', hall: 'مدرج 7' },
-    { id: 'slot-sun-2', day: 'الأحد', startTime: '14:00', endTime: '16:00', subjectName: 'Solid State', subjectCode: 'NAP 3509', format: 'Campus', hall: 'مدرج 23' },
-    { id: 'slot-sun-3', day: 'الأحد', startTime: '16:00', endTime: '19:00', subjectName: 'Computer Science', subjectCode: 'NAA 3507', format: 'Campus', hall: 'مدرج 5' },
-    { id: 'slot-mon-1', day: 'الاثنين', startTime: '19:00', endTime: '21:00', subjectName: 'Molecular Spectroscopy', subjectCode: 'NAC 3503', format: 'Online', hall: 'Online' },
-    { id: 'slot-tue-1', day: 'الثلاثاء', startTime: '12:00', endTime: '14:00', subjectName: 'Nanotechnology in Biomedicine', subjectCode: 'NAB 3502', format: 'Campus', hall: 'مدرج 5' }
-  ];
-  await db.timetableSlots.bulkPut(timetable);
+    // 3. Seed Weekly Slots (missing only, tombstone-guarded)
+    for (const slot of AHMED_CURRICULUM.weeklySlots) {
+      const isDeletedByUser = tombstones.some(t => t.entityType === 'TIMETABLE_SLOT' && t.entityId === slot.id);
+      if (isDeletedByUser) continue;
 
-  // 4. NASA & Sciora Student Activities
-  const activities: StudentActivityTask[] = [
-    { id: 'act-nasa-bootcamp', activityName: 'NASA Space Apps', taskName: 'NASA Space Apps — Bootcamp', deadline: '2026-10-24', done: false, notes: 'بوتكامب تدريبي' },
-    { id: 'act-nasa-day1', activityName: 'NASA Space Apps', taskName: 'NASA Space Apps — Day 1', deadline: '2026-11-14', done: false, notes: 'يوم المسابقة الأول' },
-    { id: 'act-nasa-day2', activityName: 'NASA Space Apps', taskName: 'NASA Space Apps — Day 2', deadline: '2026-11-15', done: false, notes: 'يوم المسابقة الثاني والتسليم' },
-    { id: 'act-sciora-tasks', activityName: 'Sciora', taskName: 'متابعة مهام فريق Sciora', done: false, notes: 'مواعيد مرنة' }
-  ];
-  await db.studentActivities.bulkPut(activities);
+      const existing = existingSlots.find(s => s.id === slot.id ||
+        (s.subjectCode?.trim().toUpperCase() === slot.subjectCode &&
+         s.day === slot.day && s.startTime === slot.startTime));
+
+      if (!existing) {
+        await db.timetableSlots.add(slot);
+      } else if (existing.id === 'slot-mon-1' &&
+                 existing.endTime === '21:00' &&
+                 existing.subjectCode === 'NAC 3503' &&
+                 existing.day === 'الاثنين' &&
+                 existing.startTime === '19:00' &&
+                 existing.hall === 'Online') {
+        // Correct legacy invented Monday end time to null
+        await db.timetableSlots.update(existing.id, {
+          endTime: null,
+          notes: 'وقت الانتهاء غير محدد في المصدر'
+        });
+      }
+    }
+
+    // Mark migration as completed
+    await db.appMeta.put({ id: markerId, appliedAt: now });
+  });
 }

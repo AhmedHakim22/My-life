@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { db, seedInitialDataIfNeeded } from '../db';
+import { db, seedInitialDataIfNeeded, seedAhmedStudyPlannerIfNeeded } from '../db';
 import type {
   LifeDomain,
   Goal,
@@ -24,7 +24,19 @@ import type {
   TimetableSlot,
   AcademicQuiz,
   AcademicAssignment,
-  StudentActivityTask
+  StudentActivityTask,
+  Tombstone,
+  XPResetEvent,
+  Intention,
+  GoalIntention,
+  WorshipLog,
+  QuranReadingLog,
+  QiyamSession,
+  MovementLog,
+  WorkoutLog,
+  AvailabilityRule,
+  ScheduleBlock,
+  WeeklySchedulePlan
 } from '../types';
 import { getCairoPrayerTimes, type DayPrayersResult } from '../engines/prayer';
 import { getCairoDateString, getCairoTomorrowDateString } from '../lib/dateUtils';
@@ -39,7 +51,21 @@ import {
   processSyncQueue 
 } from '../lib/sync';
 
-export type ActiveTab = 'TODAY' | 'GOALS' | 'UNIVERSITY' | 'LEARNING' | 'BOOKS' | 'FALCON' | 'JOURNAL' | 'MORE';
+export type ActiveTab = 
+  | 'TODAY' 
+  | 'GOALS' 
+  | 'UNIVERSITY' 
+  | 'LEARNING' 
+  | 'BOOKS' 
+  | 'FALCON' 
+  | 'JOURNAL' 
+  | 'HABITS' 
+  | 'ANALYTICS' 
+  | 'SETTINGS' 
+  | 'FAITH' 
+  | 'FITNESS' 
+  | 'SCHEDULE' 
+  | 'MORE';
 
 interface AppState {
   // Navigation
@@ -74,6 +100,20 @@ interface AppState {
   academicQuizzes: AcademicQuiz[];
   academicAssignments: AcademicAssignment[];
   studentActivities: StudentActivityTask[];
+
+  // MASAAR V2 Extended Entities
+  intentions: Intention[];
+  goalIntentions: GoalIntention[];
+  worshipLogs: WorshipLog[];
+  quranLogs: QuranReadingLog[];
+  qiyamSessions: QiyamSession[];
+  movementLogs: MovementLog[];
+  workoutLogs: WorkoutLog[];
+  availabilityRules: AvailabilityRule[];
+  scheduleBlocks: ScheduleBlock[];
+  schedulePlans: WeeklySchedulePlan[];
+  tombstones: Tombstone[];
+  xpResetEvents: XPResetEvent[];
 
   // Computed / Engine states
   prayers: DayPrayersResult;
@@ -112,11 +152,42 @@ interface AppState {
   // Category Actions
   addCategory: (category: Omit<CustomCategory, 'id' | 'createdAt' | 'updatedAt' | 'isArchived'>) => Promise<string>;
   deleteCategory: (id: string) => Promise<void>;
+  deleteCategoryWithOption: (id: string, action: 'UNCATEGORIZE' | 'DELETE_CHILDREN') => Promise<void>;
 
   // Skills & Learning Graph Actions
   linkSkillResource: (skillId: string, resourceId: string) => Promise<void>;
   unlinkSkillResource: (skillId: string, resourceId: string) => Promise<void>;
   addSkillEvidence: (evidence: Omit<SkillEvidence, 'id'>) => Promise<string>;
+
+  // Content Management: Books & Resources CRUD + Deletion Tombstones
+  deleteBook: (resourceId: string) => Promise<void>;
+  editBook: (resourceId: string, updates: { title?: string; author?: string; totalPages?: number; shelf?: 'Reading' | 'Want to Read' | 'Finished' }) => Promise<void>;
+  archiveBook: (resourceId: string) => Promise<void>;
+  deleteLearningResource: (resourceId: string) => Promise<void>;
+
+  // Faith & Intentions Actions
+  addIntention: (intention: Omit<Intention, 'id' | 'createdAt' | 'updatedAt' | 'isArchived'>) => Promise<string>;
+  updateIntention: (id: string, updates: Partial<Intention>) => Promise<void>;
+  deleteIntention: (id: string) => Promise<void>;
+  linkIntentionToGoal: (goalId: string, intentionId: string) => Promise<void>;
+  unlinkIntentionFromGoal: (goalId: string, intentionId: string) => Promise<void>;
+  logPrayerWorship: (prayerName: WorshipLog['prayerName'], status: WorshipLog['status'], inMosque?: boolean) => Promise<void>;
+  logQuranReading: (pagesRead: number, surahStart?: string, surahEnd?: string, notes?: string) => Promise<void>;
+  logQiyamSession: (session: Omit<QiyamSession, 'id' | 'createdAt'>) => Promise<string>;
+  deleteQiyamSession: (id: string) => Promise<void>;
+
+  // Health & Fitness Actions
+  logMovement: (durationMinutes: number, activityType: MovementLog['activityType'], notes?: string) => Promise<string>;
+  logWorkout: (workout: Omit<WorkoutLog, 'id' | 'createdAt'>) => Promise<string>;
+  deleteWorkout: (id: string) => Promise<void>;
+
+  // Availability & Scheduling Actions
+  addAvailabilityRule: (rule: Omit<AvailabilityRule, 'id'>) => Promise<string>;
+  deleteAvailabilityRule: (id: string) => Promise<void>;
+
+  // XP Baseline & Reset Actions
+  createPreResetBackup: () => Promise<string>;
+  resetXPToZeroBaseline: (reason?: string) => Promise<void>;
 
   // 3. University Study Actions
   addUniversitySubject: (subject: Omit<UniversitySubject, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
@@ -205,6 +276,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   academicQuizzes: [],
   academicAssignments: [],
   studentActivities: [],
+  intentions: [],
+  goalIntentions: [],
+  worshipLogs: [],
+  quranLogs: [],
+  qiyamSessions: [],
+  movementLogs: [],
+  workoutLogs: [],
+  availabilityRules: [],
+  scheduleBlocks: [],
+  schedulePlans: [],
+  tombstones: [],
+  xpResetEvents: [],
 
   prayers: getCairoPrayerTimes(),
   bestNextAction: null,
@@ -293,6 +376,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   loadAllData: async () => {
     await seedInitialDataIfNeeded();
+    // Independent automatic curriculum seed from Excel (no button required)
+    await seedAhmedStudyPlannerIfNeeded();
 
     const [
       domains,
@@ -318,7 +403,19 @@ export const useAppStore = create<AppState>((set, get) => ({
       timetableSlots,
       academicQuizzes,
       academicAssignments,
-      studentActivities
+      studentActivities,
+      intentions,
+      goalIntentions,
+      worshipLogs,
+      quranLogs,
+      qiyamSessions,
+      movementLogs,
+      workoutLogs,
+      availabilityRules,
+      scheduleBlocks,
+      schedulePlans,
+      tombstones,
+      xpResetEvents
     ] = await Promise.all([
       db.domains.toArray(),
       db.goals.toArray(),
@@ -343,7 +440,19 @@ export const useAppStore = create<AppState>((set, get) => ({
       db.timetableSlots.toArray(),
       db.academicQuizzes.toArray(),
       db.academicAssignments.toArray(),
-      db.studentActivities.toArray()
+      db.studentActivities.toArray(),
+      db.intentions.toArray(),
+      db.goalIntentions.toArray(),
+      db.worshipLogs.toArray(),
+      db.quranLogs.toArray(),
+      db.qiyamSessions.toArray(),
+      db.movementLogs.toArray(),
+      db.workoutLogs.toArray(),
+      db.availabilityRules.toArray(),
+      db.scheduleBlocks.toArray(),
+      db.schedulePlans.toArray(),
+      db.tombstones.toArray(),
+      db.xpResetEvents.toArray()
     ]);
 
     const prayers = getCairoPrayerTimes();
@@ -376,6 +485,18 @@ export const useAppStore = create<AppState>((set, get) => ({
       academicQuizzes,
       academicAssignments,
       studentActivities,
+      intentions,
+      goalIntentions,
+      worshipLogs,
+      quranLogs,
+      qiyamSessions,
+      movementLogs,
+      workoutLogs,
+      availabilityRules,
+      scheduleBlocks,
+      schedulePlans,
+      tombstones,
+      xpResetEvents,
       prayers,
       bestNextAction,
       rankProgress
@@ -758,8 +879,132 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   deleteCategory: async (id) => {
     await db.categories.delete(id);
+    await db.tombstones.put({
+      id: `tomb-cat-${id}`,
+      entityType: 'CATEGORY',
+      entityId: id,
+      deletedAt: new Date().toISOString()
+    });
     await get().loadAllData();
     get().showToast('تم حذف التصنيف');
+  },
+
+  deleteCategoryWithOption: async (id, action) => {
+    await db.transaction('rw', [
+      db.categories,
+      db.learningResources,
+      db.skills,
+      db.tombstones
+    ], async () => {
+      if (action === 'UNCATEGORIZE') {
+        const resources = await db.learningResources.where('categoryId').equals(id).toArray();
+        for (const r of resources) {
+          await db.learningResources.update(r.id, { categoryId: undefined });
+        }
+        const skills = await db.skills.where('categoryId').equals(id).toArray();
+        for (const s of skills) {
+          await db.skills.update(s.id, { categoryId: undefined });
+        }
+      } else {
+        const resources = await db.learningResources.where('categoryId').equals(id).toArray();
+        for (const r of resources) {
+          await db.learningResources.delete(r.id);
+        }
+        const skills = await db.skills.where('categoryId').equals(id).toArray();
+        for (const s of skills) {
+          await db.skills.delete(s.id);
+        }
+      }
+      await db.categories.delete(id);
+      await db.tombstones.put({
+        id: `tomb-cat-${id}`,
+        entityType: 'CATEGORY',
+        entityId: id,
+        deletedAt: new Date().toISOString()
+      });
+    });
+    await get().loadAllData();
+    get().showToast('تم حذف التصنيف بنجاح');
+  },
+
+  // Content Management: Books & Resources CRUD + Deletion Tombstones
+  deleteBook: async (resourceId: string) => {
+    const book = get().learningResources.find(r => r.id === resourceId);
+    const bookTitle = book?.title || 'الكتاب';
+    await db.transaction('rw', [
+      db.learningResources,
+      db.bookDetails,
+      db.readingSessions,
+      db.skillResources,
+      db.goalLinks,
+      db.tombstones
+    ], async () => {
+      await db.learningResources.delete(resourceId);
+      await db.bookDetails.delete(resourceId);
+      await db.readingSessions.where('bookResourceId').equals(resourceId).delete();
+      // Remove links from skillResources without deleting skills
+      await db.skillResources.where('resourceId').equals(resourceId).delete();
+      await db.goalLinks.filter(l => l.entityId === resourceId).delete();
+      // Record tombstone so neither reload nor sync resurrects this book
+      await db.tombstones.put({
+        id: `tomb-book-${resourceId}`,
+        entityType: 'BOOK',
+        entityId: resourceId,
+        deletedAt: new Date().toISOString(),
+        reason: `User deleted book: ${bookTitle}`
+      });
+    });
+    await get().loadAllData();
+    get().showToast(`تم حذف كتاب "${bookTitle}" بنجاح 🗑️`);
+  },
+
+  editBook: async (resourceId, updates) => {
+    const now = new Date().toISOString();
+    if (updates.title) {
+      await db.learningResources.update(resourceId, { title: updates.title, updatedAt: now });
+    }
+    const bookDetailsUpdates: any = { updatedAt: now };
+    if (updates.author !== undefined) bookDetailsUpdates.author = updates.author;
+    if (updates.totalPages !== undefined) bookDetailsUpdates.totalPages = updates.totalPages;
+    if (updates.shelf !== undefined) bookDetailsUpdates.shelf = updates.shelf;
+    await db.bookDetails.update(resourceId, bookDetailsUpdates);
+    await get().loadAllData();
+    get().showToast('تم حفظ تعديلات الكتاب ✏️');
+  },
+
+  archiveBook: async (resourceId) => {
+    await db.bookDetails.update(resourceId, { shelf: 'Finished' });
+    await get().loadAllData();
+    get().showToast('تمت أرشفة الكتاب ونقله إلى الكتب المنتهية 📚');
+  },
+
+  deleteLearningResource: async (resourceId: string) => {
+    const res = get().learningResources.find(r => r.id === resourceId);
+    const title = res?.title || 'المورد';
+    await db.transaction('rw', [
+      db.learningResources,
+      db.courseDetails,
+      db.courseModules,
+      db.courseLessons,
+      db.skillResources,
+      db.goalLinks,
+      db.tombstones
+    ], async () => {
+      await db.learningResources.delete(resourceId);
+      await db.courseDetails.delete(resourceId);
+      await db.courseModules.where('courseResourceId').equals(resourceId).delete();
+      await db.courseLessons.where('courseResourceId').equals(resourceId).delete();
+      await db.skillResources.where('resourceId').equals(resourceId).delete();
+      await db.goalLinks.filter(l => l.entityId === resourceId).delete();
+      await db.tombstones.put({
+        id: `tomb-res-${resourceId}`,
+        entityType: 'RESOURCE',
+        entityId: resourceId,
+        deletedAt: new Date().toISOString()
+      });
+    });
+    await get().loadAllData();
+    get().showToast(`تم حذف المورد "${title}" بنجاح 🗑️`);
   },
 
   // Skills & Learning Graph Actions
@@ -1263,12 +1508,227 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().showToast('تم حفظ اليومية بخصوصية وأمان تام محلياً 🔒');
   },
 
-  // 8. Complete Backup / Export / Restore (Version 2 with 26 Tables)
+  // Faith & Intentions Actions
+  addIntention: async (intentionData) => {
+    const now = new Date().toISOString();
+    const id = `intent-${Date.now()}`;
+    await db.intentions.add({
+      ...intentionData,
+      id,
+      isArchived: false,
+      createdAt: now,
+      updatedAt: now
+    });
+    await get().loadAllData();
+    get().showToast('تم تسجيل النية بخصوصية وبركة 🤲');
+    return id;
+  },
+
+  updateIntention: async (id, updates) => {
+    await db.intentions.update(id, { ...updates, updatedAt: new Date().toISOString() });
+    await get().loadAllData();
+    get().showToast('تم تحديث النية ✏️');
+  },
+
+  deleteIntention: async (id) => {
+    await db.intentions.delete(id);
+    await db.goalIntentions.where('intentionId').equals(id).delete();
+    await db.tombstones.put({
+      id: `tomb-intent-${id}`,
+      entityType: 'INTENTION',
+      entityId: id,
+      deletedAt: new Date().toISOString()
+    });
+    await get().loadAllData();
+    get().showToast('تم حذف النية');
+  },
+
+  linkIntentionToGoal: async (goalId, intentionId) => {
+    const id = `gint-${goalId}-${intentionId}`;
+    await db.goalIntentions.put({
+      id,
+      goalId,
+      intentionId,
+      createdAt: new Date().toISOString()
+    });
+    await get().loadAllData();
+    get().showToast('تم ربط النية بالهدف بنجاح 🤲🎯');
+  },
+
+  unlinkIntentionFromGoal: async (goalId, intentionId) => {
+    await db.goalIntentions.filter(gi => gi.goalId === goalId && gi.intentionId === intentionId).delete();
+    await get().loadAllData();
+    get().showToast('تم فك ارتباط النية عن الهدف');
+  },
+
+  logPrayerWorship: async (prayerName, status, inMosque = false) => {
+    const todayStr = getCairoDateString();
+    const now = new Date().toISOString();
+    const id = `worship-${todayStr}-${prayerName}`;
+    await db.worshipLogs.put({
+      id,
+      date: todayStr,
+      prayerName,
+      status,
+      inMosque,
+      createdAt: now
+    });
+    await get().loadAllData();
+    get().showToast(`تم تسجيل صلاة ${prayerName} 🕌`);
+  },
+
+  logQuranReading: async (pagesRead, surahStart, surahEnd, notes) => {
+    const todayStr = getCairoDateString();
+    const now = new Date().toISOString();
+    const id = `quran-${todayStr}-${Date.now()}`;
+    await db.quranLogs.add({
+      id,
+      date: todayStr,
+      pagesRead,
+      surahStart,
+      surahEnd,
+      notes,
+      createdAt: now
+    });
+    // Check if daily Quran habit met (3 pages)
+    const allTodayQuran = await db.quranLogs.where('date').equals(todayStr).toArray();
+    const totalPagesToday = allTodayQuran.reduce((sum, q) => sum + q.pagesRead, 0);
+    if (totalPagesToday >= 3) {
+      const quranHabit = get().habits.find(h => h.id === 'habit-quran');
+      if (quranHabit && quranHabit.lastCompletedDate !== todayStr) {
+        await db.habits.update('habit-quran', {
+          lastCompletedDate: todayStr,
+          streakCount: (quranHabit.streakCount || 0) + 1
+        });
+      }
+    }
+    await get().loadAllData();
+    get().showToast(`تم تسجيل قراءة ${pagesRead} صفحات من القرآن الكريم 📖✨`);
+  },
+
+  logQiyamSession: async (session) => {
+    const id = `qiyam-${Date.now()}`;
+    await db.qiyamSessions.add({
+      ...session,
+      id,
+      createdAt: new Date().toISOString()
+    });
+    await get().loadAllData();
+    get().showToast(`تقبل الله! تم تسجيل قيام الليل (${session.durationMinutes} دقيقة) 🌙`);
+    return id;
+  },
+
+  deleteQiyamSession: async (id) => {
+    await db.qiyamSessions.delete(id);
+    await get().loadAllData();
+  },
+
+  // Health & Fitness Actions
+  logMovement: async (durationMinutes, activityType, notes) => {
+    const todayStr = getCairoDateString();
+    const id = `move-${todayStr}-${Date.now()}`;
+    const meets20MinBaseline = durationMinutes >= 20;
+    await db.movementLogs.add({
+      id,
+      date: todayStr,
+      durationMinutes,
+      activityType,
+      meets20MinBaseline,
+      notes,
+      createdAt: new Date().toISOString()
+    });
+    await get().loadAllData();
+    get().showToast(`تم تسجيل النشاط الحركي (${durationMinutes} دقيقة) 🏃‍♂️💨`);
+    return id;
+  },
+
+  logWorkout: async (workout) => {
+    const id = `workout-${Date.now()}`;
+    await db.workoutLogs.add({
+      ...workout,
+      id,
+      createdAt: new Date().toISOString()
+    });
+    await get().loadAllData();
+    get().showToast(`عاش يا بطل! تم تسجيل تمرينك (${workout.title}) 💪🏋️‍♂️`);
+    return id;
+  },
+
+  deleteWorkout: async (id) => {
+    await db.workoutLogs.delete(id);
+    await db.tombstones.put({
+      id: `tomb-workout-${id}`,
+      entityType: 'WORKOUT',
+      entityId: id,
+      deletedAt: new Date().toISOString()
+    });
+    await get().loadAllData();
+    get().showToast('تم حذف سجل التمرين');
+  },
+
+  // Availability & Scheduling Actions
+  addAvailabilityRule: async (rule) => {
+    const id = `rule-${Date.now()}`;
+    await db.availabilityRules.add({
+      ...rule,
+      id
+    });
+    await get().loadAllData();
+    get().showToast(`تمت إضافة قاعدة التفرغ "${rule.label}" ⏱️`);
+    return id;
+  },
+
+  deleteAvailabilityRule: async (id) => {
+    await db.availabilityRules.delete(id);
+    await get().loadAllData();
+    get().showToast('تم حذف قاعدة التفرغ');
+  },
+
+  // XP Baseline & Reset Actions
+  createPreResetBackup: async () => {
+    const backupStr = await get().exportBackupJSON();
+    const backupKey = `MASAAR_PRE_RESET_BACKUP_${Date.now()}`;
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem(backupKey, backupStr);
+      } catch (e) {
+        console.warn('Could not store backup in localStorage:', e);
+      }
+    }
+    return backupKey;
+  },
+
+  resetXPToZeroBaseline: async (reason = 'Manual baseline reset to 0 XP') => {
+    const backupKey = await get().createPreResetBackup();
+    const currentTx = await db.xpTransactions.toArray();
+    const previousTotalXP = currentTx.reduce((sum, tx) => sum + (tx.amount || 0), 0);
+    const now = new Date().toISOString();
+
+    await db.transaction('rw', [db.xpTransactions, db.xpResetEvents], async () => {
+      await db.xpTransactions.clear();
+      await db.xpResetEvents.add({
+        id: `xp-reset-${Date.now()}`,
+        resetAt: now,
+        previousTotalXP,
+        transactionsArchivedCount: currentTx.length,
+        backupKey,
+        reason
+      });
+    });
+
+    await get().loadAllData();
+    get().showToast('تمت إعادة ضبط رصيد الـ XP بنجاح إلى 0 نقطة وحفظ نسخة احتياطية آمنة 🎯✨');
+  },
+
+  // 8. Complete Backup / Export / Restore (Version 2 with 39 Tables)
   exportBackupJSON: async () => {
     const allData = {
       version: 2,
-      schemaVersion: 3,
+      schemaVersion: 4,
       exportedAt: new Date().toISOString(),
+      appMeta: await db.appMeta.toArray(),
+      tombstones: await db.tombstones.toArray(),
+      xpResetEvents: await db.xpResetEvents.toArray(),
       domains: await db.domains.toArray(),
       goals: await db.goals.toArray(),
       goalMilestones: await db.goalMilestones.toArray(),
@@ -1294,7 +1754,17 @@ export const useAppStore = create<AppState>((set, get) => ({
       habits: await db.habits.toArray(),
       habitLogs: await db.habitLogs.toArray(),
       xpTransactions: await db.xpTransactions.toArray(),
-      journalEntries: await db.journalEntries.toArray()
+      journalEntries: await db.journalEntries.toArray(),
+      intentions: await db.intentions.toArray(),
+      goalIntentions: await db.goalIntentions.toArray(),
+      worshipLogs: await db.worshipLogs.toArray(),
+      quranLogs: await db.quranLogs.toArray(),
+      qiyamSessions: await db.qiyamSessions.toArray(),
+      movementLogs: await db.movementLogs.toArray(),
+      workoutLogs: await db.workoutLogs.toArray(),
+      availabilityRules: await db.availabilityRules.toArray(),
+      scheduleBlocks: await db.scheduleBlocks.toArray(),
+      schedulePlans: await db.schedulePlans.toArray()
     };
     return JSON.stringify(allData, null, 2);
   },
@@ -1305,6 +1775,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!data.version) return false;
 
       await db.transaction('rw', [
+        db.appMeta,
+        db.tombstones,
+        db.xpResetEvents,
         db.domains,
         db.goals,
         db.goalMilestones,
@@ -1330,8 +1803,21 @@ export const useAppStore = create<AppState>((set, get) => ({
         db.habits,
         db.habitLogs,
         db.xpTransactions,
-        db.journalEntries
+        db.journalEntries,
+        db.intentions,
+        db.goalIntentions,
+        db.worshipLogs,
+        db.quranLogs,
+        db.qiyamSessions,
+        db.movementLogs,
+        db.workoutLogs,
+        db.availabilityRules,
+        db.scheduleBlocks,
+        db.schedulePlans
       ], async () => {
+        if (data.appMeta?.length) await db.appMeta.bulkPut(data.appMeta);
+        if (data.tombstones?.length) await db.tombstones.bulkPut(data.tombstones);
+        if (data.xpResetEvents?.length) await db.xpResetEvents.bulkPut(data.xpResetEvents);
         if (data.domains?.length) await db.domains.bulkPut(data.domains);
         if (data.goals?.length) await db.goals.bulkPut(data.goals);
         if (data.goalMilestones?.length) await db.goalMilestones.bulkPut(data.goalMilestones);
@@ -1358,6 +1844,16 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (data.habitLogs?.length) await db.habitLogs.bulkPut(data.habitLogs);
         if (data.xpTransactions?.length) await db.xpTransactions.bulkPut(data.xpTransactions);
         if (data.journalEntries?.length) await db.journalEntries.bulkPut(data.journalEntries);
+        if (data.intentions?.length) await db.intentions.bulkPut(data.intentions);
+        if (data.goalIntentions?.length) await db.goalIntentions.bulkPut(data.goalIntentions);
+        if (data.worshipLogs?.length) await db.worshipLogs.bulkPut(data.worshipLogs);
+        if (data.quranLogs?.length) await db.quranLogs.bulkPut(data.quranLogs);
+        if (data.qiyamSessions?.length) await db.qiyamSessions.bulkPut(data.qiyamSessions);
+        if (data.movementLogs?.length) await db.movementLogs.bulkPut(data.movementLogs);
+        if (data.workoutLogs?.length) await db.workoutLogs.bulkPut(data.workoutLogs);
+        if (data.availabilityRules?.length) await db.availabilityRules.bulkPut(data.availabilityRules);
+        if (data.scheduleBlocks?.length) await db.scheduleBlocks.bulkPut(data.scheduleBlocks);
+        if (data.schedulePlans?.length) await db.schedulePlans.bulkPut(data.schedulePlans);
       });
 
       await get().loadAllData();

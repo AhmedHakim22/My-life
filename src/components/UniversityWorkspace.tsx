@@ -973,7 +973,7 @@ export const UniversityWorkspace: React.FC = () => {
                             <span className="text-xs font-bold text-white">{slot.subjectName}</span>
                           </div>
                           <div className="text-[11px] text-slate-400 font-mono flex items-center gap-2">
-                            <span>{slot.startTime} – {slot.endTime}</span>
+                            <span>{slot.startTime} – {slot.endTime ?? 'وقت الانتهاء غير محدد'}</span>
                             <span>•</span>
                             <span className="text-emerald-400">{slot.hall}</span>
                             <span>•</span>

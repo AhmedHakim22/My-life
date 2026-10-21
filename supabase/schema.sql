@@ -328,13 +328,15 @@ CREATE TABLE IF NOT EXISTS public.timetable_slots (
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
     day TEXT NOT NULL,
     start_time TEXT NOT NULL,
-    end_time TEXT NOT NULL,
+    end_time TEXT, -- Nullable for unknown class ends (e.g. Monday Molecular Spectroscopy)
     subject_name TEXT NOT NULL,
     subject_code TEXT,
     format TEXT DEFAULT 'Campus',
     hall TEXT,
     notes TEXT
 );
+-- Existing installations also need to allow an unknown class end time
+ALTER TABLE public.timetable_slots ALTER COLUMN end_time DROP NOT NULL;
 ALTER TABLE public.timetable_slots ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own timetable slots" ON public.timetable_slots;
 CREATE POLICY "Users can manage own timetable slots" ON public.timetable_slots 
@@ -522,6 +524,39 @@ CREATE TABLE IF NOT EXISTS public.journal_entries (
 ALTER TABLE public.journal_entries ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can manage own journal" ON public.journal_entries;
 CREATE POLICY "Users can manage own journal" ON public.journal_entries 
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
+
+-- 25. Deletion Tombstones (Prevents Resurrection of Deleted Entities)
+CREATE TABLE IF NOT EXISTS public.tombstones (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+    entity_type TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    deleted_at TIMESTAMPTZ DEFAULT NOW(),
+    reason TEXT
+);
+ALTER TABLE public.tombstones ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own tombstones" ON public.tombstones;
+CREATE POLICY "Users can manage own tombstones" ON public.tombstones 
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
+
+-- 26. XP Reset Events Ledger
+CREATE TABLE IF NOT EXISTS public.xp_reset_events (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+    reset_at TIMESTAMPTZ DEFAULT NOW(),
+    previous_total_xp INTEGER NOT NULL,
+    transactions_archived_count INTEGER NOT NULL,
+    backup_key TEXT,
+    reason TEXT
+);
+ALTER TABLE public.xp_reset_events ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own xp reset events" ON public.xp_reset_events;
+CREATE POLICY "Users can manage own xp reset events" ON public.xp_reset_events 
     FOR ALL TO authenticated
     USING (auth.uid() = user_id) 
     WITH CHECK (auth.uid() = user_id);

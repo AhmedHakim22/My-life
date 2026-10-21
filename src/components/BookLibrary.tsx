@@ -9,7 +9,10 @@ import {
   Layers,
   ArrowRight,
   TrendingUp,
-  X
+  X,
+  Trash2,
+  Edit3,
+  Archive
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { fireConfettiSuccess } from '../lib/confetti';
@@ -21,6 +24,9 @@ export const BookLibrary: React.FC = () => {
     readTwoPagesAction, 
     updateBookPage,
     addBook,
+    deleteBook,
+    editBook,
+    archiveBook,
     showToast
   } = useAppStore();
 
@@ -28,6 +34,10 @@ export const BookLibrary: React.FC = () => {
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const [pageInput, setPageInput] = useState<number>(0);
   const [isAddBookModalOpen, setIsAddBookModalOpen] = useState(false);
+
+  // Edit book modal state
+  const [editingBookData, setEditingBookData] = useState<{ id: string; title: string; author: string; totalPages: number; shelf: any } | null>(null);
+  const [deletingBook, setDeletingBook] = useState<{ id: string; title: string } | null>(null);
 
   // New book form fields
   const [newTitle, setNewTitle] = useState('');
@@ -49,6 +59,24 @@ export const BookLibrary: React.FC = () => {
     setIsAddBookModalOpen(false);
     fireConfettiSuccess();
     showToast(`تمت إضافة كتاب "${newTitle}" بنجاح إلى مكتبتك 📚✨`);
+  };
+
+  const handleSaveEditBook = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBookData) return;
+    await editBook(editingBookData.id, {
+      title: editingBookData.title,
+      author: editingBookData.author,
+      totalPages: editingBookData.totalPages,
+      shelf: editingBookData.shelf
+    });
+    setEditingBookData(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingBook) return;
+    await deleteBook(deletingBook.id);
+    setDeletingBook(null);
   };
 
   // Join learningResources (type=BOOK) with bookDetails
@@ -182,7 +210,7 @@ export const BookLibrary: React.FC = () => {
               </div>
 
               {/* Actions & Atomic Read Button */}
-              <div className="flex items-center justify-between pt-2.5 border-t border-slate-800/70 gap-2">
+              <div className="flex flex-wrap items-center justify-between pt-2.5 border-t border-slate-800/70 gap-2">
                 <button
                   type="button"
                   onClick={() => handleReadTwoPages(book.id)}
@@ -192,39 +220,67 @@ export const BookLibrary: React.FC = () => {
                   <span>قرأت صفحتين (+15 XP)</span>
                 </button>
 
-                {editingPageId === book.id ? (
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="number"
-                      value={pageInput}
-                      onChange={e => setPageInput(Number(e.target.value))}
-                      className="w-16 bg-slate-950 border border-slate-700 rounded-xl px-2 py-1 text-xs text-center text-white font-mono"
-                      autoFocus
-                    />
+                <div className="flex items-center gap-1.5">
+                  {editingPageId === book.id ? (
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        value={pageInput}
+                        onChange={e => setPageInput(Number(e.target.value))}
+                        className="w-16 bg-slate-950 border border-slate-700 rounded-xl px-2 py-1 text-xs text-center text-white font-mono"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateBookPage(book.id, pageInput);
+                          setEditingPageId(null);
+                          showToast('تم تحديث الصفحة الحالية 📖');
+                        }}
+                        className="text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 px-2.5 py-1 rounded-xl font-bold pressable cursor-pointer"
+                      >
+                        حفظ
+                      </button>
+                    </div>
+                  ) : (
                     <button
                       type="button"
                       onClick={() => {
-                        updateBookPage(book.id, pageInput);
-                        setEditingPageId(null);
-                        showToast('تم تحديث الصفحة الحالية 📖');
+                        setEditingPageId(book.id);
+                        setPageInput(book.details.currentPage);
                       }}
-                      className="text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 px-2.5 py-1 rounded-xl font-bold pressable cursor-pointer"
+                      className="text-xs text-slate-400 hover:text-slate-200 bg-slate-900/80 px-2.5 py-1.5 rounded-xl border border-slate-700/60 pressable cursor-pointer"
                     >
-                      حفظ
+                      تعديل الصفحة
                     </button>
-                  </div>
-                ) : (
+                  )}
+
+                  {/* Edit Book Details */}
                   <button
                     type="button"
-                    onClick={() => {
-                      setEditingPageId(book.id);
-                      setPageInput(book.details.currentPage);
-                    }}
-                    className="text-xs text-slate-400 hover:text-slate-200 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-700/60 pressable cursor-pointer"
+                    onClick={() => setEditingBookData({
+                      id: book.id,
+                      title: book.title,
+                      author: book.details.author || '',
+                      totalPages: book.details.totalPages,
+                      shelf: book.details.shelf
+                    })}
+                    className="p-1.5 text-slate-400 hover:text-sky-300 bg-slate-900/80 hover:bg-sky-950/40 rounded-xl border border-slate-700/60 transition-colors"
+                    title="تعديل بيانات الكتاب"
                   >
-                    تعديل الصفحة
+                    <Edit3 className="w-3.5 h-3.5" />
                   </button>
-                )}
+
+                  {/* Delete Book */}
+                  <button
+                    type="button"
+                    onClick={() => setDeletingBook({ id: book.id, title: book.title })}
+                    className="p-1.5 text-slate-400 hover:text-rose-400 bg-slate-900/80 hover:bg-rose-950/40 rounded-xl border border-slate-700/60 transition-colors"
+                    title="حذف الكتاب"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
           );
@@ -302,6 +358,127 @@ export const BookLibrary: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Book Modal */}
+      {editingBookData && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-sky-500/40 rounded-3xl w-full max-w-sm p-5 space-y-4 shadow-2xl" dir="rtl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-sky-400" />
+                <h3 className="text-sm font-bold text-white">تعديل بيانات الكتاب</h3>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setEditingBookData(null)}
+                className="text-slate-400 hover:text-slate-200 p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditBook} className="space-y-3">
+              <div>
+                <label className="text-[11px] text-slate-400 font-bold block mb-1">عنوان الكتاب:</label>
+                <input
+                  type="text"
+                  value={editingBookData.title}
+                  onChange={e => setEditingBookData({ ...editingBookData, title: e.target.value })}
+                  required
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] text-slate-400 font-bold block mb-1">اسم المؤلف:</label>
+                <input
+                  type="text"
+                  value={editingBookData.author}
+                  onChange={e => setEditingBookData({ ...editingBookData, author: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] text-slate-400 font-bold block mb-1">إجمالي الصفحات:</label>
+                <input
+                  type="number"
+                  value={editingBookData.totalPages}
+                  onChange={e => setEditingBookData({ ...editingBookData, totalPages: Number(e.target.value) })}
+                  min={1}
+                  required
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-sky-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] text-slate-400 font-bold block mb-1">الحالة / الرف:</label>
+                <select
+                  value={editingBookData.shelf}
+                  onChange={e => setEditingBookData({ ...editingBookData, shelf: e.target.value as any })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                >
+                  <option value="Reading">قيد القراءة 📖</option>
+                  <option value="Want to Read">في قائمة الانتظار ⏳</option>
+                  <option value="Finished">مكتمل ✅</option>
+                </select>
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingBookData(null)}
+                  className="text-xs text-slate-400 hover:text-slate-200 px-3 py-1.5"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl shadow-md pressable cursor-pointer"
+                >
+                  حفظ التعديلات
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Book Confirmation Modal */}
+      {deletingBook && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-rose-500/40 rounded-3xl w-full max-w-sm p-5 space-y-4 shadow-2xl" dir="rtl">
+            <div className="flex items-center gap-2 text-rose-400 border-b border-slate-800 pb-3">
+              <Trash2 className="w-5 h-5" />
+              <h3 className="text-sm font-bold text-white">تأكيد حذف الكتاب</h3>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              هل أنت متأكد من حذف كتاب <strong className="text-white font-bold">"{deletingBook.title}"</strong>؟
+            </p>
+            <p className="text-[11px] text-slate-400 bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
+              💡 سيتم تسجيل علامة الحذف (Tombstone) لضمان عدم عودته عند إعادة التحميل أو المزامنة، مع الحفاظ على أي مهارات مرتبطة دون حذفها.
+            </p>
+
+            <div className="flex gap-2 justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingBook(null)}
+                className="text-xs text-slate-400 hover:text-slate-200 px-3 py-1.5"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="bg-rose-500 hover:bg-rose-400 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-md shadow-rose-950/50 pressable cursor-pointer"
+              >
+                تأكيد الحذف نهائياً
+              </button>
+            </div>
           </div>
         </div>
       )}

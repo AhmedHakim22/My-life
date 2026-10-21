@@ -211,12 +211,12 @@ export interface TimetableSlot {
   id: string;
   day: 'السبت' | 'الأحد' | 'الاثنين' | 'الثلاثاء' | 'الأربعاء' | 'الخميس' | 'الجمعة';
   startTime: string; // e.g. "08:00"
-  endTime: string;   // e.g. "10:00"
+  endTime: string | null;   // null = ending time unknown
   subjectName: string;
   subjectCode: string;
   format: 'Campus' | 'Online';
   hall: string;      // e.g. "مدرج 5", "مدرج ج"
-  notes?: string;
+  notes?: string | null;
 }
 
 export interface AcademicQuiz {
@@ -339,3 +339,142 @@ export interface SyncQueueItem {
   createdAt: number;
   retryCount: number;
 }
+
+// ==========================================
+// MASAAR V2 — Life OS Extended Types
+// ==========================================
+
+export interface Tombstone {
+  id: string; // e.g. "tomb-subj-spectro" or "tomb-book-123"
+  entityType: 'BOOK' | 'RESOURCE' | 'SUBJECT' | 'TIMETABLE_SLOT' | 'CATEGORY' | 'GOAL' | 'HABIT' | 'INTENTION' | 'WORKOUT';
+  entityId: string;
+  deletedAt: string;
+  reason?: string;
+}
+
+export interface XPResetEvent {
+  id: string;
+  resetAt: string;
+  previousTotalXP: number;
+  transactionsArchivedCount: number;
+  backupKey: string;
+  reason?: string;
+}
+
+export interface Intention {
+  id: string;
+  title: string;
+  purpose?: string;
+  reference?: string; // spiritual or personal reference
+  isArchived: boolean;
+  reviewReminderDate?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GoalIntention {
+  id: string;
+  goalId: string;
+  intentionId: string;
+  createdAt: string;
+}
+
+export interface WorshipLog {
+  id: string;
+  date: string; // YYYY-MM-DD (Cairo)
+  prayerName: 'Fajr' | 'Dhuhr' | 'Asr' | 'Maghrib' | 'Isha' | 'Jummah';
+  status: 'COMPLETED' | 'MISSED' | 'EXCUSED';
+  inMosque?: boolean;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface QuranReadingLog {
+  id: string;
+  date: string; // YYYY-MM-DD
+  pagesRead: number;
+  surahStart?: string;
+  surahEnd?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface QiyamSession {
+  id: string;
+  date: string; // Start date YYYY-MM-DD
+  startTime: string; // e.g. "23:30"
+  endTime: string; // e.g. "00:20" (supports cross-midnight)
+  durationMinutes: number;
+  rakahsCount?: number;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface MovementLog {
+  id: string;
+  date: string; // YYYY-MM-DD
+  durationMinutes: number;
+  activityType: 'WALK' | 'RUN' | 'CYCLING' | 'STRETCHING' | 'SPORT' | 'MOBILITY' | 'GYM' | 'CUSTOM';
+  meets20MinBaseline: boolean;
+  intensity?: 'LIGHT' | 'MODERATE' | 'VIGOROUS';
+  notes?: string;
+  createdAt: string;
+}
+
+export interface ExerciseDetail {
+  id: string;
+  name: string;
+  sets: { setNumber: number; reps: number; weightKg?: number }[];
+}
+
+export interface WorkoutLog {
+  id: string;
+  date: string;
+  title: string;
+  activityType: 'GYM_STRENGTH' | 'CARDIO' | 'HIIT' | 'RECOVERY';
+  durationMinutes: number;
+  exercises?: ExerciseDetail[];
+  notes?: string;
+  createdAt: string;
+}
+
+export interface AvailabilityRule {
+  id: string;
+  dayOfWeek: 'السبت' | 'الأحد' | 'الاثنين' | 'الثلاثاء' | 'الأربعاء' | 'الخميس' | 'الجمعة';
+  type: 'SLEEP' | 'PRAYER_BUFFER' | 'MEAL' | 'WORK_FALCON' | 'COMMUTE' | 'RESERVE_BUFFER' | 'FOCUS_STUDY';
+  startTime: string;
+  endTime: string;
+  isLocked: boolean;
+  label: string;
+}
+
+export interface ScheduleBlock {
+  id: string;
+  taskId?: string;
+  title: string;
+  day: 'السبت' | 'الأحد' | 'الاثنين' | 'الثلاثاء' | 'الأربعاء' | 'الخميس' | 'الجمعة';
+  startTime: string;
+  endTime: string;
+  durationMinutes: number;
+  type: 'FIXED_CLASS' | 'TASK' | 'STUDY_SESSION' | 'PRAYER' | 'BUFFER' | 'WORK';
+  isLocked: boolean;
+  goalId?: string;
+  subjectCode?: string;
+}
+
+export interface WeeklySchedulePlan {
+  id: string;
+  weekStartDate: string; // YYYY-MM-DD
+  totalWakefulMinutes: number;
+  fixedCommitmentMinutes: number;
+  prayerBufferMinutes: number;
+  travelAndMealsMinutes: number;
+  safetyBufferMinutes: number;
+  availableFlexibleMinutes: number;
+  requiredFlexibleMinutes: number;
+  unscheduledMinutes: number;
+  isOverloaded: boolean;
+  status: 'DRAFT' | 'COMMITTED';
+  generatedAt: string;
+}
+
