@@ -9,7 +9,8 @@ import {
   X,
   Sparkles,
   Layers,
-  Heart
+  Heart,
+  Moon
 } from 'lucide-react';
 import { useAppStore, type ActiveTab } from '../stores/appStore';
 
@@ -25,8 +26,15 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({ isOpen, onClose })
 
   const menuSections = [
     {
-      title: 'مساحات العمل الإضافية',
+      title: 'مساحات العمل الروحانية والإضافية',
       items: [
+        {
+          id: 'FAITH' as ActiveTab,
+          label: 'العبادات والنيات',
+          desc: 'مواقيت الصلاة، الورد القرآني (3 صفحات)، قيام الليل، ومكتبة النيات',
+          icon: <Moon className="w-5 h-5 text-emerald-400" />,
+          color: 'from-emerald-500/10 to-teal-500/10 border-emerald-500/20'
+        },
         {
           id: 'BOOKS' as ActiveTab,
           label: 'مكتبة الكتب والأرفف',

@@ -10,6 +10,7 @@ import { BookLibrary } from './components/BookLibrary';
 import { FalconWorkspace } from './components/FalconWorkspace';
 import { JournalWorkspace } from './components/JournalWorkspace';
 import { AnalyticsView } from './components/AnalyticsView';
+import { FaithWorkspace } from './components/FaithWorkspace';
 import { QuickCaptureModal } from './components/QuickCaptureModal';
 import { WifiOff, Loader2, BookMarked, GraduationCap } from 'lucide-react';
 
@@ -61,6 +62,7 @@ export const App: React.FC = () => {
         {activeTab === 'GOALS' && <GoalsWorkspace />}
         {activeTab === 'UNIVERSITY' && <UniversityWorkspace />}
         {activeTab === 'LEARNING' && <LearningWorkspace />}
+        {activeTab === 'FAITH' && <FaithWorkspace />}
         {activeTab === 'BOOKS' && <BookLibrary />}
         {activeTab === 'FALCON' && <FalconWorkspace />}
         {activeTab === 'JOURNAL' && (

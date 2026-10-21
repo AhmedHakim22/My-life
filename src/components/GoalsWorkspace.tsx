@@ -30,6 +30,8 @@ export const GoalsWorkspace: React.FC = () => {
     goals, 
     goalMilestones, 
     goalLinks,
+    intentions,
+    goalIntentions,
     tasks,
     domains, 
     createGoal, 
@@ -40,7 +42,9 @@ export const GoalsWorkspace: React.FC = () => {
     toggleMilestone,
     deleteMilestone,
     completeTask,
-    addTask
+    addTask,
+    linkIntentionToGoal,
+    unlinkIntentionFromGoal
   } = useAppStore();
 
   const [selectedHorizon, setSelectedHorizon] = useState<Horizon | 'ALL'>('ALL');
@@ -59,6 +63,7 @@ export const GoalsWorkspace: React.FC = () => {
   const [newDomainId, setNewDomainId] = useState<string>('');
   const [newTargetDate, setNewTargetDate] = useState('');
   const [newParentGoalId, setNewParentGoalId] = useState<string>('');
+  const [newSelectedIntentionId, setNewSelectedIntentionId] = useState<string>('');
 
   // New Milestone Form
   const [newMilestoneTitle, setNewMilestoneTitle] = useState('');
@@ -87,7 +92,7 @@ export const GoalsWorkspace: React.FC = () => {
     e.preventDefault();
     if (!newTitle.trim()) return;
 
-    await createGoal({
+    const newGoalId = await createGoal({
       title: newTitle.trim(),
       whyItMatters: newWhyItMatters.trim(),
       horizon: newHorizon,
@@ -98,11 +103,16 @@ export const GoalsWorkspace: React.FC = () => {
       isArchived: false
     });
 
+    if (newSelectedIntentionId) {
+      await linkIntentionToGoal(newGoalId, newSelectedIntentionId);
+    }
+
     fireConfettiSuccess();
     setNewTitle('');
     setNewWhyItMatters('');
     setNewTargetDate('');
     setNewParentGoalId('');
+    setNewSelectedIntentionId('');
     setIsAddGoalModalOpen(false);
   };
 
@@ -323,6 +333,27 @@ export const GoalsWorkspace: React.FC = () => {
                       💡 <strong className="text-slate-200">الدافع والأثر:</strong> {goal.whyItMatters}
                     </p>
                   )}
+
+                  {/* Linked Intentions */}
+                  {(() => {
+                    const linkedIntents = goalIntentions
+                      .filter(gi => gi.goalId === goal.id)
+                      .map(gi => intentions.find(i => i.id === gi.intentionId))
+                      .filter(Boolean);
+                    if (linkedIntents.length === 0) return null;
+                    return (
+                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                        {linkedIntents.map(intent => (
+                          <span
+                            key={intent!.id}
+                            className="text-[10px] bg-emerald-950/80 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1 font-bold"
+                          >
+                            <span>🤲 نية: {intent!.title}</span>
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })()}
 
                   {/* Explainable Progress Bar */}
                   <div className="space-y-1">
@@ -622,6 +653,22 @@ export const GoalsWorkspace: React.FC = () => {
                     ))}
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  ربط بنية مباركة من مكتبة النيات (اختياري)
+                </label>
+                <select
+                  value={newSelectedIntentionId}
+                  onChange={e => setNewSelectedIntentionId(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400"
+                >
+                  <option value="">-- بدون ربط نية فوري --</option>
+                  {intentions.map(i => (
+                    <option key={i.id} value={i.id}>🤲 {i.title}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex gap-2 justify-end pt-3 border-t border-slate-800">

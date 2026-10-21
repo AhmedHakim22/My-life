@@ -11,7 +11,8 @@ import {
   Cloud, 
   Sparkles,
   Wifi,
-  WifiOff
+  WifiOff,
+  Moon
 } from 'lucide-react';
 import { useAppStore, type ActiveTab } from '../stores/appStore';
 
@@ -19,10 +20,11 @@ export const HeaderNav: React.FC = () => {
   const { activeTab, setActiveTab, setQuickCaptureOpen, syncStatus } = useAppStore();
 
   const desktopNavItems: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'TODAY', label: 'اليوم الذكي', icon: <Compass className="w-4 h-4" /> },
-    { id: 'GOALS', label: 'الأهداف والمسارات', icon: <Target className="w-4 h-4" /> },
+    { id: 'TODAY', label: 'اليوم', icon: <Compass className="w-4 h-4" /> },
+    { id: 'GOALS', label: 'الأهداف', icon: <Target className="w-4 h-4" /> },
     { id: 'UNIVERSITY', label: 'الأكاديمية', icon: <GraduationCap className="w-4 h-4" /> },
-    { id: 'LEARNING', label: 'التعلم والمهارات', icon: <Cpu className="w-4 h-4" /> },
+    { id: 'LEARNING', label: 'التعلم', icon: <Cpu className="w-4 h-4" /> },
+    { id: 'FAITH', label: 'العبادات والنيات', icon: <Moon className="w-4 h-4" /> },
     { id: 'BOOKS', label: 'المكتبة', icon: <BookOpen className="w-4 h-4" /> },
     { id: 'FALCON', label: 'فالكون', icon: <Briefcase className="w-4 h-4" /> },
     { id: 'JOURNAL', label: 'اليوميات', icon: <BookMarked className="w-4 h-4" /> },
@@ -41,7 +43,7 @@ export const HeaderNav: React.FC = () => {
           <div>
             <div className="text-sm font-black text-white tracking-tight flex items-center gap-1.5">
               <span>مَسار</span>
-              <span className="text-[10px] text-sky-400 font-mono font-bold bg-sky-950/60 border border-sky-800/40 px-1.5 py-0.2 rounded">OS v1.3</span>
+              <span className="text-[10px] text-sky-400 font-mono font-bold bg-sky-950/60 border border-sky-800/40 px-1.5 py-0.2 rounded">V2.0</span>
             </div>
             <span className="text-[10px] text-slate-400 hidden sm:inline">Personal Life Coach & Study OS</span>
           </div>

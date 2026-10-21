@@ -86,3 +86,28 @@ export function getCairoPrayerTimes(date: Date = new Date()): DayPrayersResult {
     freeWindowMinutes: minutesRemaining
   };
 }
+
+/**
+ * Calculates prayer time window with configurable buffers (e.g. 15m before, 15m after).
+ */
+export function getPrayerBuffers(prayerTime: Date, bufferBeforeMinutes = 15, bufferAfterMinutes = 15) {
+  const start = new Date(prayerTime.getTime() - bufferBeforeMinutes * 60000);
+  const end = new Date(prayerTime.getTime() + bufferAfterMinutes * 60000);
+  return { start, end };
+}
+
+/**
+ * Calculates Qiyam al-Layl duration in minutes, with accurate cross-midnight arithmetic.
+ * e.g. "23:30" to "00:20" -> 50 minutes.
+ */
+export function calculateQiyamDuration(startTime: string, endTime: string): number {
+  const [sh, sm] = startTime.split(':').map(Number);
+  const [eh, em] = endTime.split(':').map(Number);
+  let startMinutes = sh * 60 + sm;
+  let endMinutes = eh * 60 + em;
+  if (endMinutes < startMinutes) {
+    // Crosses local midnight (e.g. 23:30 to 00:20)
+    endMinutes += 24 * 60;
+  }
+  return Math.max(0, endMinutes - startMinutes);
+}
