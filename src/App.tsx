@@ -12,6 +12,7 @@ import { JournalWorkspace } from './components/JournalWorkspace';
 import { AnalyticsView } from './components/AnalyticsView';
 import { FaithWorkspace } from './components/FaithWorkspace';
 import { FitnessWorkspace } from './components/FitnessWorkspace';
+import { WeeklyScheduleWorkspace } from './components/WeeklyScheduleWorkspace';
 import { QuickCaptureModal } from './components/QuickCaptureModal';
 import { WifiOff, Loader2, BookMarked, GraduationCap } from 'lucide-react';
 
@@ -63,6 +64,7 @@ export const App: React.FC = () => {
         {activeTab === 'GOALS' && <GoalsWorkspace />}
         {activeTab === 'UNIVERSITY' && <UniversityWorkspace />}
         {activeTab === 'LEARNING' && <LearningWorkspace />}
+        {activeTab === 'SCHEDULE' && <WeeklyScheduleWorkspace />}
         {activeTab === 'FAITH' && <FaithWorkspace />}
         {activeTab === 'FITNESS' && <FitnessWorkspace />}
         {activeTab === 'BOOKS' && <BookLibrary />}

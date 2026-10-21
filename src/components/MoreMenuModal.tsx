@@ -11,7 +11,8 @@ import {
   Layers,
   Heart,
   Moon,
-  Dumbbell
+  Dumbbell,
+  Calendar
 } from 'lucide-react';
 import { useAppStore, type ActiveTab } from '../stores/appStore';
 
@@ -29,6 +30,13 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({ isOpen, onClose })
     {
       title: 'مساحات العمل الروحانية والإضافية',
       items: [
+        {
+          id: 'SCHEDULE' as ActiveTab,
+          label: 'المخطط الأسبوعي وتوزيع الوقت',
+          desc: 'حساب السعة الواقعية، رصد الحمل الزائد، وجدول الحصص والمهام بدون تعارض',
+          icon: <Calendar className="w-5 h-5 text-sky-400" />,
+          color: 'from-sky-500/10 to-blue-500/10 border-sky-500/20'
+        },
         {
           id: 'FAITH' as ActiveTab,
           label: 'العبادات والنيات',
