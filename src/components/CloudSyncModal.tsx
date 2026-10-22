@@ -27,21 +27,24 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
 
   const handleCopySQL = async () => {
     try {
-      // In browser, fetch schema.sql or copy from static string
-      const response = await fetch('/supabase/schema.sql');
+      // In browser, fetch quick_migration.sql or schema.sql
+      let response = await fetch('/supabase/quick_migration.sql');
+      if (!response.ok) {
+        response = await fetch('/supabase/schema.sql');
+      }
       let sqlText = '';
       if (response.ok) {
         sqlText = await response.text();
       } else {
-        sqlText = `-- يرجى فتح ملف supabase/schema.sql داخل مجلد المشروع ونسخ محتواه`;
+        sqlText = `-- يرجى فتح ملف supabase/quick_migration.sql داخل مجلد المشروع ونسخ محتواه`;
       }
 
       await navigator.clipboard.writeText(sqlText);
       setCopied(true);
-      showToast('تم نسخ كود SQL إلى الحافظة بنجاح 📋');
+      showToast('تم نسخ كود SQL المحدث للحافظة بنجاح 📋');
       setTimeout(() => setCopied(false), 3000);
     } catch {
-      showToast('يرجى نسخ الملف يدوياً من مجلد supabase/schema.sql');
+      showToast('يرجى نسخ الملف يدوياً من مجلد public/supabase/quick_migration.sql');
     }
   };
 
@@ -95,6 +98,11 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
               </div>
             </div>
 
+            <div className="p-3 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs text-sky-300 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>المزامنة التلقائية اللحظية (Realtime Auto-Sync) مفعّلة تلقائياً بين الهاتف واللابتوب ⚡</span>
+            </div>
+
             <button
               type="button"
               onClick={syncWithCloud}
@@ -102,8 +110,38 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
               className="w-full py-3 px-4 bg-sky-500 hover:bg-sky-400 disabled:bg-slate-700 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-sky-500/20 cursor-pointer"
             >
               <RefreshCw className={`w-4 h-4 ${syncStatus.isSyncing ? 'animate-spin' : ''}`} />
-              <span>{syncStatus.isSyncing ? 'جارِ المزامنة الآن...' : 'مزامنة كل البيانات الآن'}</span>
+              <span>{syncStatus.isSyncing ? 'جارِ المزامنة الآن...' : 'مزامنة كل البيانات يدوياً الآن'}</span>
             </button>
+
+            {/* Quick update helper */}
+            <div className="p-3.5 bg-white/[0.02] border border-white/[0.06] rounded-xl space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-300">
+                <span>تحديث جداول السحابة التكميلية</span>
+                <span className="text-[10px] text-sky-400 bg-sky-400/10 px-2 py-0.5 rounded-full font-mono">SQL v2.0</span>
+              </div>
+              <p className="text-[11px] text-[#8e8e93] leading-relaxed">
+                إذا أردت إنشاء جداول التحديات ومواقيت الصلاة في سوبا بيز، انسخ كود التحديث السريع وشغله في محرر SQL بضغطة واحدة:
+              </p>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleCopySQL}
+                  className="flex-1 py-2 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-xs font-bold flex items-center justify-center gap-1.5 pressable cursor-pointer"
+                >
+                  <Copy className="w-3.5 h-3.5 text-sky-400" />
+                  <span>{copied ? 'تم النسخ!' : 'نسخ كود التحديث'}</span>
+                </button>
+                <a
+                  href="https://supabase.com/dashboard/project/phogtpgejvstfxkrhjqz/sql/new"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="py-2 px-3 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 border border-sky-400/20 text-xs font-bold flex items-center justify-center gap-1.5 pressable"
+                >
+                  <span>فتح SQL Editor</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
           </div>
         )}
 

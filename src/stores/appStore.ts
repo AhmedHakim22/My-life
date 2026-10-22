@@ -50,7 +50,8 @@ import {
   checkSupabaseConnection, 
   pushAllToSupabase, 
   pullAllFromSupabase, 
-  processSyncQueue 
+  processSyncQueue,
+  scheduleAutoPush 
 } from '../lib/sync';
 
 export type ActiveTab = 
@@ -406,7 +407,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().showToast(`تمت المزامنة بنجاح! تم رفع ${pushRes.syncedCount} عنصر إلى السحابة ☁️✨`);
   },
 
-  loadAllData: async () => {
+  loadAllData: async (skipAutoPush = false) => {
     await seedInitialDataIfNeeded();
     // Independent automatic curriculum seed from Excel (no button required)
     await seedAhmedStudyPlannerIfNeeded();
@@ -562,6 +563,11 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     // Check cloud connection asynchronously
     get().checkCloudStatus().catch(console.warn);
+
+    // Debounced silent auto-push to Supabase to keep all devices in sync
+    if (!skipAutoPush) {
+      scheduleAutoPush();
+    }
   },
 
   // 1. One-Tap Atomic Read 2 Pages Action (Safe, Transactional, Validated)

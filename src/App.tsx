@@ -18,6 +18,7 @@ import { QuickCaptureModal } from './components/QuickCaptureModal';
 import { DynamicIslandWidget } from './components/DynamicIslandWidget';
 import { WifiOff, Loader2, BookMarked, GraduationCap } from 'lucide-react';
 import { getNotificationSettings, sendLocalNotification } from './lib/notifications';
+import { subscribeToRealtimeSync, registerRemoteChangeHandler, pullAllFromSupabase } from './lib/sync';
 
 export const App: React.FC = () => {
   const { isLoaded, loadAllData, activeTab, toastMessage, prayers } = useAppStore();
@@ -28,6 +29,42 @@ export const App: React.FC = () => {
   useEffect(() => {
     loadAllData();
 
+    // 1. Initialize Realtime Cross-Device WebSocket Listener
+    registerRemoteChangeHandler(() => {
+      loadAllData();
+    });
+    subscribeToRealtimeSync();
+
+    // 2. Initial silent cloud pull to catch changes made on other device while offline
+    pullAllFromSupabase().then(res => {
+      if (res.count > 0) {
+        loadAllData();
+      }
+    }).catch(console.debug);
+
+    // 3. Auto-sync whenever tab or window gains focus (switching from Phone to Laptop or vice versa)
+    const handleSyncOnResume = async () => {
+      if (document.visibilityState === 'visible' && navigator.onLine) {
+        const res = await pullAllFromSupabase();
+        if (res.count > 0) {
+          await loadAllData();
+        }
+      }
+    };
+
+    window.addEventListener('focus', handleSyncOnResume);
+    document.addEventListener('visibilitychange', handleSyncOnResume);
+
+    // 4. Periodic background sync every 60s
+    const periodicSync = setInterval(async () => {
+      if (navigator.onLine && document.visibilityState === 'visible') {
+        const res = await pullAllFromSupabase();
+        if (res.count > 0) {
+          await loadAllData();
+        }
+      }
+    }, 60000);
+
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
@@ -35,8 +72,11 @@ export const App: React.FC = () => {
     window.addEventListener('offline', handleOffline);
 
     return () => {
+      window.removeEventListener('focus', handleSyncOnResume);
+      document.removeEventListener('visibilitychange', handleSyncOnResume);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      clearInterval(periodicSync);
     };
   }, [loadAllData]);
 

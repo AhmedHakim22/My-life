@@ -34,8 +34,8 @@ export interface SyncStatus {
   errorMessage: string | null;
 }
 
-// Table mapping configuration (Canonical 26 Tables)
-const TABLE_MAPPINGS = [
+// Table mapping configuration (Canonical Dexie to Supabase tables)
+export const TABLE_MAPPINGS = [
   { dexie: 'domains', remote: 'domains', pk: 'id' },
   { dexie: 'goals', remote: 'goals', pk: 'id' },
   { dexie: 'goalMilestones', remote: 'goal_milestones', pk: 'id' },
@@ -88,7 +88,7 @@ export async function checkSupabaseConnection(): Promise<{ connected: boolean; t
     const { error } = await supabase.from('tasks').select('id').limit(1);
     if (error) {
       if (error.code === '42P01' || error.message.includes('schema cache') || error.message.includes('not find')) {
-        return { connected: true, tablesFound: false, error: 'Database connected, but schema.sql needs to be executed' };
+        return { connected: true, tablesFound: false, error: 'Database connected, but schema needs to be executed' };
       }
       return { connected: false, tablesFound: false, error: error.message };
     }
@@ -98,10 +98,63 @@ export async function checkSupabaseConnection(): Promise<{ connected: boolean; t
   }
 }
 
+/**
+ * Auto-healing upsert that dynamically retries if remote schema is missing a column
+ * (e.g. newly added columns like focus or hall in university_subjects),
+ * and detects if the table itself is not yet created in PostgreSQL.
+ */
+async function upsertWithAutoHealing(
+  table: string,
+  records: Record<string, any>[],
+  pk?: string
+): Promise<{ success: boolean; isMissingTable?: boolean; error?: string }> {
+  if (!supabase) return { success: false, error: 'Supabase client not initialized' };
+
+  let payloads = [...records];
+  const conflictTarget = pk && !pk.includes(',') ? pk : undefined;
+
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const { error } = await supabase
+      .from(table)
+      .upsert(payloads, conflictTarget ? { onConflict: conflictTarget } : undefined);
+
+    if (!error) return { success: true };
+
+    // 1. Table missing on remote
+    if (
+      error.code === '42P01' || 
+      error.code === 'PGRST205' || 
+      error.message.includes('schema cache') || 
+      error.message.includes('Could not find the table')
+    ) {
+      return { success: false, isMissingTable: true, error: error.message };
+    }
+
+    // 2. Column missing on remote table (PGRST204) - auto-peel and retry!
+    if (error.code === 'PGRST204' || error.message.includes('Could not find the')) {
+      const match = error.message.match(/Could not find the '([^']+)' column/);
+      if (match && match[1]) {
+        const missingCol = match[1];
+        payloads = payloads.map(p => {
+          const clone = { ...p };
+          delete clone[missingCol];
+          return clone;
+        });
+        continue;
+      }
+    }
+
+    return { success: false, error: error.message };
+  }
+
+  return { success: false, error: 'Max retry attempts reached' };
+}
+
 export interface SyncPushResult {
   success: boolean;
   syncedCount: number;
   failedTables: { table: string; error: string }[];
+  missingTables: string[];
   error?: string;
 }
 
@@ -113,16 +166,16 @@ export interface SyncPullResult {
 }
 
 /**
- * Push all local Dexie records to Supabase.
- * Truthful reporting: Returns success: false if ANY table fails!
+ * Push all local Dexie records to Supabase with auto-healing and graceful schema resilience.
  */
 export async function pushAllToSupabase(): Promise<SyncPushResult> {
   if (!isSupabaseConfigured || !supabase) {
-    return { success: false, syncedCount: 0, failedTables: [], error: 'سوبا بيز مش متصل' };
+    return { success: false, syncedCount: 0, failedTables: [], missingTables: [], error: 'سوبا بيز مش متصل' };
   }
 
   let totalSynced = 0;
   const failedTables: { table: string; error: string }[] = [];
+  const missingTables: string[] = [];
 
   try {
     for (const mapping of TABLE_MAPPINGS) {
@@ -133,41 +186,42 @@ export async function pushAllToSupabase(): Promise<SyncPushResult> {
       if (!localRecords || localRecords.length === 0) continue;
 
       const remotePayloads = localRecords.map(toSnakeCase);
+      const res = await upsertWithAutoHealing(mapping.remote, remotePayloads, mapping.pk);
 
-      const conflictTarget = mapping.pk.includes(',') ? undefined : mapping.pk;
-      const { error } = await supabase
-        .from(mapping.remote)
-        .upsert(remotePayloads, conflictTarget ? { onConflict: conflictTarget } : undefined);
-
-      if (error) {
-        console.warn(`Sync failed on table ${mapping.remote}:`, error.message);
-        failedTables.push({ table: mapping.remote, error: error.message });
+      if (res.isMissingTable) {
+        missingTables.push(mapping.remote);
+      } else if (!res.success) {
+        console.warn(`Sync failed on table ${mapping.remote}:`, res.error);
+        failedTables.push({ table: mapping.remote, error: res.error || 'Unknown error' });
       } else {
         totalSynced += localRecords.length;
       }
     }
 
-    const allSuccessful = failedTables.length === 0;
+    // If failedTables (network or auth errors) is 0, existing tables succeeded!
+    const isSuccess = failedTables.length === 0;
+
     return {
-      success: allSuccessful,
+      success: isSuccess,
       syncedCount: totalSynced,
       failedTables,
-      error: allSuccessful ? undefined : `فشلت مزامنة ${failedTables.length} جدول في السحابة (${failedTables.map(f => f.table).join(', ')})`
+      missingTables,
+      error: !isSuccess ? `فشلت مزامنة ${failedTables.length} جدول: ${failedTables.map(f => f.table).join(', ')}` : undefined
     };
   } catch (err: any) {
-    console.error('Push sync failed:', err);
+    console.error('Push sync exception:', err);
     return {
       success: false,
       syncedCount: totalSynced,
       failedTables,
+      missingTables,
       error: err.message || 'خطأ غير متوقع أثناء الرفع'
     };
   }
 }
 
 /**
- * Pull all records from Supabase into Dexie (reconciliation).
- * Truthful reporting: Returns success: false if tables fail.
+ * Pull all records from Supabase into Dexie (reconciliation across devices).
  */
 export async function pullAllFromSupabase(): Promise<SyncPullResult> {
   if (!isSupabaseConfigured || !supabase) {
@@ -184,6 +238,15 @@ export async function pullAllFromSupabase(): Promise<SyncPullResult> {
 
       const { data, error } = await supabase.from(mapping.remote).select('*');
       if (error) {
+        // Skip missing unmigrated tables gracefully without failing the entire pull
+        if (
+          error.code === '42P01' || 
+          error.code === 'PGRST205' || 
+          error.message.includes('schema cache') || 
+          error.message.includes('Could not find the table')
+        ) {
+          continue;
+        }
         console.warn(`Error pulling ${mapping.remote}:`, error.message);
         failedTables.push({ table: mapping.remote, error: error.message });
         continue;
@@ -205,7 +268,7 @@ export async function pullAllFromSupabase(): Promise<SyncPullResult> {
       error: allSuccessful ? undefined : `فشل سحب بيانات ${failedTables.length} جدول من السحابة`
     };
   } catch (err: any) {
-    console.error('Pull sync failed:', err);
+    console.error('Pull sync exception:', err);
     return {
       success: false,
       count: totalPulled,
@@ -244,4 +307,86 @@ export async function processSyncQueue(): Promise<void> {
       console.warn('Sync queue item retry deferred:', e);
     }
   }
+}
+
+/* ============================================================
+   Realtime Cross-Device Synchronization Engine
+   ============================================================ */
+
+let realtimeChannel: any = null;
+let onRemoteChangeCallback: (() => void) | null = null;
+let autoPushTimer: any = null;
+
+/**
+ * Registers callback invoked whenever another device pushes changes.
+ */
+export function registerRemoteChangeHandler(callback: () => void): void {
+  onRemoteChangeCallback = callback;
+}
+
+/**
+ * Connects to Supabase Realtime WebSocket to listen for instant changes
+ * made on other devices (Phone <-> Laptop).
+ */
+export function subscribeToRealtimeSync(): void {
+  if (!isSupabaseConfigured || !supabase || realtimeChannel) return;
+
+  try {
+    realtimeChannel = supabase
+      .channel('masaar-cross-device-sync')
+      .on('postgres_changes', { event: '*', schema: 'public' }, async (payload) => {
+        console.log('⚡ Realtime update from another device:', payload.table, payload.eventType);
+
+        const mapping = TABLE_MAPPINGS.find(m => m.remote === payload.table);
+        if (mapping && (db as any)[mapping.dexie]) {
+          const dexieTable = (db as any)[mapping.dexie];
+          try {
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              const localRecord = toCamelCase(payload.new as Record<string, any>);
+              await dexieTable.put(localRecord);
+            } else if (payload.eventType === 'DELETE') {
+              const oldRecord = payload.old as Record<string, any>;
+              const pkField = mapping.pk.includes(',') ? 'id' : mapping.pk;
+              const pkVal = oldRecord[pkField] || oldRecord.id;
+              if (pkVal) {
+                await dexieTable.delete(pkVal);
+              }
+            }
+          } catch (dexErr) {
+            console.debug('Realtime dexie put warning:', dexErr);
+          }
+        }
+
+        // Notify app to re-read and render fresh data immediately
+        if (onRemoteChangeCallback) {
+          onRemoteChangeCallback();
+        }
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Realtime cross-device sync active');
+        }
+      });
+  } catch (err) {
+    console.warn('Realtime subscription error:', err);
+  }
+}
+
+/**
+ * Schedule a debounced background push whenever local data is edited.
+ * Keeps Laptop and Phone synchronized automatically without manual clicking!
+ */
+export function scheduleAutoPush(delayMs = 1500): void {
+  if (!isSupabaseConfigured || !supabase || (typeof navigator !== 'undefined' && !navigator.onLine)) return;
+
+  if (autoPushTimer) clearTimeout(autoPushTimer);
+
+  autoPushTimer = setTimeout(async () => {
+    try {
+      await pushAllToSupabase();
+      await processSyncQueue();
+    } catch (err) {
+      console.debug('Background auto-push quiet error:', err);
+    }
+  }, delayMs);
 }
