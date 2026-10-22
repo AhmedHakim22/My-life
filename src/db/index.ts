@@ -255,6 +255,28 @@ export async function seedInitialDataIfNeeded(): Promise<void> {
 }
 
 /**
+ * Request persistent browser storage to guarantee local IndexedDB is never evicted
+ * by browser cleanup policies on mobile or desktop.
+ */
+export async function requestPersistentStorage(): Promise<boolean> {
+  if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.persist) {
+    try {
+      const isPersisted = await navigator.storage.persisted();
+      if (!isPersisted) {
+        const granted = await navigator.storage.persist();
+        console.log('📦 Persistent browser storage granted:', granted);
+        return granted;
+      }
+      return true;
+    } catch (e) {
+      console.debug('Storage persistence request quiet error:', e);
+      return false;
+    }
+  }
+  return false;
+}
+
+/**
  * Saves a pre-migration JSON snapshot in localStorage for safe rollback.
  */
 export async function takePreMigrationSnapshot(): Promise<void> {

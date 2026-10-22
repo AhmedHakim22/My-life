@@ -203,6 +203,17 @@ export const UniversityWorkspace: React.FC = () => {
     }
   };
 
+  const handleOpenAddLecture = () => {
+    if (!selectedSubject) return;
+    const currentLectures = studySessions.filter(s => s.subjectId === selectedSubject.id);
+    const maxNum = currentLectures.reduce((max, s) => Math.max(max, s.lectureNumber || 0), 0);
+    const nextNum = maxNum + 1;
+    setNewLectureNum(nextNum);
+    setNewLectureTitle(`المحاضرة ${nextNum}`);
+    setNewLectureNotes('');
+    setIsAddLectureOpen(true);
+  };
+
   const handleCreateLecture = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSubject || !newLectureTitle.trim()) return;
@@ -211,11 +222,17 @@ export const UniversityWorkspace: React.FC = () => {
       subjectId: selectedSubject.id,
       title: newLectureTitle.trim(),
       type: 'LECTURE',
-      lectureNumber: Number(newLectureNum),
-      status: 'STUDIED'
+      lectureNumber: Number(newLectureNum) || 1,
+      status: 'STUDIED',
+      materialReady: false,
+      studyDone: false,
+      reviseDone: false,
+      solveDone: false,
+      notes: newLectureNotes.trim() || undefined
     });
 
     setNewLectureTitle('');
+    setNewLectureNotes('');
     setIsAddLectureOpen(false);
     fireConfettiSuccess();
   };
@@ -546,7 +563,7 @@ export const UniversityWorkspace: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => setIsAddLectureOpen(true)}
+                  onClick={handleOpenAddLecture}
                   className="bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 text-xs font-bold py-2 px-3.5 rounded-xl flex items-center gap-1.5 pressable cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -702,8 +719,8 @@ export const UniversityWorkspace: React.FC = () => {
                   <p className="font-bold">لا توجد محاضرات مضافة لهذا المقرر بعد</p>
                   <button
                     type="button"
-                    onClick={() => setIsAddLectureOpen(true)}
-                    className="inline-flex items-center gap-1 text-sky-400 hover:text-sky-300 font-bold text-xs"
+                    onClick={handleOpenAddLecture}
+                    className="inline-flex items-center gap-1 text-sky-400 hover:text-sky-300 font-bold text-xs cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     اضغط هنا لإضافة أول محاضرة

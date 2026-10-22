@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { db, seedInitialDataIfNeeded, seedAhmedStudyPlannerIfNeeded, cleanupLegacyDemoArtifacts } from '../db';
+import { db, seedInitialDataIfNeeded, seedAhmedStudyPlannerIfNeeded, cleanupLegacyDemoArtifacts, requestPersistentStorage } from '../db';
 import type {
   LifeDomain,
   Goal,
@@ -215,7 +215,19 @@ interface AppState {
   addUniversitySubject: (subject: Omit<UniversitySubject, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
   updateUniversitySubject: (id: string, updates: Partial<Omit<UniversitySubject, 'id' | 'createdAt'>>) => Promise<void>;
   deleteUniversitySubject: (id: string) => Promise<void>;
-  addStudySession: (session: { subjectId: string; title: string; type: StudySession['type']; status?: StudySession['status']; lectureNumber?: number }) => Promise<string>;
+  addStudySession: (session: {
+    subjectId: string;
+    title: string;
+    type: StudySession['type'];
+    status?: StudySession['status'];
+    lectureNumber?: number;
+    materialReady?: boolean;
+    studyDone?: boolean;
+    reviseDone?: boolean;
+    solveDone?: boolean;
+    priority?: 'High' | 'Normal';
+    notes?: string;
+  }) => Promise<string>;
   deleteStudySession: (sessionId: string) => Promise<void>;
   updateSessionStatus: (sessionId: string, newStatus: StudySession['status']) => Promise<void>;
   recordStudyReview: (sessionId: string, grade: StudyGrade) => Promise<void>;
@@ -446,6 +458,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   loadAllData: async (skipAutoPush = false) => {
+    // Lock local storage so browser never evicts offline data
+    requestPersistentStorage().catch(console.debug);
+
     await seedInitialDataIfNeeded();
     // Independent automatic curriculum seed from Excel (no button required)
     await seedAhmedStudyPlannerIfNeeded();
@@ -1355,19 +1370,26 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().showToast('تم حذف المادة وجلساتها بنجاح 🗑️');
   },
 
-  addStudySession: async ({ subjectId, title, type, status = 'STUDIED' }) => {
+  addStudySession: async (session) => {
     const id = `session-${Date.now()}`;
     await db.studySessions.add({
       id,
-      subjectId,
-      title,
-      type,
-      status,
+      subjectId: session.subjectId,
+      title: session.title,
+      type: session.type,
+      lectureNumber: session.lectureNumber,
+      materialReady: session.materialReady ?? false,
+      studyDone: session.studyDone ?? false,
+      reviseDone: session.reviseDone ?? false,
+      solveDone: session.solveDone ?? false,
+      priority: session.priority ?? 'Normal',
+      notes: session.notes,
+      status: session.status || 'STUDIED',
       fsrsStability: 0,
       fsrsDifficulty: 0
     });
     await get().loadAllData();
-    get().showToast(`تمت إضافة "${title}" بنجاح 📝`);
+    get().showToast(`تمت إضافة "${session.title}" بنجاح 📝`);
     return id;
   },
 

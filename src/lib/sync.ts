@@ -167,6 +167,7 @@ export interface SyncPullResult {
 
 export const SHADOW_SYNC_COLLECTIONS = [
   'tombstones',
+  'studySessions',
   'worshipLogs',
   'quranLogs',
   'qiyamSessions',
@@ -285,6 +286,11 @@ export async function unpackShadowState(rawPayload: string | Record<string, any>
         const table = (db as any)[col];
         if (col === 'tombstones') {
           // Merge tombstones into local DB
+          if (records.length > 0) {
+            await table.bulkPut(records);
+          }
+        } else if (col === 'studySessions') {
+          // Put all full studySessions records preserving all checkmarks
           if (records.length > 0) {
             await table.bulkPut(records);
           }
@@ -492,7 +498,25 @@ export async function pullAllFromSupabase(): Promise<SyncPullResult> {
 
           if (cleanRows.length > 0) {
             const localRecords = cleanRows.map(toCamelCase);
-            await (db as any)[mapping.dexie].bulkPut(localRecords);
+            const table = (db as any)[mapping.dexie];
+            if (mapping.dexie === 'studySessions') {
+              for (const remoteRec of localRecords) {
+                const existing = await table.get(remoteRec.id);
+                if (existing) {
+                  const merged = { ...remoteRec };
+                  for (const key of ['materialReady', 'studyDone', 'reviseDone', 'solveDone', 'lectureNumber', 'priority', 'notes']) {
+                    if (existing[key] !== undefined && remoteRec[key] === undefined) {
+                      merged[key] = existing[key];
+                    }
+                  }
+                  await table.put(merged);
+                } else {
+                  await table.put(remoteRec);
+                }
+              }
+            } else {
+              await table.bulkPut(localRecords);
+            }
             totalPulled += cleanRows.length;
           }
         }
@@ -605,7 +629,22 @@ export function subscribeToRealtimeSync(): void {
                   }
                   return;
                 }
-                await dexieTable.put(localRecord);
+                if (mapping.dexie === 'studySessions') {
+                  const existing = await dexieTable.get(localRecord.id);
+                  if (existing) {
+                    const merged = { ...localRecord };
+                    for (const key of ['materialReady', 'studyDone', 'reviseDone', 'solveDone', 'lectureNumber', 'priority', 'notes']) {
+                      if (existing[key] !== undefined && localRecord[key] === undefined) {
+                        merged[key] = existing[key];
+                      }
+                    }
+                    await dexieTable.put(merged);
+                  } else {
+                    await dexieTable.put(localRecord);
+                  }
+                } else {
+                  await dexieTable.put(localRecord);
+                }
               }
             } else if (payload.eventType === 'DELETE') {
               const oldRecord = payload.old as Record<string, any>;
