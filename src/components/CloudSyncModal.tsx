@@ -195,34 +195,6 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
           </div>
         )}
 
-        {/* Vercel Environment Variables Helper Card */}
-        <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-2.5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-white flex items-center gap-1.5">
-              <span className="text-sky-400 font-mono">▲</span>
-              <span>متغيرات بيئة Vercel للرفع السحابي</span>
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                navigator.clipboard.writeText(`VITE_SUPABASE_URL=https://phogtpgejvstfxkrhjqz.supabase.co\nVITE_SUPABASE_ANON_KEY=sb_publishable_NsZbA1HJhwMlav7_ggX6jw_wvR-Rl9t`);
-                showToast('تم نسخ متغيرات بيئة Vercel إلى الحافظة! 📋');
-              }}
-              className="text-[11px] font-bold text-sky-400 hover:text-sky-300 flex items-center gap-1 cursor-pointer bg-sky-950/50 px-2.5 py-1 rounded-lg border border-sky-500/30"
-            >
-              <Copy className="w-3.5 h-3.5" />
-              <span>نسخ لـ Vercel</span>
-            </button>
-          </div>
-          <div className="bg-slate-900/90 p-2.5 rounded-xl text-[10px] font-mono text-slate-300 space-y-1 select-all overflow-x-auto border border-slate-800">
-            <div>VITE_SUPABASE_URL=https://phogtpgejvstfxkrhjqz.supabase.co</div>
-            <div>VITE_SUPABASE_ANON_KEY=sb_publishable_NsZbA1HJhwMlav7_ggX6jw_wvR-Rl9t</div>
-          </div>
-          <p className="text-[10px] text-slate-400 leading-relaxed">
-            عند رفع الموقع على Vercel، الصق هذين المتغيرين في <strong>Project Settings → Environment Variables</strong> لتفعيل المزامنة السحابية تلقائياً.
-          </p>
-        </div>
-
         {/* Local-First Privacy Guarantee */}
         <div className="border-t border-slate-800/80 pt-3 flex items-center gap-2 text-[11px] text-slate-400">
           <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
