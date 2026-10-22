@@ -21,7 +21,8 @@ import {
   Calendar,
   AlertTriangle,
   School,
-  Trash2
+  Trash2,
+  Trophy
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { CloudSyncModal } from './CloudSyncModal';
@@ -52,7 +53,10 @@ export const SmartToday: React.FC = () => {
     toggleHabitToday,
     rankProgress,
     setActiveTab,
-    syncStatus
+    syncStatus,
+    challenges,
+    challengeLogs,
+    toggleChallengeTaskToday
   } = useAppStore();
 
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
@@ -64,6 +68,7 @@ export const SmartToday: React.FC = () => {
   const currentReadingBook = bookDetails.find(b => b.shelf === 'Reading') || bookDetails[0];
   const pendingTasks = tasks.filter(t => t.status === 'TODO' || t.status === 'IN_PROGRESS');
   const completedTasks = tasks.filter(t => t.status === 'DONE');
+  const activeChallenges = challenges.filter(c => c.status === 'ACTIVE');
   // Truthful Top 3 ranked priorities according to recommendation engine
   const todayTasks = bestNextAction 
     ? [bestNextAction.task, ...bestNextAction.alternativeTasks].slice(0, 3)
@@ -293,7 +298,7 @@ export const SmartToday: React.FC = () => {
       </section>
 
       {/* 3. Domain Pulse Quick Glance Row (Faith, Fitness, Goals, Academics) */}
-      <section className="grid grid-cols-4 gap-2">
+      <section className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 sm:gap-2">
         {/* Faith Quran Pulse */}
         <button
           type="button"
@@ -340,6 +345,21 @@ export const SmartToday: React.FC = () => {
           </span>
           <span className="text-xs font-black text-sky-400 font-mono mt-0.5 block">
             {activeGoalsCount} نشطة
+          </span>
+        </button>
+
+        {/* Challenges Pulse */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('CHALLENGES')}
+          className="glass-panel p-2 rounded-2xl border border-slate-800 text-center pressable cursor-pointer hover:border-amber-500/40 transition-all min-h-[52px]"
+        >
+          <span className="text-[10px] text-slate-400 font-bold block flex items-center justify-center gap-1">
+            <Trophy className="w-3 h-3 text-amber-400" />
+            <span>التحديات</span>
+          </span>
+          <span className="text-xs font-black text-amber-400 font-mono mt-0.5 block">
+            {activeChallenges.length} نشطة
           </span>
         </button>
 
@@ -713,6 +733,92 @@ export const SmartToday: React.FC = () => {
           )}
         </div>
       </section>
+
+      {/* 6.5. Active Challenges Daily Checklist (e.g. 90-Day Challenge Tasks) */}
+      {activeChallenges.length > 0 && (
+        <section className="space-y-3 pt-2">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-1.5">
+              <Trophy className="w-4 h-4 text-amber-400" />
+              <h2 className="text-xs font-extrabold text-slate-200 uppercase tracking-wider">
+                مهام التحديات النشطة ({activeChallenges.length})
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveTab('CHALLENGES')}
+              className="text-[11px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer"
+            >
+              <span>فتح التحديات</span>
+              <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {activeChallenges.map(challenge => {
+              const log = challengeLogs.find(l => l.challengeId === challenge.id && l.date === todayStr);
+              const completedTaskIds = log?.completedTaskIds || [];
+              const totalTasks = challenge.tasks.length;
+              const isAllDone = totalTasks > 0 && completedTaskIds.length >= totalTasks;
+
+              return (
+                <div
+                  key={challenge.id}
+                  className="glass-panel border border-amber-500/30 bg-slate-900/80 rounded-2xl p-3.5 space-y-2.5 shadow-lg"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{challenge.trophyIcon || '🏆'}</span>
+                      <span className="text-xs font-bold text-white">{challenge.title}</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-950/60 text-amber-300 border border-amber-500/30">
+                        اليوم {challenge.currentDay || 1}/{challenge.durationDays}
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-mono text-slate-400">
+                      {completedTaskIds.length}/{totalTasks} منجز
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {challenge.tasks.map(task => {
+                      const isDone = completedTaskIds.includes(task.id);
+                      return (
+                        <div
+                          key={task.id}
+                          onClick={() => toggleChallengeTaskToday(challenge.id, task.id)}
+                          className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs cursor-pointer select-none transition-all ${
+                            isDone
+                              ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+                              : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 text-slate-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold ${
+                              isDone ? 'bg-emerald-500 text-slate-950' : 'border border-slate-600 bg-slate-900 text-transparent'
+                            }`}>
+                              ✓
+                            </span>
+                            <span className={`truncate text-xs font-semibold ${isDone ? 'line-through text-slate-400' : 'text-white'}`}>
+                              {task.icon} {task.title}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-mono text-slate-400 shrink-0">{task.durationMinutes}د</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {isAllDone && (
+                    <div className="p-2 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs font-bold text-center">
+                      أتممت جميع مهام التحدي لهذا اليوم 🎉
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* 7. Today's Habits & Streaks (Trend 3 Vibrant Gradients & Trend 6 Micro-interactions) */}
       <section className="space-y-2.5 pt-1">

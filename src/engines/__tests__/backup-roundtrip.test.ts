@@ -132,7 +132,7 @@ describe('Complete Backup & Restore Roundtrip (26 Tables)', () => {
 
     const parsedBackup = JSON.parse(exportedJson);
     expect(parsedBackup.version).toBe(2);
-    expect(parsedBackup.schemaVersion).toBe(4);
+    expect(parsedBackup.schemaVersion).toBe(5);
     expect(parsedBackup.domains.length).toBe(1);
     expect(parsedBackup.goals.length).toBe(1);
     expect(parsedBackup.goalMilestones.length).toBe(1);

@@ -307,7 +307,7 @@ export interface HabitLog {
   triggerSource?: string;
 }
 
-export type XPCategory = 'STUDY' | 'READING' | 'HABIT' | 'SKILL_PROJECT' | 'MILESTONE';
+export type XPCategory = 'STUDY' | 'READING' | 'HABIT' | 'SKILL_PROJECT' | 'MILESTONE' | 'CHALLENGE';
 
 export interface XPTransaction {
   id: string;
@@ -346,7 +346,7 @@ export interface SyncQueueItem {
 
 export interface Tombstone {
   id: string; // e.g. "tomb-subj-spectro" or "tomb-book-123"
-  entityType: 'BOOK' | 'RESOURCE' | 'SUBJECT' | 'TIMETABLE_SLOT' | 'CATEGORY' | 'GOAL' | 'HABIT' | 'INTENTION' | 'WORKOUT' | 'SKILL' | 'TASK' | 'JOURNAL';
+  entityType: 'BOOK' | 'RESOURCE' | 'SUBJECT' | 'TIMETABLE_SLOT' | 'CATEGORY' | 'GOAL' | 'HABIT' | 'INTENTION' | 'WORKOUT' | 'SKILL' | 'TASK' | 'JOURNAL' | 'CHALLENGE';
   entityId: string;
   deletedAt: string;
   reason?: string;
@@ -476,5 +476,52 @@ export interface WeeklySchedulePlan {
   isOverloaded: boolean;
   status: 'DRAFT' | 'COMMITTED';
   generatedAt: string;
+}
+
+// ==========================================
+// MASAAR V2 — Challenges Engine (90-Day & Custom)
+// ==========================================
+
+export type ChallengeCategory = 'HEALTH' | 'FITNESS' | 'FAITH' | 'LEARNING' | 'STUDY' | 'READING' | 'MINDSET' | 'PRODUCTIVITY' | 'OTHER';
+
+export interface ChallengeTaskTemplate {
+  id: string;
+  title: string;
+  durationMinutes: number;
+  category?: ChallengeCategory;
+  icon?: string;
+  isMandatory?: boolean;
+}
+
+export interface Challenge {
+  id: string;
+  title: string;
+  description?: string;
+  category?: ChallengeCategory;
+  durationDays: number; // e.g. 90
+  status: 'ACTIVE' | 'QUEUED' | 'PAUSED' | 'COMPLETED' | 'ARCHIVED';
+  startDate?: string; // YYYY-MM-DD
+  endDate?: string; // YYYY-MM-DD
+  currentDay: number; // 1 to durationDays
+  completedDaysCount: number;
+  xpReward: number; // e.g. 1000
+  trophyIcon?: string;
+  tasks: ChallengeTaskTemplate[];
+  nextChallengeId?: string; // Sequential chain
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChallengeDayLog {
+  id: string; // e.g. "chlog-${challengeId}-${date}"
+  challengeId: string;
+  date: string; // YYYY-MM-DD
+  dayNumber: number; // e.g. 1 to 90
+  status: 'COMPLETED' | 'PARTIAL' | 'MISSED' | 'REST';
+  completedTaskIds: string[];
+  totalMinutesSpent: number;
+  reflectionNote?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 

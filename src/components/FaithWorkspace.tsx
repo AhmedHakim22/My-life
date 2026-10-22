@@ -28,6 +28,8 @@ import type { WorshipLog } from '../types';
 export const FaithWorkspace: React.FC = () => {
   const { 
     prayers, 
+    prayerDstMode,
+    setPrayerDstMode,
     worshipLogs, 
     quranLogs, 
     qiyamSessions, 
@@ -240,6 +242,62 @@ export const FaithWorkspace: React.FC = () => {
       {/* SUB-TAB 1: PRAYERS */}
       {activeSubTab === 'PRAYERS' && (
         <div className="space-y-3 animate-in fade-in duration-150">
+          {/* DST & Cairo Mode Controller */}
+          <div className="glass-panel border border-slate-800/80 bg-slate-900/60 rounded-2xl p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sun className={`w-4 h-4 ${prayers.isSummerTime ? 'text-amber-400' : 'text-blue-400'}`} />
+                <span className="text-xs font-bold text-white">توقيت الصلاة ومصر DST</span>
+              </div>
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+                prayers.isSummerTime 
+                  ? 'bg-amber-950/40 text-amber-300 border-amber-500/30' 
+                  : 'bg-blue-950/40 text-blue-300 border-blue-500/30'
+              }`}>
+                {prayers.dstLabel}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-1 bg-slate-950/70 p-1 rounded-xl border border-slate-800/60 text-xs">
+              <button
+                type="button"
+                onClick={() => setPrayerDstMode('AUTO')}
+                className={`py-1.5 px-2 rounded-lg font-medium transition-all text-center ${
+                  prayerDstMode === 'AUTO'
+                    ? 'bg-emerald-600 text-white font-bold shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                ⚙️ تلقائي
+              </button>
+              <button
+                type="button"
+                onClick={() => setPrayerDstMode('SUMMER')}
+                className={`py-1.5 px-2 rounded-lg font-medium transition-all text-center ${
+                  prayerDstMode === 'SUMMER'
+                    ? 'bg-amber-600 text-white font-bold shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                ☀️ صيفي (+1 س)
+              </button>
+              <button
+                type="button"
+                onClick={() => setPrayerDstMode('WINTER')}
+                className={`py-1.5 px-2 rounded-lg font-medium transition-all text-center ${
+                  prayerDstMode === 'WINTER'
+                    ? 'bg-blue-600 text-white font-bold shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                ❄️ شتوي
+              </button>
+            </div>
+            <p className="text-[10px] text-slate-400 text-center">
+              يحسب تلقائياً بالقانون المصري 24 لسنة 2023 (الجمعة الأخيرة من إبريل إلى الخميس الأخير من أكتوبر).
+            </p>
+          </div>
+
           <div className="flex items-center justify-between text-xs text-slate-400 px-1">
             <span>مواقيت الصلاة بتوقيت القاهرة (الهيئة المصرية العامة للمساحة)</span>
             <span className="font-mono text-emerald-400 font-bold">{prayers.nextPrayer.nameArabic} القادمة</span>

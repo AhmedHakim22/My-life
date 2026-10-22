@@ -12,7 +12,8 @@ import {
   Heart,
   Moon,
   Dumbbell,
-  Calendar
+  Calendar,
+  Trophy
 } from 'lucide-react';
 import { useAppStore, type ActiveTab } from '../stores/appStore';
 
@@ -30,6 +31,13 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({ isOpen, onClose })
     {
       title: 'مساحات العمل الروحانية والإضافية',
       items: [
+        {
+          id: 'CHALLENGES' as ActiveTab,
+          label: 'التحديات وروتين الـ 90 يوم',
+          desc: 'روتين الـ 90 يوم × 90 دقيقة، التحديات المخصصة، ومخطط التتبع الشهري والأوسمة',
+          icon: <Trophy className="w-5 h-5 text-amber-400" />,
+          color: 'from-amber-500/10 to-yellow-500/10 border-amber-500/20'
+        },
         {
           id: 'SCHEDULE' as ActiveTab,
           label: 'المخطط الأسبوعي وتوزيع الوقت',

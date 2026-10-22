@@ -38,7 +38,9 @@ import type {
   ScheduleBlock,
   WeeklySchedulePlan
 } from '../types';
-import { getCairoPrayerTimes, type DayPrayersResult } from '../engines/prayer';
+import { getCairoPrayerTimes, type DayPrayersResult, type PrayerDstMode } from '../engines/prayer';
+import type { Challenge, ChallengeDayLog } from '../types';
+import { CHALLENGE_90_DAYS_PRESET } from '../engines/challengesPresets';
 import { getCairoDateString, getCairoTomorrowDateString } from '../lib/dateUtils';
 import { recommendBestNextAction, type NextActionRecommendation } from '../engines/recommender';
 import { calculateUserRank, generateXPIdempotencyKey, type UserRankProgress } from '../engines/gamification';
@@ -65,6 +67,7 @@ export type ActiveTab =
   | 'FAITH' 
   | 'FITNESS' 
   | 'SCHEDULE' 
+  | 'CHALLENGES'
   | 'MORE';
 
 interface AppState {
@@ -114,6 +117,9 @@ interface AppState {
   schedulePlans: WeeklySchedulePlan[];
   tombstones: Tombstone[];
   xpResetEvents: XPResetEvent[];
+  challenges: Challenge[];
+  challengeLogs: ChallengeDayLog[];
+  prayerDstMode: PrayerDstMode;
 
   // Computed / Engine states
   prayers: DayPrayersResult;
@@ -243,6 +249,20 @@ interface AppState {
   exportBackupJSON: () => Promise<string>;
   importBackupJSON: (jsonString: string) => Promise<boolean>;
 
+  // Prayer & DST Actions
+  setPrayerDstMode: (mode: PrayerDstMode) => void;
+
+  // Challenges Engine Actions
+  createChallenge: (challenge: Omit<Challenge, 'id' | 'currentDay' | 'completedDaysCount' | 'createdAt' | 'updatedAt'>) => Promise<string>;
+  updateChallenge: (id: string, updates: Partial<Challenge>) => Promise<void>;
+  deleteChallenge: (id: string) => Promise<void>;
+  activateChallenge: (id: string) => Promise<{ success: boolean; reason?: string }>;
+  pauseChallenge: (id: string) => Promise<void>;
+  queueChallenge: (id: string, afterChallengeId?: string) => Promise<void>;
+  toggleChallengeTaskToday: (challengeId: string, taskId: string) => Promise<void>;
+  undoChallengeTaskToday: (challengeId: string, taskId: string) => Promise<void>;
+  completeChallengeManually: (id: string) => Promise<void>;
+
   // 9. Cloud Sync (Supabase)
   syncStatus: {
     isConfigured: boolean;
@@ -297,6 +317,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   schedulePlans: [],
   tombstones: [],
   xpResetEvents: [],
+  challenges: [],
+  challengeLogs: [],
+  prayerDstMode: (typeof localStorage !== 'undefined' && localStorage.getItem('masaar_prayer_dst_mode') as PrayerDstMode) || 'AUTO',
 
   prayers: getCairoPrayerTimes(),
   bestNextAction: null,
@@ -426,7 +449,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       scheduleBlocks,
       schedulePlans,
       tombstones,
-      xpResetEvents
+      xpResetEvents,
+      loadedChallenges,
+      loadedChallengeLogs
     ] = await Promise.all([
       db.domains.toArray(),
       db.goals.toArray(),
@@ -463,10 +488,30 @@ export const useAppStore = create<AppState>((set, get) => ({
       db.scheduleBlocks.toArray(),
       db.schedulePlans.toArray(),
       db.tombstones.toArray(),
-      db.xpResetEvents.toArray()
+      db.xpResetEvents.toArray(),
+      db.challenges.toArray(),
+      db.challengeLogs.toArray()
     ]);
 
-    const prayers = getCairoPrayerTimes();
+    // Auto-seed 90-day challenge if no challenges exist
+    let challenges = loadedChallenges;
+    if (challenges.length === 0) {
+      const nowStr = new Date().toISOString();
+      const initialChallenge: Challenge = {
+        ...CHALLENGE_90_DAYS_PRESET,
+        id: 'challenge-90-days',
+        currentDay: 1,
+        completedDaysCount: 0,
+        createdAt: nowStr,
+        updatedAt: nowStr
+      };
+      await db.challenges.add(initialChallenge);
+      challenges = [initialChallenge];
+    }
+
+    const now = new Date();
+    const currentDst = get().prayerDstMode || 'AUTO';
+    const prayers = getCairoPrayerTimes(now, currentDst);
     const bestNextAction = recommendBestNextAction(tasks, prayers, universitySubjects, studySessions, new Date(), goals);
     const rankProgress = calculateUserRank(xpTransactions);
 
@@ -508,6 +553,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       schedulePlans,
       tombstones,
       xpResetEvents,
+      challenges,
+      challengeLogs: loadedChallengeLogs,
       prayers,
       bestNextAction,
       rankProgress
@@ -1996,7 +2043,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   exportBackupJSON: async () => {
     const allData = {
       version: 2,
-      schemaVersion: 4,
+      schemaVersion: 5,
       exportedAt: new Date().toISOString(),
       appMeta: await db.appMeta.toArray(),
       tombstones: await db.tombstones.toArray(),
@@ -2036,7 +2083,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       workoutLogs: await db.workoutLogs.toArray(),
       availabilityRules: await db.availabilityRules.toArray(),
       scheduleBlocks: await db.scheduleBlocks.toArray(),
-      schedulePlans: await db.schedulePlans.toArray()
+      schedulePlans: await db.schedulePlans.toArray(),
+      challenges: await db.challenges.toArray(),
+      challengeLogs: await db.challengeLogs.toArray()
     };
     return JSON.stringify(allData, null, 2);
   },
@@ -2085,7 +2134,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         db.workoutLogs,
         db.availabilityRules,
         db.scheduleBlocks,
-        db.schedulePlans
+        db.schedulePlans,
+        db.challenges,
+        db.challengeLogs
       ], async () => {
         if (data.appMeta?.length) await db.appMeta.bulkPut(data.appMeta);
         if (data.tombstones?.length) await db.tombstones.bulkPut(data.tombstones);
@@ -2126,6 +2177,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (data.availabilityRules?.length) await db.availabilityRules.bulkPut(data.availabilityRules);
         if (data.scheduleBlocks?.length) await db.scheduleBlocks.bulkPut(data.scheduleBlocks);
         if (data.schedulePlans?.length) await db.schedulePlans.bulkPut(data.schedulePlans);
+        if (data.challenges?.length) await db.challenges.bulkPut(data.challenges);
+        if (data.challengeLogs?.length) await db.challengeLogs.bulkPut(data.challengeLogs);
       });
 
       await get().loadAllData();
@@ -2135,5 +2188,223 @@ export const useAppStore = create<AppState>((set, get) => ({
       console.error(e);
       return false;
     }
+  },
+
+  // Prayer & DST Actions
+  setPrayerDstMode: (mode) => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('masaar_prayer_dst_mode', mode);
+    }
+    set({ prayerDstMode: mode });
+    const now = new Date();
+    const prayers = getCairoPrayerTimes(now, mode);
+    set({ prayers });
+    const toastMsg = mode === 'SUMMER' 
+      ? 'تم تفعيل التوقيت الصيفي للمسار (+1 ساعة) ☀️' 
+      : mode === 'WINTER' 
+      ? 'تم تفعيل التوقيت الشتوي للمسار ❄️' 
+      : 'تم تفعيل الضبط التلقائي للمواقيت حسب تاريخ اليوم ⚙️';
+    get().showToast(toastMsg);
+  },
+
+  // Challenges Engine Actions
+  createChallenge: async (challengeData) => {
+    const nowStr = new Date().toISOString();
+    const id = `challenge-${Date.now()}`;
+    const newChallenge: Challenge = {
+      ...challengeData,
+      id,
+      currentDay: 1,
+      completedDaysCount: 0,
+      status: challengeData.status || 'QUEUED',
+      createdAt: nowStr,
+      updatedAt: nowStr
+    };
+    await db.challenges.add(newChallenge);
+    await get().loadAllData();
+    get().showToast(`تم إنشاء تحدي "${newChallenge.title}" بنجاح 🎯`);
+    return id;
+  },
+
+  updateChallenge: async (id, updates) => {
+    await db.challenges.update(id, {
+      ...updates,
+      updatedAt: new Date().toISOString()
+    });
+    await get().loadAllData();
+    get().showToast('تم تحديث بيانات التحدي ✏️');
+  },
+
+  deleteChallenge: async (id) => {
+    const challenge = get().challenges.find(c => c.id === id);
+    const title = challenge?.title || 'التحدي';
+    await db.challenges.delete(id);
+    await db.challengeLogs.where('challengeId').equals(id).delete();
+    await db.tombstones.put({
+      id: `tomb-challenge-${id}`,
+      entityType: 'CHALLENGE',
+      entityId: id,
+      deletedAt: new Date().toISOString(),
+      reason: `User deleted challenge: ${title}`
+    });
+    await get().loadAllData();
+    get().showToast(`تم حذف ${title} بنجاح 🗑️`);
+  },
+
+  activateChallenge: async (id) => {
+    const challenge = get().challenges.find(c => c.id === id);
+    if (!challenge) return { success: false, reason: 'NOT_FOUND' };
+
+    const activeChallenges = get().challenges.filter(c => c.status === 'ACTIVE' && c.id !== id);
+    if (activeChallenges.length >= 3) {
+      get().showToast('تنبيه: الحد الأقصى للتحديات المتزامنة هو 3 تحديات فقط في نفس الفترة ⚠️');
+      return { success: false, reason: 'MAX_3_ACTIVE_REACHED' };
+    }
+
+    const todayStr = getCairoDateString();
+    const end = new Date();
+    end.setDate(end.getDate() + challenge.durationDays);
+    const endDateStr = getCairoDateString(end);
+
+    await db.challenges.update(id, {
+      status: 'ACTIVE',
+      startDate: todayStr,
+      endDate: endDateStr,
+      updatedAt: new Date().toISOString()
+    });
+
+    await get().loadAllData();
+    get().showToast(`انطلق التحدي! بالتوفيق في مسار "${challenge.title}" (${challenge.durationDays} يوماً) 🚀`);
+    return { success: true };
+  },
+
+  pauseChallenge: async (id) => {
+    await db.challenges.update(id, {
+      status: 'PAUSED',
+      updatedAt: new Date().toISOString()
+    });
+    await get().loadAllData();
+    get().showToast('تم إيقاف التحدي مؤقتاً ⏸️');
+  },
+
+  queueChallenge: async (id, afterChallengeId) => {
+    await db.challenges.update(id, {
+      status: 'QUEUED',
+      nextChallengeId: afterChallengeId,
+      updatedAt: new Date().toISOString()
+    });
+    await get().loadAllData();
+    get().showToast('تمت إضافة التحدي لقائمة الانتظار ⏳');
+  },
+
+  toggleChallengeTaskToday: async (challengeId, taskId) => {
+    const challenge = get().challenges.find(c => c.id === challengeId);
+    if (!challenge) return;
+
+    const todayStr = getCairoDateString();
+    const logId = `chlog-${challengeId}-${todayStr}`;
+    let log = await db.challengeLogs.get(logId);
+
+    const mandatoryTaskIds = challenge.tasks.filter(t => t.isMandatory !== false).map(t => t.id);
+
+    let currentCompletedTaskIds: string[] = log ? [...log.completedTaskIds] : [];
+    if (currentCompletedTaskIds.includes(taskId)) {
+      currentCompletedTaskIds = currentCompletedTaskIds.filter(id => id !== taskId);
+    } else {
+      currentCompletedTaskIds.push(taskId);
+    }
+
+    const isAllMandatoryDone = mandatoryTaskIds.length > 0 && mandatoryTaskIds.every(id => currentCompletedTaskIds.includes(id));
+    const totalMinutes = challenge.tasks
+      .filter(t => currentCompletedTaskIds.includes(t.id))
+      .reduce((sum, t) => sum + (t.durationMinutes || 0), 0);
+
+    let dayNumber = 1;
+    if (challenge.startDate) {
+      const start = new Date(challenge.startDate);
+      const now = new Date(todayStr);
+      const diffDays = Math.max(0, Math.round((now.getTime() - start.getTime()) / 86400000));
+      dayNumber = Math.min(challenge.durationDays, diffDays + 1);
+    }
+
+    const newStatus = isAllMandatoryDone ? 'COMPLETED' : currentCompletedTaskIds.length > 0 ? 'PARTIAL' : 'MISSED';
+
+    await db.challengeLogs.put({
+      id: logId,
+      challengeId,
+      date: todayStr,
+      dayNumber,
+      status: newStatus,
+      completedTaskIds: currentCompletedTaskIds,
+      totalMinutesSpent: totalMinutes,
+      createdAt: log ? log.createdAt : new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+
+    // Count all completed days for this challenge
+    const allLogs = await db.challengeLogs.where('challengeId').equals(challengeId).toArray();
+    const completedDays = allLogs.filter(l => l.status === 'COMPLETED').length;
+    const isFullyCompleted = completedDays >= challenge.durationDays;
+
+    await db.challenges.update(challengeId, {
+      completedDaysCount: completedDays,
+      currentDay: dayNumber,
+      status: isFullyCompleted ? 'COMPLETED' : challenge.status,
+      updatedAt: new Date().toISOString()
+    });
+
+    if (isFullyCompleted && challenge.status !== 'COMPLETED') {
+      await db.xpTransactions.add({
+        id: `xp-chal-${Date.now()}`,
+        idempotencyKey: generateXPIdempotencyKey('CHALLENGE_FINISH' as any, challengeId, todayStr),
+        amount: challenge.xpReward || 1000,
+        category: 'CHALLENGE',
+        reason: `إنجاز تحدي كامل: ${challenge.title} (${challenge.durationDays} يوماً)`,
+        createdAt: new Date().toISOString()
+      });
+
+      if (challenge.nextChallengeId) {
+        await db.challenges.update(challenge.nextChallengeId, {
+          status: 'ACTIVE',
+          startDate: todayStr,
+          updatedAt: new Date().toISOString()
+        });
+      }
+
+      get().showToast(`🏆 مبروك يا بطل! أتممت تحدي "${challenge.title}" بالكامل وحصلت على ${challenge.xpReward} XP!`);
+    } else if (isAllMandatoryDone) {
+      get().showToast(`عاش! اكتملت جميع مهام تحدي اليوم (${totalMinutes} دقيقة) 🎉`);
+    }
+
+    await get().loadAllData();
+  },
+
+  undoChallengeTaskToday: async (challengeId, taskId) => {
+    await get().toggleChallengeTaskToday(challengeId, taskId);
+  },
+
+  completeChallengeManually: async (id) => {
+    const challenge = get().challenges.find(c => c.id === id);
+    if (!challenge) return;
+    const todayStr = getCairoDateString();
+
+    await db.challenges.update(id, {
+      status: 'COMPLETED',
+      completedDaysCount: challenge.durationDays,
+      updatedAt: new Date().toISOString()
+    });
+
+    await db.xpTransactions.add({
+      id: `xp-chal-${Date.now()}`,
+      idempotencyKey: generateXPIdempotencyKey('CHALLENGE_FINISH' as any, id, todayStr),
+      amount: challenge.xpReward || 1000,
+      category: 'CHALLENGE',
+      reason: `إنجاز تحدي: ${challenge.title}`,
+      createdAt: new Date().toISOString()
+    });
+
+    await get().loadAllData();
+    get().showToast(`تم توثيق إنجاز تحدي "${challenge.title}" ومنح المكافأة (${challenge.xpReward} XP) 🏆`);
   }
+
 }));
