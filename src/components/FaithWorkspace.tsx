@@ -164,11 +164,11 @@ export const FaithWorkspace: React.FC = () => {
       <div className="absolute top-0 right-1/4 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
 
       {/* Header Banner */}
-      <header className="glass-panel border border-emerald-500/20 rounded-3xl p-4.5 shadow-xl relative overflow-hidden">
+      <header className="apple-card border border-emerald-500/20 rounded-[28px] p-5 shadow-xl relative overflow-hidden">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black text-emerald-400 bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
+              <span className="text-[11px] font-black text-emerald-300 bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1 shadow-sm">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                 مساحة خاصة 100% • دون نقاط XP
               </span>
@@ -184,13 +184,13 @@ export const FaithWorkspace: React.FC = () => {
         </div>
 
         {/* Sub-Tab Navigation */}
-        <div className="grid grid-cols-4 gap-1 p-1 mt-4 rounded-2xl bg-slate-950/80 neo-sunken border border-slate-800 text-xs font-bold">
+        <div className="apple-segmented-container grid grid-cols-4 gap-1 p-1 mt-4 text-xs font-bold">
           <button
             type="button"
             onClick={() => setActiveSubTab('PRAYERS')}
-            className={`py-2 px-1 rounded-xl transition-all cursor-pointer text-center flex flex-col sm:flex-row items-center justify-center gap-1 ${
+            className={`py-2 px-1 rounded-2xl transition-all cursor-pointer text-center flex flex-col sm:flex-row items-center justify-center gap-1 ${
               activeSubTab === 'PRAYERS'
-                ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-md'
+                ? 'apple-pill-active'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -201,9 +201,9 @@ export const FaithWorkspace: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveSubTab('QURAN')}
-            className={`py-2 px-1 rounded-xl transition-all cursor-pointer text-center flex flex-col sm:flex-row items-center justify-center gap-1 ${
+            className={`py-2 px-1 rounded-2xl transition-all cursor-pointer text-center flex flex-col sm:flex-row items-center justify-center gap-1 ${
               activeSubTab === 'QURAN'
-                ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-md'
+                ? 'apple-pill-active'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -214,9 +214,9 @@ export const FaithWorkspace: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveSubTab('QIYAM')}
-            className={`py-2 px-1 rounded-xl transition-all cursor-pointer text-center flex flex-col sm:flex-row items-center justify-center gap-1 ${
+            className={`py-2 px-1 rounded-2xl transition-all cursor-pointer text-center flex flex-col sm:flex-row items-center justify-center gap-1 ${
               activeSubTab === 'QIYAM'
-                ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-md'
+                ? 'apple-pill-active'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -227,9 +227,9 @@ export const FaithWorkspace: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveSubTab('INTENTIONS')}
-            className={`py-2 px-1 rounded-xl transition-all cursor-pointer text-center flex flex-col sm:flex-row items-center justify-center gap-1 ${
+            className={`py-2 px-1 rounded-2xl transition-all cursor-pointer text-center flex flex-col sm:flex-row items-center justify-center gap-1 ${
               activeSubTab === 'INTENTIONS'
-                ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-md'
+                ? 'apple-pill-active'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >

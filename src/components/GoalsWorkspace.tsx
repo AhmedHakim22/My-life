@@ -199,7 +199,7 @@ export const GoalsWorkspace: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsAddGoalModalOpen(true)}
-            className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-slate-950 text-xs font-extrabold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-lg shadow-sky-500/25 border border-sky-300/40 pressable cursor-pointer"
+            className="apple-btn-primary text-xs font-black px-4 py-2 rounded-2xl flex items-center gap-1.5 shadow-lg shadow-sky-500/25 pressable cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span>هدف استراتيجي جديد</span>
@@ -207,25 +207,25 @@ export const GoalsWorkspace: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. Top Strategic KPIs */}
+      {/* 2. Top Strategic KPIs (Apple HIG Squircles) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        <div className="glass-panel p-3 rounded-2xl border border-slate-800">
+        <div className="apple-card p-3.5 rounded-3xl">
           <span className="text-[10px] text-slate-400 font-bold">أهداف نشطة</span>
-          <div className="text-xl font-black text-sky-400 mt-0.5 font-mono">{activeGoalsCount}</div>
+          <div className="text-xl font-black text-sky-400 mt-1 font-mono">{activeGoalsCount}</div>
         </div>
-        <div className="glass-panel p-3 rounded-2xl border border-slate-800">
+        <div className="apple-card p-3.5 rounded-3xl">
           <span className="text-[10px] text-slate-400 font-bold">معالم منجزة</span>
-          <div className="text-xl font-black text-emerald-400 mt-0.5 font-mono">
+          <div className="text-xl font-black text-emerald-400 mt-1 font-mono">
             {completedMilestones} <span className="text-xs text-slate-500">/ {totalMilestones}</span>
           </div>
         </div>
-        <div className="glass-panel p-3 rounded-2xl border border-slate-800">
+        <div className="apple-card p-3.5 rounded-3xl">
           <span className="text-[10px] text-slate-400 font-bold">أهداف محققة</span>
-          <div className="text-xl font-black text-purple-400 mt-0.5 font-mono">{achievedGoalsCount}</div>
+          <div className="text-xl font-black text-purple-400 mt-1 font-mono">{achievedGoalsCount}</div>
         </div>
-        <div className="glass-panel p-3 rounded-2xl border border-slate-800">
+        <div className="apple-card p-3.5 rounded-3xl">
           <span className="text-[10px] text-slate-400 font-bold">نسبة التحقق</span>
-          <div className="text-xl font-black text-amber-400 mt-0.5 font-mono">
+          <div className="text-xl font-black text-amber-400 mt-1 font-mono">
             {totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0}%
           </div>
         </div>

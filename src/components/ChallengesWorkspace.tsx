@@ -153,14 +153,14 @@ export const ChallengesWorkspace: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-24 max-w-4xl mx-auto px-2 sm:px-4">
+    <div className="space-y-6 pb-28 max-w-4xl mx-auto px-2 sm:px-4">
       {/* Top Header */}
-      <header className="glass-panel border border-slate-800/80 bg-slate-900/60 rounded-3xl p-5 shadow-xl relative overflow-hidden">
+      <header className="apple-card rounded-[28px] p-5 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="p-2 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+              <span className="p-2.5 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-[0_0_14px_rgba(245,158,11,0.2)]">
                 <Trophy className="w-6 h-6" />
               </span>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">نظام التحديات والانضباط</h1>
@@ -174,36 +174,36 @@ export const ChallengesWorkspace: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer"
+              className="flex items-center gap-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-lg shadow-amber-500/25 active:scale-95 transition-all cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 stroke-[3]" />
               <span>تحدي جديد</span>
             </button>
           </div>
         </div>
 
         {/* Status Bar / Active count banner */}
-        <div className="mt-4 pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="mt-4 pt-4 border-t border-white/5 flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2">
             <span className="font-bold text-slate-400">التحديات النشطة:</span>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               {[1, 2, 3].map(idx => (
                 <div
                   key={idx}
-                  className={`w-6 h-6 rounded-lg flex items-center justify-center font-mono font-bold text-xs ${
+                  className={`w-6 h-6 rounded-xl flex items-center justify-center font-mono font-bold text-xs ${
                     idx <= activeChallenges.length
-                      ? 'bg-amber-500 text-slate-950 shadow-sm'
-                      : 'bg-slate-800/80 text-slate-500 border border-slate-700/50'
+                      ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-500/30'
+                      : 'bg-slate-900/80 text-slate-500 border border-white/5'
                   }`}
                 >
                   {idx}
                 </div>
               ))}
             </div>
-            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+            <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
               isAtMaxActive 
-                ? 'bg-amber-950/60 text-amber-300 border border-amber-500/30' 
-                : 'bg-emerald-950/60 text-emerald-300 border border-emerald-500/30'
+                ? 'bg-amber-950/70 text-amber-300 border border-amber-500/40' 
+                : 'bg-emerald-950/70 text-emerald-300 border border-emerald-500/40'
             }`}>
               {activeChallenges.length} من 3
             </span>
@@ -218,13 +218,13 @@ export const ChallengesWorkspace: React.FC = () => {
         </div>
 
         {/* Tab switchers */}
-        <div className="mt-4 grid grid-cols-3 gap-2 bg-slate-950/60 p-1 rounded-2xl border border-slate-800/80 text-xs font-semibold">
+        <div className="mt-4 apple-segmented-container grid grid-cols-3 gap-1">
           <button
             type="button"
             onClick={() => setActiveTab('ACTIVE')}
-            className={`py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`py-2 px-3 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               activeTab === 'ACTIVE'
-                ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
+                ? 'apple-pill-active'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -235,9 +235,9 @@ export const ChallengesWorkspace: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('GRID_90')}
-            className={`py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`py-2 px-3 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               activeTab === 'GRID_90'
-                ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
+                ? 'apple-pill-active'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -248,9 +248,9 @@ export const ChallengesWorkspace: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('ALL')}
-            className={`py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`py-2 px-3 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               activeTab === 'ALL'
-                ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
+                ? 'apple-pill-active'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >

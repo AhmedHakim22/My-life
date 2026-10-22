@@ -47,7 +47,7 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#070a12] text-slate-100 flex flex-col justify-between selection:bg-sky-500 selection:text-slate-950 font-sans">
+    <div className="min-h-screen bg-transparent text-slate-100 flex flex-col justify-between selection:bg-sky-500 selection:text-slate-950 font-sans">
       {/* Offline Status Banner */}
       {!isOnline && (
         <div className="bg-amber-950/80 border-b border-amber-800/60 py-1.5 px-3 text-center text-[11px] font-bold text-amber-300 flex items-center justify-center gap-1.5 shadow-md sticky top-0 z-50 backdrop-blur-md">

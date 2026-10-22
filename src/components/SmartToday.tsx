@@ -154,20 +154,16 @@ export const SmartToday: React.FC = () => {
       <div className="absolute top-0 right-1/4 w-72 h-72 bg-sky-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
       <div className="absolute top-64 left-0 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
 
-      {/* 1. Header & Personalized Welcome (Trend 9 Bold Typography & Trend 10 Personalized AI Experience) */}
-      <header className="glass-panel rounded-3xl p-4.5 flex items-center justify-between border border-white/10 shadow-xl shadow-black/40 relative overflow-hidden">
-        {/* Subtle decorative glow line */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-sky-400/60 to-transparent" />
-
+      {/* 1. Apple iOS Large Title Header */}
+      <header className="flex items-center justify-between pt-1 pb-1">
         <div className="space-y-1">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
-            <span className="text-[11px] font-bold text-sky-400 tracking-wider uppercase">
-              مَسار • المدرب اليومي الذكي
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_10px_#38bdf8]" />
+            <span className="text-[11px] font-black text-sky-400 tracking-wider">
+              مَسار • المرشد اليومي
             </span>
           </div>
-
-          <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
             صباح النور يا أحمد 👋
           </h1>
           <p className="text-xs text-slate-400 font-medium">
@@ -175,46 +171,24 @@ export const SmartToday: React.FC = () => {
           </p>
         </div>
 
-        {/* Action Pills */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Cloud Sync Button */}
-          <button
-            type="button"
-            onClick={() => setIsSyncModalOpen(true)}
-            className={`min-h-[44px] flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-all pressable cursor-pointer ${
-              syncStatus.isConnected && syncStatus.tablesFound
-                ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
-                : syncStatus.isConnected
-                ? 'bg-amber-950/60 border-amber-500/40 text-amber-300 animate-pulse'
-                : 'bg-slate-900/80 border-slate-700/60 text-slate-400 hover:text-slate-200'
-            }`}
-            title="مزامنة سوبا بيز"
-          >
-            <Cloud className={`w-3.5 h-3.5 ${syncStatus.isSyncing ? 'animate-spin' : ''}`} />
-            <span className="text-[10px]">
-              {syncStatus.isConnected && syncStatus.tablesFound ? 'متصل ☁️' : syncStatus.isConnected ? 'إعداد ⚙️' : 'سحابة'}
-            </span>
-          </button>
-
-          {/* Rank Badge with 3D Orbital Glow */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('JOURNAL')}
-            className="min-h-[44px] flex items-center gap-2 bg-gradient-to-r from-purple-950/70 to-slate-900 border border-purple-500/40 hover:border-purple-400/80 rounded-2xl px-3 py-1.5 transition-all pressable cursor-pointer shadow-lg shadow-purple-950/40"
-          >
-            <div className="w-7 h-7 rounded-xl bg-purple-500/20 border border-purple-400/40 flex items-center justify-center text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.3)]">
-              <GraduationCap className="w-4 h-4" />
+        {/* Scientific Rank Badge with Apple Glass styling */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('JOURNAL')}
+          className="min-h-[46px] px-3.5 py-2 rounded-2xl border border-purple-500/30 bg-purple-950/40 backdrop-blur-xl flex items-center gap-2.5 pressable cursor-pointer shadow-lg hover:border-purple-400/60"
+        >
+          <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-400/40 flex items-center justify-center text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.3)]">
+            <GraduationCap className="w-4 h-4" />
+          </div>
+          <div className="text-right">
+            <div className="text-xs font-black text-purple-200">
+              {rankProgress.currentRank.titleArabic}
             </div>
-            <div className="text-right">
-              <div className="text-[11px] font-extrabold text-purple-200 leading-tight">
-                {rankProgress.currentRank.titleArabic}
-              </div>
-              <div className="text-[10px] text-purple-300/80 font-mono font-bold">
-                {rankProgress.totalXP} XP
-              </div>
+            <div className="text-[10px] text-purple-300 font-mono font-bold">
+              {rankProgress.totalXP} XP
             </div>
-          </button>
-        </div>
+          </div>
+        </button>
       </header>
 
       {/* Overload Alert Quick Banner */}
@@ -238,28 +212,28 @@ export const SmartToday: React.FC = () => {
       )}
 
       {/* 2. Contextual Awareness: Next Prayer & Next University Commitment */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <section className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         {/* Next Prayer Card */}
         <button
           type="button"
           onClick={() => setActiveTab('FAITH')}
-          className="glass-panel-emerald rounded-2xl p-3 flex items-center justify-between shadow-lg relative overflow-hidden text-right pressable cursor-pointer border border-emerald-500/30 hover:border-emerald-400/50 min-h-[56px]"
+          className="glass-panel-emerald rounded-3xl p-3.5 flex items-center justify-between shadow-lg relative overflow-hidden text-right pressable cursor-pointer border border-emerald-500/30 hover:border-emerald-400/50 min-h-[64px]"
         >
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-300 border border-emerald-400/30 shrink-0">
-              <Sun className="w-4 h-4" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(16,185,129,0.25)]">
+              <Sun className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xs font-bold text-emerald-200 flex items-center gap-1.5">
+              <div className="text-xs font-black text-emerald-200 flex items-center gap-1.5">
                 <span>صلاة {prayers.nextPrayer.nameArabic} القادمة</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
               </div>
               <div className="text-[11px] text-emerald-300/90 font-mono mt-0.5">
                 الساعة <strong>{prayers.nextPrayer.timeFormatted}</strong> (متبقي {prayers.freeWindowMinutes} د)
               </div>
             </div>
           </div>
-          <span className="text-[10px] font-bold text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-600/40">
+          <span className="text-[10px] font-bold text-emerald-300 bg-emerald-950/80 px-2.5 py-1 rounded-full border border-emerald-600/40">
             القاهرة 📍
           </span>
         </button>
@@ -268,14 +242,14 @@ export const SmartToday: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('UNIVERSITY')}
-          className="glass-panel rounded-2xl p-3 flex items-center justify-between shadow-lg relative overflow-hidden text-right pressable cursor-pointer border border-purple-500/30 hover:border-purple-400/50 min-h-[56px]"
+          className="glass-panel rounded-3xl p-3.5 flex items-center justify-between shadow-lg relative overflow-hidden text-right pressable cursor-pointer border border-purple-500/30 hover:border-purple-400/50 min-h-[64px]"
         >
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-300 border border-purple-400/30 shrink-0">
-              <School className="w-4 h-4" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-400/30 flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(168,85,247,0.25)]">
+              <School className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <div className="text-xs font-bold text-purple-200 flex items-center gap-1">
+              <div className="text-xs font-black text-purple-200 flex items-center gap-1">
                 <span>الجامعة • {todayArabicDay}</span>
               </div>
               <div className="text-[11px] text-purple-300/90 truncate mt-0.5 font-medium">
@@ -291,123 +265,145 @@ export const SmartToday: React.FC = () => {
               </div>
             </div>
           </div>
-          <span className="text-[10px] font-bold text-purple-300 bg-purple-950/80 px-2 py-0.5 rounded-full border border-purple-700/40 shrink-0">
+          <span className="text-[10px] font-bold text-purple-300 bg-purple-950/80 px-2.5 py-1 rounded-full border border-purple-700/40 shrink-0">
             {todaySlots.length} حصص
           </span>
         </button>
       </section>
 
-      {/* 3. Domain Pulse Quick Glance Row (Faith, Fitness, Goals, Academics) */}
-      <section className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 sm:gap-2">
-        {/* Faith Quran Pulse */}
+      {/* 3. Apple Activity Squircle Widgets (Faith, Fitness, Goals, Challenges, Schedule) */}
+      <section className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+        {/* Quran Widget */}
         <button
           type="button"
           onClick={() => setActiveTab('FAITH')}
-          className="glass-panel p-2.5 rounded-2xl border border-slate-800 text-center pressable cursor-pointer hover:border-emerald-500/40 transition-all min-h-[52px]"
+          className="apple-widget p-3 flex flex-col justify-between text-right pressable cursor-pointer border border-emerald-500/30 hover:border-emerald-400/50 bg-slate-900/70 min-h-[82px]"
         >
-          <span className="text-[10px] text-slate-400 font-bold block flex items-center justify-center gap-1">
-            <Moon className="w-3 h-3 text-emerald-400" />
-            <span>القرآن</span>
-          </span>
-          <span className={`text-xs font-black font-mono mt-0.5 block ${
-            todayQuranPages >= 3 ? 'text-emerald-400' : 'text-slate-300'
-          }`}>
-            {todayQuranPages}/3 ص {todayQuranPages >= 3 ? '✓' : ''}
-          </span>
+          <div className="flex items-center justify-between">
+            <span className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shadow-[0_0_8px_rgba(16,185,129,0.3)]">
+              <Moon className="w-3.5 h-3.5" />
+            </span>
+            <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.2 rounded-md">ورد</span>
+          </div>
+          <div>
+            <div className="text-sm font-black font-mono text-white mt-1.5">
+              {todayQuranPages}/3 ص
+            </div>
+            <div className="text-[10px] text-slate-400 font-bold mt-0.5">القرآن الكريم</div>
+          </div>
         </button>
 
-        {/* Fitness Movement Pulse */}
+        {/* Fitness Widget */}
         <button
           type="button"
           onClick={() => setActiveTab('FITNESS')}
-          className="glass-panel p-2.5 rounded-2xl border border-slate-800 text-center pressable cursor-pointer hover:border-rose-500/40 transition-all min-h-[52px]"
+          className="apple-widget p-3 flex flex-col justify-between text-right pressable cursor-pointer border border-rose-500/30 hover:border-rose-400/50 bg-slate-900/70 min-h-[82px]"
         >
-          <span className="text-[10px] text-slate-400 font-bold block flex items-center justify-center gap-1">
-            <Dumbbell className="w-3 h-3 text-rose-400" />
-            <span>الحركة</span>
-          </span>
-          <span className={`text-xs font-black font-mono mt-0.5 block ${
-            todayMovementMinutes >= 20 ? 'text-rose-400' : 'text-slate-300'
-          }`}>
-            {todayMovementMinutes}/20 د {todayMovementMinutes >= 20 ? '✓' : ''}
-          </span>
+          <div className="flex items-center justify-between">
+            <span className="w-7 h-7 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center shadow-[0_0_8px_rgba(244,63,94,0.3)]">
+              <Dumbbell className="w-3.5 h-3.5" />
+            </span>
+            <span className="text-[10px] text-rose-400 font-bold bg-rose-950/60 px-1.5 py-0.2 rounded-md">20د</span>
+          </div>
+          <div>
+            <div className="text-sm font-black font-mono text-white mt-1.5">
+              {todayMovementMinutes}/20 د
+            </div>
+            <div className="text-[10px] text-slate-400 font-bold mt-0.5">الحركة والرياضة</div>
+          </div>
         </button>
 
-        {/* Goals Pulse */}
+        {/* Goals Widget */}
         <button
           type="button"
           onClick={() => setActiveTab('GOALS')}
-          className="glass-panel p-2.5 rounded-2xl border border-slate-800 text-center pressable cursor-pointer hover:border-sky-500/40 transition-all min-h-[52px]"
+          className="apple-widget p-3 flex flex-col justify-between text-right pressable cursor-pointer border border-sky-500/30 hover:border-sky-400/50 bg-slate-900/70 min-h-[82px]"
         >
-          <span className="text-[10px] text-slate-400 font-bold block flex items-center justify-center gap-1">
-            <Target className="w-3 h-3 text-sky-400" />
-            <span>الأهداف</span>
-          </span>
-          <span className="text-xs font-black text-sky-400 font-mono mt-0.5 block">
-            {activeGoalsCount} نشطة
-          </span>
+          <div className="flex items-center justify-between">
+            <span className="w-7 h-7 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center shadow-[0_0_8px_rgba(14,165,233,0.3)]">
+              <Target className="w-3.5 h-3.5" />
+            </span>
+            <span className="text-[10px] text-sky-400 font-bold bg-sky-950/60 px-1.5 py-0.2 rounded-md">أهداف</span>
+          </div>
+          <div>
+            <div className="text-sm font-black font-mono text-white mt-1.5">
+              {activeGoalsCount} نشطة
+            </div>
+            <div className="text-[10px] text-slate-400 font-bold mt-0.5">مسار الأهداف</div>
+          </div>
         </button>
 
-        {/* Challenges Pulse */}
+        {/* Challenges Widget */}
         <button
           type="button"
           onClick={() => setActiveTab('CHALLENGES')}
-          className="glass-panel p-2 rounded-2xl border border-slate-800 text-center pressable cursor-pointer hover:border-amber-500/40 transition-all min-h-[52px]"
+          className="apple-widget p-3 flex flex-col justify-between text-right pressable cursor-pointer border border-amber-500/30 hover:border-amber-400/50 bg-slate-900/70 min-h-[82px]"
         >
-          <span className="text-[10px] text-slate-400 font-bold block flex items-center justify-center gap-1">
-            <Trophy className="w-3 h-3 text-amber-400" />
-            <span>التحديات</span>
-          </span>
-          <span className="text-xs font-black text-amber-400 font-mono mt-0.5 block">
-            {activeChallenges.length} نشطة
-          </span>
+          <div className="flex items-center justify-between">
+            <span className="w-7 h-7 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center shadow-[0_0_8px_rgba(245,158,11,0.3)]">
+              <Trophy className="w-3.5 h-3.5" />
+            </span>
+            <span className="text-[10px] text-amber-400 font-bold bg-amber-950/60 px-1.5 py-0.2 rounded-md">الـ 90</span>
+          </div>
+          <div>
+            <div className="text-sm font-black font-mono text-white mt-1.5">
+              {activeChallenges.length} نشطة
+            </div>
+            <div className="text-[10px] text-slate-400 font-bold mt-0.5">التحديات</div>
+          </div>
         </button>
 
-        {/* Weekly Schedule Plan */}
+        {/* Schedule Widget */}
         <button
           type="button"
           onClick={() => setActiveTab('SCHEDULE')}
-          className="glass-panel p-2.5 rounded-2xl border border-slate-800 text-center pressable cursor-pointer hover:border-sky-500/40 transition-all min-h-[52px]"
+          className="apple-widget p-3 flex flex-col justify-between text-right pressable cursor-pointer border border-blue-500/30 hover:border-blue-400/50 bg-slate-900/70 min-h-[82px]"
         >
-          <span className="text-[10px] text-slate-400 font-bold block flex items-center justify-center gap-1">
-            <Calendar className="w-3 h-3 text-sky-400" />
-            <span>المخطط</span>
-          </span>
-          <span className={`text-xs font-black font-mono mt-0.5 block ${
-            weeklyPlan.isOverloaded ? 'text-rose-400' : 'text-teal-400'
-          }`}>
-            {weeklyPlan.isOverloaded ? 'حمل زائد' : 'متزن ✓'}
-          </span>
+          <div className="flex items-center justify-between">
+            <span className="w-7 h-7 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center shadow-[0_0_8px_rgba(59,130,246,0.3)]">
+              <Calendar className="w-3.5 h-3.5" />
+            </span>
+            <span className="text-[10px] text-blue-400 font-bold bg-blue-950/60 px-1.5 py-0.2 rounded-md">جدول</span>
+          </div>
+          <div>
+            <div className="text-sm font-black font-mono text-white mt-1.5">
+              {weeklyPlan.isOverloaded ? 'حمل زائد' : 'متزن ✓'}
+            </div>
+            <div className="text-[10px] text-slate-400 font-bold mt-0.5">المخطط الأسبوعي</div>
+          </div>
         </button>
       </section>
 
-      {/* 3. Hero Card: Best Next Action (Explainable Recommender - Trend 10 & Trend 4) */}
+      {/* 3. Hero Card: Best Next Action (Apple Intelligence Glow Card) */}
       {bestNextAction ? (
-        <section className="glass-panel-glow rounded-3xl p-5 shadow-2xl relative overflow-hidden border border-sky-400/30">
+        <section className="apple-card-glow rounded-[26px] p-5 shadow-2xl relative overflow-hidden border border-sky-400/40">
+          {/* Subtle background refraction orb */}
+          <div className="absolute -top-12 -left-12 w-32 h-32 rounded-full bg-sky-400/20 blur-2xl pointer-events-none" />
+
           {/* Top highlight pill */}
-          <div className="flex items-center justify-between mb-3">
-            <span className="inline-flex items-center gap-1.5 bg-sky-500/20 text-sky-300 border border-sky-400/40 text-[11px] font-extrabold px-3 py-1 rounded-full">
-              <Sparkles className="w-3.5 h-3.5 fill-sky-300" />
+          <div className="flex items-center justify-between mb-3 relative z-10">
+            <span className="inline-flex items-center gap-1.5 bg-sky-400/20 text-sky-200 border border-sky-400/40 text-[11px] font-extrabold px-3 py-1 rounded-full shadow-[0_0_12px_rgba(56,189,248,0.2)]">
+              <Sparkles className="w-3.5 h-3.5 text-sky-300 fill-sky-300" />
               <span>التوصية الذكية الأنسب لك الآن</span>
             </span>
 
-            <span className="text-[10px] font-mono text-sky-300/80 bg-sky-950/60 px-2 py-0.5 rounded-md border border-sky-800/40">
+            <span className="text-[10px] font-mono text-sky-200 bg-sky-950/70 px-2.5 py-0.5 rounded-full border border-sky-500/30">
               {bestNextAction.task.estimatedMinutes} دقيقة
             </span>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 relative z-10">
             <h2 className="text-base sm:text-lg font-black text-white leading-snug">
               {bestNextAction.task.title}
             </h2>
 
             {/* Explainable Reasoning Card */}
-            <div className="bg-sky-950/50 p-3 rounded-2xl border border-sky-800/50 space-y-1">
+            <div className="bg-sky-950/60 p-3 rounded-2xl border border-sky-500/30 space-y-1 backdrop-blur-md">
               <div className="flex items-center gap-1.5 text-[11px] font-bold text-sky-300">
                 <Target className="w-3.5 h-3.5 text-sky-400" />
                 <span>لماذا اختار مَسار هذه الخطوة بالذات؟</span>
               </div>
-              <p className="text-xs text-sky-200/90 leading-relaxed pr-5">
+              <p className="text-xs text-sky-100/90 leading-relaxed pr-5 font-normal">
                 {bestNextAction.rationaleArabic}
               </p>
             </div>
@@ -417,7 +413,7 @@ export const SmartToday: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleCompleteTask(bestNextAction.task.id)}
-                className="flex-1 min-h-[48px] bg-gradient-to-r from-sky-400 via-sky-500 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-slate-950 font-black text-xs py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-sky-500/25 pressable cursor-pointer"
+                className="apple-btn-primary flex-1 min-h-[48px] text-xs py-3 px-4 rounded-2xl flex items-center justify-center gap-2 pressable cursor-pointer"
               >
                 <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
                 <span>أنجزتها الآن (+25 XP)</span>
@@ -426,7 +422,7 @@ export const SmartToday: React.FC = () => {
               <button
                 type="button"
                 onClick={() => postponeTask(bestNextAction.task.id)}
-                className="min-h-[48px] bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 font-bold text-xs py-3 px-3.5 rounded-xl flex items-center justify-center gap-1.5 border border-slate-700/60 pressable cursor-pointer"
+                className="min-h-[48px] bg-slate-900/80 hover:bg-slate-800 text-slate-300 font-bold text-xs py-3 px-3.5 rounded-2xl flex items-center justify-center gap-1.5 border border-white/10 pressable cursor-pointer"
                 title="تأجيل المهمة لوقت لاحق"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -436,7 +432,7 @@ export const SmartToday: React.FC = () => {
               <button
                 type="button"
                 onClick={() => deleteTask(bestNextAction.task.id)}
-                className="min-h-[48px] bg-slate-800/80 hover:bg-rose-950/50 hover:text-rose-400 text-slate-400 font-bold text-xs py-3 px-3 rounded-xl flex items-center justify-center border border-slate-700/60 pressable cursor-pointer transition-colors"
+                className="min-h-[48px] bg-slate-900/80 hover:bg-rose-950/60 hover:text-rose-400 text-slate-400 font-bold text-xs py-3 px-3.5 rounded-2xl flex items-center justify-center border border-white/10 pressable cursor-pointer transition-colors"
                 title="حذف المهمة نهائياً"
                 aria-label="حذف المهمة"
               >
@@ -446,8 +442,8 @@ export const SmartToday: React.FC = () => {
           </div>
         </section>
       ) : (
-        <section className="glass-panel rounded-3xl p-6 text-center space-y-2.5 border border-emerald-500/20">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mx-auto flex items-center justify-center">
+        <section className="apple-card rounded-3xl p-6 text-center space-y-2.5 border border-emerald-500/30">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-400 border border-emerald-400/30 mx-auto flex items-center justify-center shadow-[0_0_12px_rgba(16,185,129,0.2)]">
             <CheckCircle2 className="w-6 h-6 stroke-[2.5]" />
           </div>
           <h3 className="text-base font-bold text-white">يومك منظم ورايق ومفيش مهام متأخرة! ✨</h3>
@@ -456,31 +452,6 @@ export const SmartToday: React.FC = () => {
           </p>
         </section>
       )}
-
-      {/* 3.1 Undo Accidental Completion Banner */}
-      {lastCompletedTaskId && (() => {
-        const justCompleted = tasks.find(t => t.id === lastCompletedTaskId);
-        if (!justCompleted || justCompleted.status !== 'DONE') return null;
-        return (
-          <div className="bg-emerald-950/80 border border-emerald-500/50 p-3 rounded-2xl flex items-center justify-between gap-2 shadow-lg animate-in slide-in-from-top duration-200">
-            <div className="flex items-center gap-2 text-xs text-emerald-200 min-w-0">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="truncate">تم إنجاز: <strong>{justCompleted.title}</strong></span>
-            </div>
-            <button
-              type="button"
-              onClick={async () => {
-                await uncompleteTask(justCompleted.id);
-                setLastCompletedTaskId(null);
-              }}
-              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-[11px] px-3 py-1.5 rounded-xl flex items-center gap-1 shrink-0 pressable cursor-pointer shadow"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>تراجع (إلغاء الإنجاز) ↩️</span>
-            </button>
-          </div>
-        );
-      })()}
 
       {/* 4. Postponement Intervention Alert (3-Miss Threshold) */}
       {bestNextAction?.isPostponementIntervention && (
@@ -495,9 +466,9 @@ export const SmartToday: React.FC = () => {
         </div>
       )}
 
-      {/* 5. Atomic Action: Read 2 Pages Card (Trend 2 Neumorphism depth & Trend 6 Confetti) */}
+      {/* 5. Atomic Action: Read 2 Pages Card (Apple Glass Card) */}
       {currentReadingBook && (
-        <section className="glass-panel rounded-2xl p-4 flex items-center justify-between shadow-lg border border-white/5 relative overflow-hidden">
+        <section className="apple-card rounded-2xl p-4 flex items-center justify-between shadow-lg relative overflow-hidden">
           <div className="flex items-center gap-3.5 flex-1 min-w-0">
             {/* Book icon/cover */}
             <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.2)] shrink-0">
@@ -512,8 +483,8 @@ export const SmartToday: React.FC = () => {
                 </span>
               </div>
 
-              {/* Progress Bar (Trend 2 Neo-Sunken) */}
-              <div className="w-full bg-slate-950/80 neo-sunken h-2 rounded-full overflow-hidden max-w-[190px]">
+              {/* Progress Bar */}
+              <div className="w-full bg-slate-950/80 h-2 rounded-full overflow-hidden max-w-[190px] border border-white/5">
                 <div 
                   className="bg-gradient-to-r from-emerald-400 to-teal-400 h-full rounded-full transition-all duration-500"
                   style={{ width: `${Math.min(100, Math.round((currentReadingBook.currentPage / Math.max(1, currentReadingBook.totalPages)) * 100))}%` }}
@@ -611,136 +582,156 @@ export const SmartToday: React.FC = () => {
         </div>
       )}
 
-      {/* 6. Top 3 Priorities Checklist */}
+      {/* 6. Top 3 Priorities Checklist (Apple Reminders Inset Grouped Card) */}
       <section className="space-y-2.5">
         <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-1.5">
-            <Zap className="w-3.5 h-3.5 text-sky-400" />
-            <h2 className="text-xs font-extrabold text-slate-200 uppercase tracking-wider">
+          <div className="flex items-center gap-2">
+            <span className="w-5 h-5 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
+              <Zap className="w-3.5 h-3.5 fill-sky-400 text-sky-400" />
+            </span>
+            <h2 className="text-xs font-black text-slate-200 uppercase tracking-wider">
               أولويات اليوم ({pendingTasks.length})
             </h2>
           </div>
-          <span className="text-[10px] text-slate-400 font-mono">أول 3 مهام مقترحة</span>
+          <span className="text-[10px] text-sky-300/80 font-mono font-bold bg-sky-950/60 px-2 py-0.5 rounded-full border border-sky-800/40">
+            أول 3 مهام مقترحة
+          </span>
         </div>
 
-        <div className="space-y-2">
-          {todayTasks.map(task => (
-            <div
-              key={task.id}
-              className="glass-panel hover:bg-slate-800/60 border border-slate-800/80 rounded-2xl p-3.5 flex items-center justify-between gap-3 transition-all"
-            >
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <button
-                  type="button"
-                  onClick={() => handleCompleteTask(task.id)}
-                  aria-label="إكمال المهمة"
-                  className="w-7 h-7 rounded-xl border-2 border-slate-600 hover:border-sky-400 hover:bg-sky-500/20 flex items-center justify-center shrink-0 transition-colors pressable cursor-pointer"
-                />
-                <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-xs font-bold text-slate-200 truncate">{task.title}</span>
-                  {task.goalId && (() => {
-                    const linkedGoal = goals.find(g => g.id === task.goalId);
-                    if (!linkedGoal) return null;
-                    return (
-                      <span className="text-[10px] text-sky-400 font-medium truncate flex items-center gap-1 mt-0.5">
-                        <Target className="w-2.5 h-2.5 shrink-0 text-sky-400" />
-                        <span className="truncate">{linkedGoal.title}</span>
-                      </span>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1 bg-slate-950/60 px-2 py-0.5 rounded-md border border-slate-800">
-                  <Clock className="w-3 h-3 text-slate-500" />
-                  {task.estimatedMinutes}د
-                </span>
-                {task.postponementCount > 0 && (
-                  <span className="text-[9px] text-amber-300 font-bold bg-amber-950/70 px-1.5 py-0.5 rounded border border-amber-800/40">
-                    أُجلت {task.postponementCount}
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => deleteTask(task.id)}
-                  className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 pressable cursor-pointer transition-colors"
-                  title="حذف المهمة"
-                  aria-label="حذف المهمة"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
+        {/* Grouped Inset Card for Tasks */}
+        <div className="apple-card rounded-3xl p-0 overflow-hidden divide-y divide-white/[0.06]">
+          {todayTasks.length === 0 ? (
+            <div className="p-6 text-center text-xs text-slate-400">
+              لا توجد مهام معلقة لهذا اليوم، استمتع بوقتك أو أضف مهمة جديدة ✨
             </div>
-          ))}
-
-          {/* Collapsible Completed Tasks List for Easy Undo / Toggle */}
-          {completedTasks.length > 0 && (
-            <div className="pt-2 border-t border-slate-800/60">
-              <button
-                type="button"
-                onClick={() => setShowCompletedTasks(!showCompletedTasks)}
-                className="text-[11px] font-bold text-slate-400 hover:text-slate-200 flex items-center justify-between w-full py-1.5 px-2.5 rounded-xl bg-slate-900/60 border border-slate-800 transition-colors pressable cursor-pointer"
+          ) : (
+            todayTasks.map(task => (
+              <div
+                key={task.id}
+                className="p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors"
               >
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>المهام المنجزة ({completedTasks.length}) — اضغط للإلغاء أو التراجع</span>
-                </div>
-                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${showCompletedTasks ? 'rotate-180' : ''}`} />
-              </button>
+                <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                  {/* Apple Reminders Circular Check Ring */}
+                  <button
+                    type="button"
+                    onClick={() => handleCompleteTask(task.id)}
+                    aria-label="إكمال المهمة"
+                    className="w-6 h-6 rounded-full border-2 border-slate-500/80 hover:border-sky-400 hover:bg-sky-400/20 flex items-center justify-center shrink-0 transition-all pressable cursor-pointer group active:scale-90"
+                    title="اضغط للإنجاز"
+                  >
+                    <span className="w-2.5 h-2.5 rounded-full bg-sky-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </button>
 
-              {showCompletedTasks && (
-                <div className="space-y-1.5 pt-2 animate-in fade-in duration-200">
-                  {completedTasks.map(task => (
-                    <div
-                      key={task.id}
-                      className="glass-panel bg-slate-950/40 border border-slate-800/60 rounded-2xl p-2.5 flex items-center justify-between gap-3 text-slate-400"
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-xs sm:text-sm font-semibold text-slate-100 truncate">{task.title}</span>
+                    {task.goalId && (() => {
+                      const linkedGoal = goals.find(g => g.id === task.goalId);
+                      if (!linkedGoal) return null;
+                      return (
+                        <span className="text-[10px] text-sky-400 font-medium truncate flex items-center gap-1 mt-0.5">
+                          <Target className="w-2.5 h-2.5 shrink-0 text-sky-400" />
+                          <span className="truncate">{linkedGoal.title}</span>
+                        </span>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1 bg-slate-950/60 px-2 py-0.5 rounded-full border border-white/5">
+                    <Clock className="w-3 h-3 text-slate-500" />
+                    {task.estimatedMinutes}د
+                  </span>
+                  {task.postponementCount > 0 && (
+                    <span className="text-[9px] text-amber-300 font-bold bg-amber-950/70 px-1.5 py-0.5 rounded-full border border-amber-800/40">
+                      أُجلت {task.postponementCount}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => deleteTask(task.id)}
+                    className="p-1.5 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 pressable cursor-pointer transition-colors"
+                    title="حذف المهمة"
+                    aria-label="حذف المهمة"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Collapsible Completed Tasks List for Easy Undo / Toggle */}
+        {completedTasks.length > 0 && (
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => setShowCompletedTasks(!showCompletedTasks)}
+              className="text-[11px] font-bold text-slate-400 hover:text-slate-200 flex items-center justify-between w-full py-2 px-3 rounded-2xl bg-slate-900/50 border border-white/5 transition-colors pressable cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>المهام المنجزة ({completedTasks.length}) — اضغط للإلغاء أو التراجع</span>
+              </div>
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${showCompletedTasks ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showCompletedTasks && (
+              <div className="mt-2 apple-card rounded-3xl p-0 overflow-hidden divide-y divide-white/[0.04] animate-in fade-in duration-200">
+                {completedTasks.map(task => (
+                  <div
+                    key={task.id}
+                    className="p-3 sm:p-3.5 flex items-center justify-between gap-3 text-slate-400 hover:bg-white/[0.02]"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => uncompleteTask(task.id)}
+                      className="flex items-center gap-3 flex-1 min-w-0 text-right pressable cursor-pointer group"
+                      title="اضغط لإلغاء الإنجاز وإعادة المهمة كغير مكتملة"
                     >
+                      <div className="w-6 h-6 rounded-full bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400 flex items-center justify-center shrink-0 group-hover:bg-amber-500/20 group-hover:border-amber-400 group-hover:text-amber-300 transition-all">
+                        <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" />
+                      </div>
+                      <span className="text-xs line-through text-slate-400 group-hover:text-slate-200 truncate">{task.title}</span>
+                    </button>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         type="button"
                         onClick={() => uncompleteTask(task.id)}
-                        className="flex items-center gap-2.5 flex-1 min-w-0 text-right pressable cursor-pointer group"
-                        title="اضغط لإلغاء الإنجاز وإعادة المهمة كغير مكتملة"
+                        className="text-[10px] font-bold text-amber-300 hover:text-amber-200 bg-amber-950/60 border border-amber-600/40 px-2.5 py-1 rounded-full flex items-center gap-1 pressable cursor-pointer shadow-sm"
                       >
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 group-hover:text-amber-400 shrink-0 transition-colors" />
-                        <span className="text-xs line-through text-slate-400 group-hover:text-slate-200 truncate">{task.title}</span>
+                        <RotateCcw className="w-3 h-3" />
+                        <span>إلغاء الإنجاز ↩️</span>
                       </button>
-
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => uncompleteTask(task.id)}
-                          className="text-[10px] font-bold text-amber-400 hover:text-amber-300 bg-amber-950/50 border border-amber-800/40 px-2.5 py-1 rounded-xl flex items-center gap-1 pressable cursor-pointer"
-                        >
-                          <RotateCcw className="w-3 h-3" />
-                          <span>إلغاء الإنجاز ↩️</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteTask(task.id)}
-                          className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 pressable cursor-pointer transition-colors"
-                          title="حذف المهمة"
-                          aria-label="حذف المهمة"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => deleteTask(task.id)}
+                        className="p-1.5 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 pressable cursor-pointer transition-colors"
+                        title="حذف المهمة"
+                        aria-label="حذف المهمة"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
-      {/* 6.5. Active Challenges Daily Checklist (e.g. 90-Day Challenge Tasks) */}
+      {/* 6.5. Active Challenges Daily Checklist (Apple Activity Style) */}
       {activeChallenges.length > 0 && (
         <section className="space-y-3 pt-2">
           <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-1.5">
-              <Trophy className="w-4 h-4 text-amber-400" />
-              <h2 className="text-xs font-extrabold text-slate-200 uppercase tracking-wider">
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                <Trophy className="w-3.5 h-3.5" />
+              </span>
+              <h2 className="text-xs font-black text-slate-200 uppercase tracking-wider">
                 مهام التحديات النشطة ({activeChallenges.length})
               </h2>
             </div>
@@ -764,17 +755,21 @@ export const SmartToday: React.FC = () => {
               return (
                 <div
                   key={challenge.id}
-                  className="glass-panel border border-amber-500/30 bg-slate-900/80 rounded-2xl p-3.5 space-y-2.5 shadow-lg"
+                  className="apple-card border border-amber-500/30 rounded-3xl p-4 space-y-3 shadow-xl"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">{challenge.trophyIcon || '🏆'}</span>
-                      <span className="text-xs font-bold text-white">{challenge.title}</span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-950/60 text-amber-300 border border-amber-500/30">
-                        اليوم {challenge.currentDay || 1}/{challenge.durationDays}
-                      </span>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-base shadow-[0_0_12px_rgba(245,158,11,0.2)]">
+                        {challenge.trophyIcon || '🏆'}
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-white block">{challenge.title}</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-950/60 text-amber-300 border border-amber-500/30 inline-block mt-0.5">
+                          اليوم {challenge.currentDay || 1}/{challenge.durationDays}
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-[11px] font-mono text-slate-400">
+                    <span className="text-[11px] font-mono text-slate-300 bg-slate-900/80 px-2.5 py-1 rounded-full border border-white/5">
                       {completedTaskIds.length}/{totalTasks} منجز
                     </span>
                   </div>
@@ -786,19 +781,19 @@ export const SmartToday: React.FC = () => {
                         <div
                           key={task.id}
                           onClick={() => toggleChallengeTaskToday(challenge.id, task.id)}
-                          className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs cursor-pointer select-none transition-all ${
+                          className={`p-2.5 rounded-2xl border flex items-center justify-between gap-2.5 text-xs cursor-pointer select-none transition-all pressable ${
                             isDone
                               ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
-                              : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 text-slate-300'
+                              : 'bg-slate-900/60 border-white/5 hover:border-white/15 text-slate-200'
                           }`}
                         >
-                          <div className="flex items-center gap-2 truncate">
-                            <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold ${
-                              isDone ? 'bg-emerald-500 text-slate-950' : 'border border-slate-600 bg-slate-900 text-transparent'
+                          <div className="flex items-center gap-2.5 truncate">
+                            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
+                              isDone ? 'bg-emerald-400 text-slate-950 shadow-[0_0_8px_#34d399]' : 'border-2 border-slate-500 text-transparent'
                             }`}>
                               ✓
                             </span>
-                            <span className={`truncate text-xs font-semibold ${isDone ? 'line-through text-slate-400' : 'text-white'}`}>
+                            <span className={`truncate text-xs font-medium ${isDone ? 'line-through text-slate-400' : 'text-slate-100'}`}>
                               {task.icon} {task.title}
                             </span>
                           </div>
@@ -809,8 +804,9 @@ export const SmartToday: React.FC = () => {
                   </div>
 
                   {isAllDone && (
-                    <div className="p-2 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs font-bold text-center">
-                      أتممت جميع مهام التحدي لهذا اليوم 🎉
+                    <div className="p-2.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 text-xs font-bold text-center flex items-center justify-center gap-2">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>أتممت جميع مهام التحدي لهذا اليوم بنجاح 🎉</span>
                     </div>
                   )}
                 </div>
@@ -820,16 +816,18 @@ export const SmartToday: React.FC = () => {
         </section>
       )}
 
-      {/* 7. Today's Habits & Streaks (Trend 3 Vibrant Gradients & Trend 6 Micro-interactions) */}
+      {/* 7. Today's Habits & Streaks (Apple Health / Activity Cards) */}
       <section className="space-y-2.5 pt-1">
         <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-1.5">
-            <Flame className="w-4 h-4 text-amber-400" />
-            <h2 className="text-xs font-extrabold text-slate-200 uppercase tracking-wider">
+          <div className="flex items-center gap-2">
+            <span className="w-5 h-5 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+              <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+            </span>
+            <h2 className="text-xs font-black text-slate-200 uppercase tracking-wider">
               العادات والروتين اليومي
             </h2>
           </div>
-          <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-800/40">
+          <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
             سلسلة الـ 3 أيام سماح 🛡️
           </span>
         </div>
@@ -846,18 +844,18 @@ export const SmartToday: React.FC = () => {
                 key={habit.id}
                 onClick={() => handleToggleHabit(habit.id)}
                 title={isCompleted ? 'اضغط لإلغاء الإنجاز والتراجع ↩️' : 'اضغط لتسجيل الإنجاز'}
-                className={`p-3.5 rounded-2xl border text-right transition-all flex flex-col justify-between h-24 pressable cursor-pointer relative group ${
+                className={`p-3.5 rounded-3xl border text-right transition-all flex flex-col justify-between h-28 pressable cursor-pointer relative group ${
                   isCompleted
-                    ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-100 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:border-emerald-400/60'
-                    : 'glass-panel border-slate-800/80 text-slate-300 hover:border-slate-700'
+                    ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-100 shadow-[0_0_20px_rgba(16,185,129,0.18)] hover:border-emerald-400/60'
+                    : 'apple-card text-slate-300 hover:border-white/20'
                 }`}
               >
                 <div className="flex items-start justify-between w-full gap-2">
-                  <span className="text-xs font-bold leading-snug line-clamp-2">{habit.title}</span>
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-transform ${
-                    isCompleted ? 'bg-emerald-400 text-slate-950 scale-105 shadow-[0_0_8px_#34d399]' : 'border-2 border-slate-600'
+                  <span className="text-xs font-bold leading-snug line-clamp-2 text-white">{habit.title}</span>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-transform ${
+                    isCompleted ? 'bg-emerald-400 text-slate-950 scale-105 shadow-[0_0_10px_#34d399]' : 'border-2 border-slate-500/70'
                   }`}>
-                    {isCompleted && <CheckCircle2 className="w-3.5 h-3.5 stroke-[3]" />}
+                    {isCompleted && <CheckCircle2 className="w-4 h-4 stroke-[3]" />}
                   </div>
                 </div>
 
@@ -868,7 +866,7 @@ export const SmartToday: React.FC = () => {
                   </div>
 
                   {isCompleted && (
-                    <span className="text-[9px] text-amber-400/90 font-bold bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/40 flex items-center gap-0.5">
+                    <span className="text-[9px] text-amber-300 font-bold bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-600/40 flex items-center gap-0.5 shadow-sm">
                       <RotateCcw className="w-2.5 h-2.5" />
                       <span>إلغاء</span>
                     </span>
