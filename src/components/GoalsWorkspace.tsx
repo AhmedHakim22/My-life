@@ -43,6 +43,7 @@ export const GoalsWorkspace: React.FC = () => {
     deleteMilestone,
     completeTask,
     addTask,
+    deleteTask,
     linkIntentionToGoal,
     unlinkIntentionFromGoal
   } = useAppStore();
@@ -528,9 +529,20 @@ export const GoalsWorkspace: React.FC = () => {
                                   )}
                                   <span className="text-xs truncate">{t.title}</span>
                                 </button>
-                                <span className="text-[10px] font-mono text-slate-500">
-                                  {t.estimatedMinutes} دقيقة
-                                </span>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span className="text-[10px] font-mono text-slate-500">
+                                    {t.estimatedMinutes} دقيقة
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteTask(t.id)}
+                                    className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg pressable cursor-pointer transition-colors"
+                                    title="حذف المهمة"
+                                    aria-label="حذف المهمة"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
                             );
                           })}

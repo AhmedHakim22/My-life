@@ -178,4 +178,69 @@ describe('Sprint 1 — Universal Content Management & Deletion Tombstones', () =
     expect(updated?.category).toBe('بزنس');
     expect(updated?.targetLevel).toBe(8);
   });
+
+  it('deleteTask removes the task, its schedule blocks, and records a tombstone', async () => {
+    const store = useAppStore.getState();
+
+    await store.addTask('Study Lecture 1 Summary', 'P1_URGENT_IMPORTANT', 45);
+    const tasks = await db.tasks.toArray();
+    const taskId = tasks[0].id;
+
+    // Add a schedule block for this task
+    await db.scheduleBlocks.put({
+      id: `sched-${taskId}`,
+      taskId,
+      title: 'Study Lecture 1 Summary',
+      day: 'السبت',
+      startTime: '10:00',
+      endTime: '10:45',
+      durationMinutes: 45,
+      type: 'TASK',
+      isLocked: false
+    });
+
+    // Delete the task
+    await store.deleteTask(taskId);
+
+    // Verify task is gone
+    const deleted = await db.tasks.get(taskId);
+    expect(deleted).toBeUndefined();
+
+    // Verify schedule block is gone
+    const block = await db.scheduleBlocks.get(`sched-${taskId}`);
+    expect(block).toBeUndefined();
+
+    // Verify tombstone is recorded
+    const tombstones = await db.tombstones.where('entityId').equals(taskId).toArray();
+    expect(tombstones.length).toBe(1);
+    expect(tombstones[0].entityType).toBe('TASK');
+  });
+
+  it('cleanupLegacyDemoArtifacts purges legacy Band Gap task and records tombstone', async () => {
+    const { cleanupLegacyDemoArtifacts } = await import('../../db');
+
+    // Simulate legacy task present in db
+    await db.tasks.put({
+      id: 'task-semi-review',
+      title: 'مراجعة محاضرة Band Gap Engineering وحل مسألة عليها',
+      priority: 'P1_URGENT_IMPORTANT',
+      status: 'TODO',
+      estimatedMinutes: 35,
+      isLocked: false,
+      postponementCount: 0,
+      createdAt: '2026-10-22T00:00:00.000Z',
+      updatedAt: '2026-10-22T00:00:00.000Z'
+    });
+
+    await cleanupLegacyDemoArtifacts();
+
+    // Verify task was deleted
+    const task = await db.tasks.get('task-semi-review');
+    expect(task).toBeUndefined();
+
+    // Verify tombstone was created
+    const tombstone = await db.tombstones.get('tomb-task-task-semi-review');
+    expect(tombstone).toBeDefined();
+    expect(tombstone?.entityType).toBe('TASK');
+  });
 });

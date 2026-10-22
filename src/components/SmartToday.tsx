@@ -19,7 +19,8 @@ import {
   Dumbbell,
   Calendar,
   AlertTriangle,
-  School
+  School,
+  Trash2
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { CloudSyncModal } from './CloudSyncModal';
@@ -39,6 +40,7 @@ export const SmartToday: React.FC = () => {
     movementLogs,
     completeTask, 
     postponeTask, 
+    deleteTask,
     readTwoPagesAction,
     bookDetails, 
     habits, 
@@ -392,6 +394,16 @@ export const SmartToday: React.FC = () => {
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>تأجيل</span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => deleteTask(bestNextAction.task.id)}
+                className="min-h-[48px] bg-slate-800/80 hover:bg-rose-950/50 hover:text-rose-400 text-slate-400 font-bold text-xs py-3 px-3 rounded-xl flex items-center justify-center border border-slate-700/60 pressable cursor-pointer transition-colors"
+                title="حذف المهمة نهائياً"
+                aria-label="حذف المهمة"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         </section>
@@ -512,6 +524,15 @@ export const SmartToday: React.FC = () => {
                     أُجلت {task.postponementCount}
                   </span>
                 )}
+                <button
+                  type="button"
+                  onClick={() => deleteTask(task.id)}
+                  className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 pressable cursor-pointer transition-colors"
+                  title="حذف المهمة"
+                  aria-label="حذف المهمة"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           ))}

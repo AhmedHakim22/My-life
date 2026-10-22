@@ -437,3 +437,61 @@ export async function seedAhmedStudyPlannerIfNeeded(): Promise<void> {
     await db.appMeta.put({ id: markerId, appliedAt: now });
   });
 }
+
+/**
+ * Removes legacy v1 demo artifacts (e.g. Band Gap Engineering task) that were seeded
+ * prior to the real study planner, and records tombstones so they never resurrect.
+ */
+export async function cleanupLegacyDemoArtifacts(): Promise<void> {
+  const legacyTaskIds = ['task-semi-review', 'task-falcon-packaging'];
+  
+  await db.transaction('rw', [
+    db.tasks,
+    db.taskPostponements,
+    db.scheduleBlocks,
+    db.studySessions,
+    db.universitySubjects,
+    db.tombstones
+  ], async () => {
+    // 1. Find and delete legacy demo tasks specifically
+    const legacyTasks = await db.tasks.filter(t => 
+      legacyTaskIds.includes(t.id) || 
+      t.title === 'مراجعة محاضرة Band Gap Engineering وحل مسألة عليها' ||
+      t.title === 'متابعة تصميم الكفرات الجديدة مع المورد واعتماد عينة التغليف'
+    ).toArray();
+
+    for (const t of legacyTasks) {
+      await db.tasks.delete(t.id);
+      await db.taskPostponements.where('taskId').equals(t.id).delete();
+      await db.scheduleBlocks.where('taskId').equals(t.id).delete();
+      await db.tombstones.put({
+        id: `tomb-task-${t.id}`,
+        entityType: 'TASK',
+        entityId: t.id,
+        deletedAt: new Date().toISOString(),
+        reason: 'Legacy v1 demo task cleanup'
+      });
+    }
+
+    // 2. Clean up legacy mock study sessions
+    const legacySessions = await db.studySessions.filter(s => 
+      s.id.startsWith('sess-semi-') || s.title.includes('Band Gap')
+    ).toArray();
+    for (const s of legacySessions) {
+      await db.studySessions.delete(s.id);
+    }
+
+    // 3. Clean up legacy mock subj-semiconductors if present
+    const mockSubj = await db.universitySubjects.get('subj-semiconductors');
+    if (mockSubj && (mockSubj.code === 'NANO-301' || mockSubj.name.includes('أشباه الموصلات'))) {
+      await db.universitySubjects.delete('subj-semiconductors');
+      await db.tombstones.put({
+        id: 'tomb-subj-semiconductors',
+        entityType: 'SUBJECT',
+        entityId: 'subj-semiconductors',
+        deletedAt: new Date().toISOString(),
+        reason: 'Legacy v1 mock subject cleanup'
+      });
+    }
+  });
+}

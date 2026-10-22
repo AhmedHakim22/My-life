@@ -11,13 +11,14 @@ import {
   Package,
   Layers,
   Sparkles,
-  ArrowUpRight
+  ArrowUpRight,
+  Trash2
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { fireConfettiSuccess } from '../lib/confetti';
 
 export const FalconWorkspace: React.FC = () => {
-  const { tasks, completeTask, addTask, showToast } = useAppStore();
+  const { tasks, completeTask, deleteTask, addTask, showToast } = useAppStore();
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [selectedTaskCategory, setSelectedTaskCategory] = useState<'ALL' | 'MARKETING' | 'PRODUCTION' | 'OPS'>('ALL');
 
@@ -177,10 +178,21 @@ export const FalconWorkspace: React.FC = () => {
                 <span className="text-xs font-medium text-slate-200 truncate">{task.title}</span>
               </div>
 
-              <span className="text-[10px] text-slate-400 font-mono shrink-0 flex items-center gap-1 bg-slate-950/60 px-2 py-0.5 rounded-md border border-slate-800">
-                <Clock className="w-3 h-3 text-slate-500" />
-                {task.estimatedMinutes}د
-              </span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1 bg-slate-950/60 px-2 py-0.5 rounded-md border border-slate-800">
+                  <Clock className="w-3 h-3 text-slate-500" />
+                  {task.estimatedMinutes}د
+                </span>
+                <button
+                  type="button"
+                  onClick={() => deleteTask(task.id)}
+                  className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg pressable cursor-pointer transition-colors"
+                  title="حذف المهمة"
+                  aria-label="حذف المهمة"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           ))}
 

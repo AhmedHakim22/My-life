@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { db, seedInitialDataIfNeeded, seedAhmedStudyPlannerIfNeeded } from '../db';
+import { db, seedInitialDataIfNeeded, seedAhmedStudyPlannerIfNeeded, cleanupLegacyDemoArtifacts } from '../db';
 import type {
   LifeDomain,
   Goal,
@@ -136,6 +136,7 @@ interface AppState {
   completeTask: (taskId: string) => Promise<void>;
   postponeTask: (taskId: string, reason?: string, targetNewDate?: string) => Promise<void>;
   addTask: (title: string, priority: Task['priority'], estimatedMinutes?: number, dueDate?: string, goalId?: string, skillId?: string, studySessionId?: string) => Promise<void>;
+  deleteTask: (taskId: string) => Promise<void>;
 
   // Goal Center Actions
   createGoal: (goal: Omit<Goal, 'id' | 'createdAt' | 'updatedAt' | 'progressPercentage'>) => Promise<string>;
@@ -380,6 +381,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     await seedInitialDataIfNeeded();
     // Independent automatic curriculum seed from Excel (no button required)
     await seedAhmedStudyPlannerIfNeeded();
+    // Automatic cleanup of legacy v1 demo artifacts (e.g. Band Gap Engineering task)
+    await cleanupLegacyDemoArtifacts();
 
     const [
       domains,
@@ -716,6 +719,35 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     await get().loadAllData();
     get().showToast('تمت إضافة المهمة بنجاح');
+  },
+
+  deleteTask: async (taskId) => {
+    const task = get().tasks.find(t => t.id === taskId);
+    const taskTitle = task?.title || '';
+
+    await db.transaction('rw', [
+      db.tasks,
+      db.taskPostponements,
+      db.scheduleBlocks,
+      db.tombstones
+    ], async () => {
+      await db.tasks.delete(taskId);
+      await db.taskPostponements.where('taskId').equals(taskId).delete();
+      await db.scheduleBlocks.where('taskId').equals(taskId).delete();
+      await db.tombstones.put({
+        id: `tomb-task-${taskId}`,
+        entityType: 'TASK',
+        entityId: taskId,
+        deletedAt: new Date().toISOString()
+      });
+    });
+
+    if (task?.goalId) {
+      await get().recalculateGoalProgress(task.goalId);
+    }
+
+    await get().loadAllData();
+    get().showToast(`تم حذف المهمة "${taskTitle}" بنجاح 🗑️`);
   },
 
   // Goal Center Actions

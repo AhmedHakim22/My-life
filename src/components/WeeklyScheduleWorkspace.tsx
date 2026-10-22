@@ -13,7 +13,8 @@ import {
   Moon, 
   Compass,
   ArrowRight,
-  TrendingDown
+  TrendingDown,
+  Trash2
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { generateWeeklySchedulePlan, minutesToTimeString, timeStringToMinutes } from '../engines/scheduler';
@@ -26,7 +27,8 @@ export const WeeklyScheduleWorkspace: React.FC = () => {
     prayers, 
     availabilityRules, 
     goals, 
-    showToast 
+    showToast,
+    deleteTask
   } = useAppStore();
 
   const [selectedDay, setSelectedDay] = useState<'السبت' | 'الأحد' | 'الاثنين' | 'الثلاثاء' | 'الأربعاء' | 'الخميس' | 'الجمعة'>('السبت');
@@ -187,12 +189,26 @@ export const WeeklyScheduleWorkspace: React.FC = () => {
                   </div>
                 </div>
 
-                {block.isLocked && (
-                  <span className="text-[10px] text-slate-500 flex items-center gap-1 font-mono">
-                    <Lock className="w-3 h-3 text-slate-500" />
-                    محمي
-                  </span>
-                )}
+                <div className="flex items-center gap-2 shrink-0">
+                  {block.taskId && (
+                    <button
+                      type="button"
+                      onClick={() => deleteTask(block.taskId!)}
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 pressable cursor-pointer transition-colors"
+                      title="حذف هذه المهمة"
+                      aria-label="حذف المهمة"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+
+                  {block.isLocked && (
+                    <span className="text-[10px] text-slate-500 flex items-center gap-1 font-mono">
+                      <Lock className="w-3 h-3 text-slate-500" />
+                      محمي
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
