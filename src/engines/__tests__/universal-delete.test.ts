@@ -286,4 +286,23 @@ describe('Sprint 1 — Universal Content Management & Deletion Tombstones', () =
     task = await db.tasks.get(taskId);
     expect(task?.status).toBe('TODO');
   });
+
+  it('deleting a journal entry removes it from IndexedDB and records a tombstone', async () => {
+    const store = useAppStore.getState();
+
+    await store.addJournalEntry('خاطرة تجريبية يراد حذفها', 'FREE_WRITING', ['#تجربة']);
+    const entries = await db.journalEntries.toArray();
+    expect(entries.length).toBe(1);
+    const entryId = entries[0].id;
+
+    await store.deleteJournalEntry(entryId);
+
+    const remaining = await db.journalEntries.toArray();
+    expect(remaining.length).toBe(0);
+
+    const tombstone = await db.tombstones.get(`tomb-journal-${entryId}`);
+    expect(tombstone).toBeDefined();
+    expect(tombstone?.entityType).toBe('JOURNAL');
+    expect(tombstone?.entityId).toBe(entryId);
+  });
 });

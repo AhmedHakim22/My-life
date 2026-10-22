@@ -234,6 +234,7 @@ interface AppState {
 
   // 7. Journal Actions
   addJournalEntry: (content: string, mode: JournalEntry['mode'], tags?: string[]) => Promise<void>;
+  deleteJournalEntry: (id: string) => Promise<void>;
 
   // 8. Backup / Export / Restore
   exportBackupJSON: () => Promise<string>;
@@ -1631,6 +1632,19 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     await get().loadAllData();
     get().showToast('تم حفظ اليومية بخصوصية وأمان تام محلياً 🔒');
+  },
+
+  deleteJournalEntry: async (id: string) => {
+    await db.journalEntries.delete(id);
+    await db.tombstones.put({
+      id: `tomb-journal-${id}`,
+      entityType: 'JOURNAL',
+      entityId: id,
+      deletedAt: new Date().toISOString(),
+      reason: 'User deleted journal entry'
+    });
+    await get().loadAllData();
+    get().showToast('تم حذف التدوينة بنجاح 🗑️');
   },
 
   // Faith & Intentions Actions
