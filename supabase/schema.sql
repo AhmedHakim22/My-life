@@ -561,5 +561,253 @@ CREATE POLICY "Users can manage own xp reset events" ON public.xp_reset_events
     USING (auth.uid() = user_id) 
     WITH CHECK (auth.uid() = user_id);
 
+-- 27. Intentions (Faith & Mindset Core)
+CREATE TABLE IF NOT EXISTS public.intentions (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+    title TEXT NOT NULL,
+    purpose TEXT NOT NULL,
+    reference_hadith_or_ayah TEXT,
+    category TEXT DEFAULT 'GENERAL',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.intentions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own intentions" ON public.intentions;
+CREATE POLICY "Users can manage own intentions" ON public.intentions 
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
+
+-- 28. Goal Intentions (Junction Table)
+CREATE TABLE IF NOT EXISTS public.goal_intentions (
+    id TEXT PRIMARY KEY,
+    goal_id TEXT REFERENCES public.goals(id) ON DELETE CASCADE,
+    intention_id TEXT REFERENCES public.intentions(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.goal_intentions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own goal intentions" ON public.goal_intentions;
+CREATE POLICY "Users can manage own goal intentions" ON public.goal_intentions 
+    FOR ALL TO authenticated
+    USING (EXISTS (
+        SELECT 1 FROM public.goals g 
+        WHERE g.id = goal_intentions.goal_id AND g.user_id = auth.uid()
+    ))
+    WITH CHECK (EXISTS (
+        SELECT 1 FROM public.goals g 
+        WHERE g.id = goal_intentions.goal_id AND g.user_id = auth.uid()
+    ));
+
+-- 29. Worship Logs (Daily Prayer Tracking)
+CREATE TABLE IF NOT EXISTS public.worship_logs (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+    date DATE NOT NULL,
+    prayer_name TEXT NOT NULL,
+    status TEXT DEFAULT 'COMPLETED',
+    in_mosque BOOLEAN DEFAULT FALSE,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.worship_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own worship logs" ON public.worship_logs;
+CREATE POLICY "Users can manage own worship logs" ON public.worship_logs 
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
+
+-- 30. Quran Logs
+CREATE TABLE IF NOT EXISTS public.quran_logs (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+    date DATE NOT NULL,
+    pages_read INTEGER NOT NULL DEFAULT 3,
+    surah_start TEXT,
+    surah_end TEXT,
+    reflection_notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.quran_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own quran logs" ON public.quran_logs;
+CREATE POLICY "Users can manage own quran logs" ON public.quran_logs 
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
+
+-- 31. Qiyam al-Layl Sessions
+CREATE TABLE IF NOT EXISTS public.qiyam_sessions (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+    date DATE NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    duration_minutes INTEGER NOT NULL,
+    rakahs INTEGER DEFAULT 8,
+    witr_included BOOLEAN DEFAULT TRUE,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.qiyam_sessions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own qiyam sessions" ON public.qiyam_sessions;
+CREATE POLICY "Users can manage own qiyam sessions" ON public.qiyam_sessions 
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
+
+-- 32. Movement Logs (Daily 20m Fitness Movement)
+CREATE TABLE IF NOT EXISTS public.movement_logs (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+    date DATE NOT NULL,
+    duration_minutes INTEGER NOT NULL DEFAULT 20,
+    activity_type TEXT DEFAULT 'BRISK_WALK',
+    target_met BOOLEAN DEFAULT TRUE,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.movement_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own movement logs" ON public.movement_logs;
+CREATE POLICY "Users can manage own movement logs" ON public.movement_logs 
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
+
+-- 33. Workout Logs (Dedicated Gym/Fitness Sessions)
+CREATE TABLE IF NOT EXISTS public.workout_logs (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+    date DATE NOT NULL,
+    category TEXT DEFAULT 'STRENGTH',
+    duration_minutes INTEGER NOT NULL,
+    exercises JSONB DEFAULT '[]'::JSONB,
+    intensity TEXT DEFAULT 'MODERATE',
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.workout_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own workout logs" ON public.workout_logs;
+CREATE POLICY "Users can manage own workout logs" ON public.workout_logs 
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
+
+-- 34. Availability Rules (Sleep, Commute, Routine Constraints)
+CREATE TABLE IF NOT EXISTS public.availability_rules (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+    name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    days TEXT[] NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    duration_minutes INTEGER NOT NULL,
+    is_hard_commitment BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.availability_rules ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own availability rules" ON public.availability_rules;
+CREATE POLICY "Users can manage own availability rules" ON public.availability_rules 
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
+
+-- 35. Schedule Blocks
+CREATE TABLE IF NOT EXISTS public.schedule_blocks (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+    plan_id TEXT,
+    title TEXT NOT NULL,
+    type TEXT NOT NULL,
+    day TEXT NOT NULL,
+    date DATE,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    duration_minutes INTEGER NOT NULL,
+    is_locked BOOLEAN DEFAULT FALSE,
+    goal_id TEXT REFERENCES public.goals(id) ON DELETE SET NULL,
+    subject_code TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.schedule_blocks ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own schedule blocks" ON public.schedule_blocks;
+CREATE POLICY "Users can manage own schedule blocks" ON public.schedule_blocks 
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
+
+-- 36. Schedule Plans (Weekly Overload & Capacity Engine)
+CREATE TABLE IF NOT EXISTS public.schedule_plans (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+    week_start_date DATE NOT NULL,
+    total_wakeful_minutes INTEGER NOT NULL,
+    fixed_commitment_minutes INTEGER NOT NULL,
+    prayer_buffer_minutes INTEGER NOT NULL,
+    travel_and_meals_minutes INTEGER NOT NULL,
+    safety_buffer_minutes INTEGER NOT NULL,
+    available_flexible_minutes INTEGER NOT NULL,
+    required_flexible_minutes INTEGER NOT NULL,
+    unscheduled_minutes INTEGER NOT NULL,
+    is_overloaded BOOLEAN DEFAULT FALSE,
+    status TEXT DEFAULT 'DRAFT',
+    generated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.schedule_plans ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own schedule plans" ON public.schedule_plans;
+CREATE POLICY "Users can manage own schedule plans" ON public.schedule_plans 
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
+
+-- 37. Challenges (90-Day & Custom Habit Challenges)
+CREATE TABLE IF NOT EXISTS public.challenges (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+    title TEXT NOT NULL,
+    description TEXT,
+    category TEXT DEFAULT 'MINDSET',
+    duration_days INTEGER NOT NULL DEFAULT 90,
+    status TEXT DEFAULT 'QUEUED',
+    start_date DATE,
+    end_date DATE,
+    current_day INTEGER DEFAULT 1,
+    completed_days_count INTEGER DEFAULT 0,
+    xp_reward INTEGER DEFAULT 1000,
+    trophy_icon TEXT DEFAULT '🏆',
+    tasks JSONB NOT NULL DEFAULT '[]'::JSONB,
+    next_challenge_id TEXT REFERENCES public.challenges(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.challenges ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own challenges" ON public.challenges;
+CREATE POLICY "Users can manage own challenges" ON public.challenges 
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
+
+-- 38. Challenge Day Logs
+CREATE TABLE IF NOT EXISTS public.challenge_logs (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+    challenge_id TEXT REFERENCES public.challenges(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    day_number INTEGER NOT NULL,
+    status TEXT DEFAULT 'COMPLETED',
+    completed_task_ids JSONB DEFAULT '[]'::JSONB,
+    total_minutes_spent INTEGER DEFAULT 0,
+    reflection_note TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.challenge_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own challenge logs" ON public.challenge_logs;
+CREATE POLICY "Users can manage own challenge logs" ON public.challenge_logs 
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id) 
+    WITH CHECK (auth.uid() = user_id);
+
 -- Realtime publication for reactive cloud sync
-ALTER PUBLICATION supabase_realtime ADD TABLE public.tasks, public.habits, public.goals, public.xp_transactions, public.university_subjects, public.study_sessions;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.tasks, public.habits, public.goals, public.xp_transactions, public.university_subjects, public.study_sessions, public.challenges, public.challenge_logs;

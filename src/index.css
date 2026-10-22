@@ -1,11 +1,12 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Readex Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --color-brand-bg: #070a12;
+  --font-sans: 'Readex Pro', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  --color-brand-bg: #070a13;
   --color-brand-surface: #0f172a;
   --color-brand-border: #1e293b;
-  --color-brand-action: #38bdf8;
+  --color-brand-action: #0ea5e9;
+  --color-brand-sky: #38bdf8;
   --color-brand-success: #10b981;
   --color-brand-warning: #f59e0b;
   --color-brand-xp: #a855f7;
@@ -19,74 +20,107 @@ body {
   font-family: var(--font-sans);
   background-color: var(--color-brand-bg);
   background-image: 
-    radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.05) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.05) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.08) 0px, transparent 45%),
+    radial-gradient(at 100% 0%, rgba(56, 189, 248, 0.05) 0px, transparent 40%),
+    radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.04) 0px, transparent 45%);
   background-attachment: fixed;
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Glassmorphism Utility Classes (Trend 4) */
+/* ============================================================
+   Apple iOS HIG & Figma-Grade Design Tokens
+   Refined Frosted Glass, Inner Refraction, Eye-Friendly Contrast
+   ============================================================ */
+
 .glass-panel {
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(15, 23, 42, 0.68);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
 }
 
 .glass-panel-glow {
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.85) 100%);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  box-shadow: 0 10px 30px -10px rgba(56, 189, 248, 0.15);
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.12) 0%, rgba(15, 23, 42, 0.82) 100%);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 12px 36px -8px rgba(14, 165, 233, 0.22), inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
 }
 
 .glass-panel-emerald {
-  background: linear-gradient(135deg, rgba(6, 78, 59, 0.25) 0%, rgba(15, 23, 42, 0.85) 100%);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.15);
+  background: linear-gradient(135deg, rgba(6, 78, 59, 0.22) 0%, rgba(15, 23, 42, 0.82) 100%);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 12px 36px -8px rgba(16, 185, 129, 0.18), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
 }
 
 .glass-panel-purple {
-  background: linear-gradient(135deg, rgba(88, 28, 135, 0.25) 0%, rgba(15, 23, 42, 0.85) 100%);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(168, 85, 247, 0.25);
-  box-shadow: 0 10px 30px -10px rgba(168, 85, 247, 0.15);
+  background: linear-gradient(135deg, rgba(88, 28, 135, 0.22) 0%, rgba(15, 23, 42, 0.82) 100%);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  box-shadow: 0 12px 36px -8px rgba(168, 85, 247, 0.18), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
 }
 
-/* Evolved Neumorphism (Trend 2) */
+/* Apple Segmented Control Container & Active Pill */
+.apple-segmented-container {
+  background: rgba(2, 6, 23, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.25rem;
+  padding: 0.25rem;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.apple-pill-active {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  color: #ffffff;
+  font-weight: 800;
+  box-shadow: 0 4px 14px -2px rgba(14, 165, 233, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+/* Evolved Neumorphism (Sunken & Raised Surfaces) */
 .neo-sunken {
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6), inset 0 -1px 2px rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.65), inset 0 -1px 2px rgba(255, 255, 255, 0.04);
 }
 
 .neo-raised {
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.12);
 }
 
-/* Micro-interaction & Active feel (Trend 6) */
+/* Apple Spring Micro-interaction */
 .pressable {
-  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
 }
 .pressable:active {
-  transform: scale(0.96);
+  transform: scale(0.965);
 }
 
-/* Custom scrollbar */
+/* iOS Safe Area Padding Helper */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 1rem));
+}
+
+/* Custom Eye-Friendly Scrollbar */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #070a12;
+  background: #070a13;
 }
 ::-webkit-scrollbar-thumb {
   background: #1e293b;
-  border-radius: 4px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #0ea5e9;
 }

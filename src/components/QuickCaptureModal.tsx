@@ -93,8 +93,9 @@ export const QuickCaptureModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-2 sm:p-4">
-      <div className="bg-[#131b2e] border border-slate-700/80 rounded-t-3xl sm:rounded-3xl w-full max-w-md p-4 space-y-4 shadow-2xl animate-in fade-in slide-in-from-bottom duration-200">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="glass-panel bg-slate-900/95 border border-slate-700/70 rounded-t-3xl sm:rounded-3xl w-full max-w-md p-5 space-y-4 shadow-2xl animate-in fade-in slide-in-from-bottom duration-200">
+        <div className="w-12 h-1.5 bg-slate-700/80 rounded-full mx-auto -mt-1 mb-1 sm:hidden" />
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <h2 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
             ⚡ تسجيل سريع (Quick Capture)

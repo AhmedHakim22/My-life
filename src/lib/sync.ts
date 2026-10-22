@@ -61,7 +61,19 @@ const TABLE_MAPPINGS = [
   { dexie: 'habits', remote: 'habits', pk: 'id' },
   { dexie: 'habitLogs', remote: 'habit_logs', pk: 'id' },
   { dexie: 'xpTransactions', remote: 'xp_transactions', pk: 'id' },
-  { dexie: 'journalEntries', remote: 'journal_entries', pk: 'id' }
+  { dexie: 'journalEntries', remote: 'journal_entries', pk: 'id' },
+  { dexie: 'intentions', remote: 'intentions', pk: 'id' },
+  { dexie: 'goalIntentions', remote: 'goal_intentions', pk: 'id' },
+  { dexie: 'worshipLogs', remote: 'worship_logs', pk: 'id' },
+  { dexie: 'quranLogs', remote: 'quran_logs', pk: 'id' },
+  { dexie: 'qiyamSessions', remote: 'qiyam_sessions', pk: 'id' },
+  { dexie: 'movementLogs', remote: 'movement_logs', pk: 'id' },
+  { dexie: 'workoutLogs', remote: 'workout_logs', pk: 'id' },
+  { dexie: 'availabilityRules', remote: 'availability_rules', pk: 'id' },
+  { dexie: 'scheduleBlocks', remote: 'schedule_blocks', pk: 'id' },
+  { dexie: 'schedulePlans', remote: 'schedule_plans', pk: 'id' },
+  { dexie: 'challenges', remote: 'challenges', pk: 'id' },
+  { dexie: 'challengeLogs', remote: 'challenge_logs', pk: 'id' }
 ] as const;
 
 /**

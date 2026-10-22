@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Compass, 
   Target, 
@@ -18,9 +18,11 @@ import {
   Trophy
 } from 'lucide-react';
 import { useAppStore, type ActiveTab } from '../stores/appStore';
+import { CloudSyncModal } from './CloudSyncModal';
 
 export const HeaderNav: React.FC = () => {
   const { activeTab, setActiveTab, setQuickCaptureOpen, syncStatus } = useAppStore();
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
 
   const desktopNavItems: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
     { id: 'TODAY', label: 'اليوم', icon: <Compass className="w-4 h-4" /> },
@@ -79,16 +81,47 @@ export const HeaderNav: React.FC = () => {
 
         {/* Right Quick Actions: Quick Capture & Sync Status */}
         <div className="flex items-center gap-2 shrink-0">
+          {/* Cloud Sync Status Pill */}
+          <button
+            type="button"
+            onClick={() => setIsSyncModalOpen(true)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all pressable cursor-pointer ${
+              syncStatus.isConnected && syncStatus.tablesFound
+                ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+                : syncStatus.isConnected
+                ? 'bg-amber-950/60 border-amber-500/40 text-amber-300 animate-pulse'
+                : 'bg-slate-900/80 border-slate-700/60 text-slate-400 hover:text-slate-200'
+            }`}
+            title="سحابة سوبا بيز"
+          >
+            <Cloud className={`w-3.5 h-3.5 ${syncStatus.isSyncing ? 'animate-spin text-sky-400' : ''}`} />
+            <span className={`w-2 h-2 rounded-full shrink-0 ${
+              syncStatus.isConnected && syncStatus.tablesFound
+                ? 'bg-emerald-400 shadow-[0_0_6px_#10b981]'
+                : syncStatus.isConnected
+                ? 'bg-amber-400'
+                : 'bg-slate-500'
+            }`} />
+            <span className="hidden md:inline text-[11px]">
+              {syncStatus.isConnected && syncStatus.tablesFound ? 'سوبا بيز متصل' : syncStatus.isConnected ? 'إعداد الجداول' : 'محلي'}
+            </span>
+          </button>
+
           <button
             type="button"
             onClick={() => setQuickCaptureOpen(true)}
-            className="bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-extrabold px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-md shadow-sky-500/20 pressable cursor-pointer"
+            className="bg-gradient-to-r from-sky-400 to-sky-500 hover:from-sky-300 hover:to-sky-400 text-slate-950 text-xs font-black px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-md shadow-sky-500/25 pressable cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span className="hidden sm:inline">تسجيل سريع</span>
           </button>
         </div>
       </div>
+
+      <CloudSyncModal
+        isOpen={isSyncModalOpen}
+        onClose={() => setIsSyncModalOpen(false)}
+      />
     </header>
   );
 };
