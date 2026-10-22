@@ -243,4 +243,47 @@ describe('Sprint 1 — Universal Content Management & Deletion Tombstones', () =
     expect(tombstone).toBeDefined();
     expect(tombstone?.entityType).toBe('TASK');
   });
+
+  it('uncompleting a task reverts status to TODO and rolls back awarded XP', async () => {
+    const store = useAppStore.getState();
+
+    await store.addTask('Quantum Mechanics Problem Set', 'P1_URGENT_IMPORTANT', 45);
+    const tasks = await db.tasks.toArray();
+    const taskId = tasks[0].id;
+
+    // 1. Complete task -> awards 50 XP
+    await store.completeTask(taskId);
+    let task = await db.tasks.get(taskId);
+    expect(task?.status).toBe('DONE');
+
+    let xpList = await db.xpTransactions.toArray();
+    expect(xpList.some(tx => tx.reason.includes('Quantum Mechanics Problem Set'))).toBe(true);
+
+    // 2. Undo/Uncomplete task
+    await store.uncompleteTask(taskId);
+    task = await db.tasks.get(taskId);
+    expect(task?.status).toBe('TODO');
+
+    // XP transaction must be rolled back!
+    xpList = await db.xpTransactions.toArray();
+    expect(xpList.some(tx => tx.reason.includes('Quantum Mechanics Problem Set'))).toBe(false);
+  });
+
+  it('toggleTaskStatus switches task between DONE and TODO seamlessly', async () => {
+    const store = useAppStore.getState();
+
+    await store.addTask('Prepare Falcon Marketing Reel', 'P2_IMPORTANT', 30);
+    const tasks = await db.tasks.toArray();
+    const taskId = tasks[0].id;
+
+    // Toggle 1: TODO -> DONE
+    await store.toggleTaskStatus(taskId);
+    let task = await db.tasks.get(taskId);
+    expect(task?.status).toBe('DONE');
+
+    // Toggle 2: DONE -> TODO
+    await store.toggleTaskStatus(taskId);
+    task = await db.tasks.get(taskId);
+    expect(task?.status).toBe('TODO');
+  });
 });

@@ -28,7 +28,8 @@ export const WeeklyScheduleWorkspace: React.FC = () => {
     availabilityRules, 
     goals, 
     showToast,
-    deleteTask
+    deleteTask,
+    toggleTaskStatus
   } = useAppStore();
 
   const [selectedDay, setSelectedDay] = useState<'السبت' | 'الأحد' | 'الاثنين' | 'الثلاثاء' | 'الأربعاء' | 'الخميس' | 'الجمعة'>('السبت');
@@ -158,59 +159,86 @@ export const WeeklyScheduleWorkspace: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-2">
-            {dayBlocks.map(block => (
-              <div
-                key={block.id}
-                className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 transition-all ${
-                  block.type === 'FIXED_CLASS'
-                    ? 'bg-purple-950/20 border-purple-500/40 shadow-sm'
-                    : 'bg-slate-900/70 border-slate-800/80'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${
-                    block.type === 'FIXED_CLASS' ? 'bg-purple-600/30 text-purple-300' : 'bg-sky-500/20 text-sky-400'
-                  }`}>
-                    {block.type === 'FIXED_CLASS' ? <Lock className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
-                  </div>
+            {dayBlocks.map(block => {
+              const task = block.taskId ? tasks.find(t => t.id === block.taskId) : null;
+              const isTaskDone = task?.status === 'DONE';
 
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-extrabold text-white">{block.title}</span>
-                      {block.type === 'FIXED_CLASS' && (
-                        <span className="text-[10px] bg-purple-950 text-purple-300 border border-purple-700/40 px-2 py-0.2 rounded-full font-bold">
-                          محاضرة ثابتة 🎓
+              return (
+                <div
+                  key={block.id}
+                  className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 transition-all ${
+                    block.type === 'FIXED_CLASS'
+                      ? 'bg-purple-950/20 border-purple-500/40 shadow-sm'
+                      : isTaskDone
+                      ? 'bg-slate-950/40 border-slate-900 opacity-75'
+                      : 'bg-slate-900/70 border-slate-800/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    {block.taskId ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleTaskStatus(block.taskId!)}
+                        className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 pressable cursor-pointer transition-colors ${
+                          isTaskDone
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                            : 'bg-sky-500/20 text-sky-400 hover:bg-sky-500/30'
+                        }`}
+                        title={isTaskDone ? 'اضغط لإلغاء الإنجاز وإعادة المهمة' : 'اضغط لإنجاز المهمة'}
+                      >
+                        {isTaskDone ? <CheckCircle2 className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+                      </button>
+                    ) : (
+                      <div className="w-8 h-8 rounded-xl bg-purple-600/30 text-purple-300 flex items-center justify-center text-xs font-bold shrink-0">
+                        <Lock className="w-4 h-4" />
+                      </div>
+                    )}
+
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-extrabold ${isTaskDone ? 'line-through text-slate-500' : 'text-white'}`}>
+                          {block.title}
                         </span>
-                      )}
+                        {block.type === 'FIXED_CLASS' && (
+                          <span className="text-[10px] bg-purple-950 text-purple-300 border border-purple-700/40 px-2 py-0.2 rounded-full font-bold">
+                            محاضرة ثابتة 🎓
+                          </span>
+                        )}
+                        {isTaskDone && (
+                          <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700/40 px-2 py-0.2 rounded-full font-bold">
+                            تمت ✓
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-slate-400 font-mono mt-0.5 block">
+                        {block.startTime} ← {block.endTime} ({block.durationMinutes} دقيقة)
+                      </span>
                     </div>
-                    <span className="text-[11px] text-slate-400 font-mono mt-0.5 block">
-                      {block.startTime} ← {block.endTime} ({block.durationMinutes} دقيقة)
-                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {block.taskId && (
+                      <button
+                        type="button"
+                        onClick={() => deleteTask(block.taskId!)}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 pressable cursor-pointer transition-colors"
+                        title="حذف هذه المهمة"
+                        aria-label="حذف المهمة"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+
+                    {block.isLocked && (
+                      <span className="text-[10px] text-slate-500 flex items-center gap-1 font-mono">
+                        <Lock className="w-3 h-3 text-slate-500" />
+                        محمي
+                      </span>
+                    )}
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  {block.taskId && (
-                    <button
-                      type="button"
-                      onClick={() => deleteTask(block.taskId!)}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 pressable cursor-pointer transition-colors"
-                      title="حذف هذه المهمة"
-                      aria-label="حذف المهمة"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-
-                  {block.isLocked && (
-                    <span className="text-[10px] text-slate-500 flex items-center gap-1 font-mono">
-                      <Lock className="w-3 h-3 text-slate-500" />
-                      محمي
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

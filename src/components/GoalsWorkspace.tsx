@@ -42,6 +42,7 @@ export const GoalsWorkspace: React.FC = () => {
     toggleMilestone,
     deleteMilestone,
     completeTask,
+    toggleTaskStatus,
     addTask,
     deleteTask,
     linkIntentionToGoal,
@@ -519,8 +520,9 @@ export const GoalsWorkspace: React.FC = () => {
                               >
                                 <button
                                   type="button"
-                                  onClick={() => !isDone && completeTask(t.id)}
+                                  onClick={() => toggleTaskStatus(t.id)}
                                   className="flex items-center gap-2 flex-1 min-w-0 text-right pressable cursor-pointer"
+                                  title={isDone ? 'اضغط لإلغاء الإنجاز وإعادة المهمة' : 'اضغط لإنجاز المهمة'}
                                 >
                                   {isDone ? (
                                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />

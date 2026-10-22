@@ -12,13 +12,14 @@ import {
   Layers,
   Sparkles,
   ArrowUpRight,
-  Trash2
+  Trash2,
+  Check
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { fireConfettiSuccess } from '../lib/confetti';
 
 export const FalconWorkspace: React.FC = () => {
-  const { tasks, completeTask, deleteTask, addTask, showToast } = useAppStore();
+  const { tasks, completeTask, uncompleteTask, toggleTaskStatus, deleteTask, addTask, showToast } = useAppStore();
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [selectedTaskCategory, setSelectedTaskCategory] = useState<'ALL' | 'MARKETING' | 'PRODUCTION' | 'OPS'>('ALL');
 
@@ -171,11 +172,22 @@ export const FalconWorkspace: React.FC = () => {
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <button
                   type="button"
-                  onClick={() => handleCompleteFalconTask(task.id)}
-                  aria-label="إكمال المهمة"
-                  className="w-5 h-5 rounded-lg border-2 border-slate-600 hover:border-amber-400 hover:bg-amber-500/20 flex items-center justify-center shrink-0 transition-colors pressable cursor-pointer"
-                />
-                <span className="text-xs font-medium text-slate-200 truncate">{task.title}</span>
+                  onClick={() => toggleTaskStatus(task.id)}
+                  aria-label="تبديل حالة المهمة"
+                  className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all pressable cursor-pointer ${
+                    task.status === 'DONE'
+                      ? 'bg-amber-500 border-amber-400 text-slate-950'
+                      : 'border-slate-600 hover:border-amber-400 hover:bg-amber-500/20'
+                  }`}
+                  title={task.status === 'DONE' ? 'اضغط لإلغاء الإنجاز وإعادة المهمة' : 'اضغط لإنجاز المهمة'}
+                >
+                  {task.status === 'DONE' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                </button>
+                <span className={`text-xs font-medium truncate ${
+                  task.status === 'DONE' ? 'line-through text-slate-500' : 'text-slate-200'
+                }`}>
+                  {task.title}
+                </span>
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0">

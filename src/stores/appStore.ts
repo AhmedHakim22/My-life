@@ -134,6 +134,8 @@ interface AppState {
   
   // 2. Task Actions
   completeTask: (taskId: string) => Promise<void>;
+  uncompleteTask: (taskId: string) => Promise<void>;
+  toggleTaskStatus: (taskId: string) => Promise<void>;
   postponeTask: (taskId: string, reason?: string, targetNewDate?: string) => Promise<void>;
   addTask: (title: string, priority: Task['priority'], estimatedMinutes?: number, dueDate?: string, goalId?: string, skillId?: string, studySessionId?: string) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
@@ -646,6 +648,46 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     await get().loadAllData();
     get().showToast(`تم إنجاز المهمة بنجاح! (+${xpAmount} XP) ⚡`);
+  },
+
+  uncompleteTask: async (taskId) => {
+    const task = get().tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const now = new Date().toISOString();
+
+    await db.tasks.update(taskId, {
+      status: 'TODO',
+      updatedAt: now
+    });
+
+    // Remove any XP awarded for completing this task so points remain 100% honest
+    const targetKeyPrefix = `TASK_COMPLETE:${taskId}`.toUpperCase();
+    const txList = await db.xpTransactions.filter(tx => 
+      tx.idempotencyKey.toUpperCase().includes(targetKeyPrefix) ||
+      Boolean(task.title && tx.reason.includes(task.title))
+    ).toArray();
+    for (const tx of txList) {
+      await db.xpTransactions.delete(tx.id);
+    }
+
+    // Recalculate goal progress if linked
+    if (task.goalId) {
+      await get().recalculateGoalProgress(task.goalId);
+    }
+
+    await get().loadAllData();
+    get().showToast(`تم التراجع وإلغاء إنجاز المهمة "${task.title}" ↩️`);
+  },
+
+  toggleTaskStatus: async (taskId) => {
+    const task = get().tasks.find(t => t.id === taskId);
+    if (!task) return;
+    if (task.status === 'DONE') {
+      await get().uncompleteTask(taskId);
+    } else {
+      await get().completeTask(taskId);
+    }
   },
 
   postponeTask: async (taskId, reason, targetNewDate) => {

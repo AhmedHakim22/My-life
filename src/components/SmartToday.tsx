@@ -13,6 +13,7 @@ import {
   Cloud,
   Compass,
   ChevronRight,
+  ChevronDown,
   Zap,
   Target,
   Moon,
@@ -39,6 +40,8 @@ export const SmartToday: React.FC = () => {
     quranLogs,
     movementLogs,
     completeTask, 
+    uncompleteTask,
+    toggleTaskStatus,
     postponeTask, 
     deleteTask,
     readTwoPagesAction,
@@ -51,9 +54,12 @@ export const SmartToday: React.FC = () => {
   } = useAppStore();
 
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [lastCompletedTaskId, setLastCompletedTaskId] = useState<string | null>(null);
+  const [showCompletedTasks, setShowCompletedTasks] = useState(false);
 
   const currentReadingBook = bookDetails.find(b => b.shelf === 'Reading') || bookDetails[0];
   const pendingTasks = tasks.filter(t => t.status === 'TODO' || t.status === 'IN_PROGRESS');
+  const completedTasks = tasks.filter(t => t.status === 'DONE');
   // Truthful Top 3 ranked priorities according to recommendation engine
   const todayTasks = bestNextAction 
     ? [bestNextAction.task, ...bestNextAction.alternativeTasks].slice(0, 3)
@@ -108,6 +114,7 @@ export const SmartToday: React.FC = () => {
 
   const handleCompleteTask = async (taskId: string) => {
     fireConfettiSuccess();
+    setLastCompletedTaskId(taskId);
     await completeTask(taskId);
   };
 
@@ -419,6 +426,31 @@ export const SmartToday: React.FC = () => {
         </section>
       )}
 
+      {/* 3.1 Undo Accidental Completion Banner */}
+      {lastCompletedTaskId && (() => {
+        const justCompleted = tasks.find(t => t.id === lastCompletedTaskId);
+        if (!justCompleted || justCompleted.status !== 'DONE') return null;
+        return (
+          <div className="bg-emerald-950/80 border border-emerald-500/50 p-3 rounded-2xl flex items-center justify-between gap-2 shadow-lg animate-in slide-in-from-top duration-200">
+            <div className="flex items-center gap-2 text-xs text-emerald-200 min-w-0">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="truncate">تم إنجاز: <strong>{justCompleted.title}</strong></span>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                await uncompleteTask(justCompleted.id);
+                setLastCompletedTaskId(null);
+              }}
+              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-[11px] px-3 py-1.5 rounded-xl flex items-center gap-1 shrink-0 pressable cursor-pointer shadow"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>تراجع (إلغاء الإنجاز) ↩️</span>
+            </button>
+          </div>
+        );
+      })()}
+
       {/* 4. Postponement Intervention Alert (3-Miss Threshold) */}
       {bestNextAction?.isPostponementIntervention && (
         <div className="bg-amber-950/60 border border-amber-600/50 rounded-2xl p-3.5 flex items-start gap-3 text-right shadow-lg">
@@ -473,6 +505,31 @@ export const SmartToday: React.FC = () => {
           </button>
         </section>
       )}
+
+      {/* 3.1 Undo Accidental Completion Banner */}
+      {lastCompletedTaskId && (() => {
+        const justCompleted = tasks.find(t => t.id === lastCompletedTaskId);
+        if (!justCompleted || justCompleted.status !== 'DONE') return null;
+        return (
+          <div className="bg-emerald-950/80 border border-emerald-500/50 p-3 rounded-2xl flex items-center justify-between gap-2 shadow-lg animate-in slide-in-from-top duration-200">
+            <div className="flex items-center gap-2 text-xs text-emerald-200 min-w-0">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="truncate">تم إنجاز: <strong>{justCompleted.title}</strong></span>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                await uncompleteTask(justCompleted.id);
+                setLastCompletedTaskId(null);
+              }}
+              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-[11px] px-3 py-1.5 rounded-xl flex items-center gap-1 shrink-0 pressable cursor-pointer shadow"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>تراجع (إلغاء الإنجاز) ↩️</span>
+            </button>
+          </div>
+        );
+      })()}
 
       {/* 6. Top 3 Priorities Checklist */}
       <section className="space-y-2.5">
@@ -536,6 +593,64 @@ export const SmartToday: React.FC = () => {
               </div>
             </div>
           ))}
+
+          {/* Collapsible Completed Tasks List for Easy Undo / Toggle */}
+          {completedTasks.length > 0 && (
+            <div className="pt-2 border-t border-slate-800/60">
+              <button
+                type="button"
+                onClick={() => setShowCompletedTasks(!showCompletedTasks)}
+                className="text-[11px] font-bold text-slate-400 hover:text-slate-200 flex items-center justify-between w-full py-1.5 px-2.5 rounded-xl bg-slate-900/60 border border-slate-800 transition-colors pressable cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>المهام المنجزة ({completedTasks.length}) — اضغط للإلغاء أو التراجع</span>
+                </div>
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${showCompletedTasks ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showCompletedTasks && (
+                <div className="space-y-1.5 pt-2 animate-in fade-in duration-200">
+                  {completedTasks.map(task => (
+                    <div
+                      key={task.id}
+                      className="glass-panel bg-slate-950/40 border border-slate-800/60 rounded-2xl p-2.5 flex items-center justify-between gap-3 text-slate-400"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => uncompleteTask(task.id)}
+                        className="flex items-center gap-2.5 flex-1 min-w-0 text-right pressable cursor-pointer group"
+                        title="اضغط لإلغاء الإنجاز وإعادة المهمة كغير مكتملة"
+                      >
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 group-hover:text-amber-400 shrink-0 transition-colors" />
+                        <span className="text-xs line-through text-slate-400 group-hover:text-slate-200 truncate">{task.title}</span>
+                      </button>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => uncompleteTask(task.id)}
+                          className="text-[10px] font-bold text-amber-400 hover:text-amber-300 bg-amber-950/50 border border-amber-800/40 px-2.5 py-1 rounded-xl flex items-center gap-1 pressable cursor-pointer"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>إلغاء الإنجاز ↩️</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteTask(task.id)}
+                          className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 pressable cursor-pointer transition-colors"
+                          title="حذف المهمة"
+                          aria-label="حذف المهمة"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
