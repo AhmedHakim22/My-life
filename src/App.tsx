@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useAppStore } from './stores/appStore';
 import { HeaderNav } from './components/HeaderNav';
 import { BottomNav } from './components/BottomNav';
@@ -17,11 +17,13 @@ import { WeeklyScheduleWorkspace } from './components/WeeklyScheduleWorkspace';
 import { QuickCaptureModal } from './components/QuickCaptureModal';
 import { DynamicIslandWidget } from './components/DynamicIslandWidget';
 import { WifiOff, Loader2, BookMarked, GraduationCap } from 'lucide-react';
+import { getNotificationSettings, sendLocalNotification } from './lib/notifications';
 
 export const App: React.FC = () => {
-  const { isLoaded, loadAllData, activeTab, toastMessage } = useAppStore();
+  const { isLoaded, loadAllData, activeTab, toastMessage, prayers } = useAppStore();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [journalSubTab, setJournalSubTab] = useState<'JOURNAL' | 'ANALYTICS'>('JOURNAL');
+  const lastNotifiedPrayerRef = useRef<string>('');
 
   useEffect(() => {
     loadAllData();
@@ -37,6 +39,34 @@ export const App: React.FC = () => {
       window.removeEventListener('offline', handleOffline);
     };
   }, [loadAllData]);
+
+  // Periodic intelligent prayer times reminder check (every 60s)
+  useEffect(() => {
+    const checkPrayerReminders = () => {
+      const settings = getNotificationSettings();
+      if (!settings.enabled || !settings.prayers || !prayers?.nextPrayer) return;
+
+      const next = prayers.nextPrayer;
+      const mins = next.minutesRemaining ?? -1;
+
+      // Send reminder when 10 minutes or less remain until next prayer
+      if (mins <= 10 && mins >= 0) {
+        const notifKey = `${next.nameArabic}-${next.timeFormatted}`;
+        if (lastNotifiedPrayerRef.current !== notifKey) {
+          lastNotifiedPrayerRef.current = notifKey;
+          sendLocalNotification(`🕌 حان وقت الاستعداد لصلاة ${next.nameArabic}`, {
+            body: `تبقى ${mins === 0 ? 'لحظات' : `${mins} دقائق`} على أذان ${next.nameArabic} (${next.timeFormatted}). وقت الوضوء والاستعداد.`,
+            tag: `prayer-${next.nameArabic}`
+          });
+        }
+      }
+    };
+
+    const interval = setInterval(checkPrayerReminders, 60000);
+    checkPrayerReminders();
+
+    return () => clearInterval(interval);
+  }, [prayers]);
 
   if (!isLoaded) {
     return (
@@ -63,8 +93,8 @@ export const App: React.FC = () => {
       {/* Apple Dynamic Island Live Activity Floating Widget */}
       <DynamicIslandWidget />
 
-      {/* Main Responsive Container */}
-      <main className="flex-1 max-w-md sm:max-w-3xl lg:max-w-6xl w-full mx-auto px-3 sm:px-6">
+      {/* Main Responsive Container with Safe Area Clearance for Mobile Floating Dock */}
+      <main className="flex-1 max-w-md sm:max-w-3xl lg:max-w-6xl w-full mx-auto px-3 sm:px-6 pb-[calc(7rem+env(safe-area-inset-bottom,0px))]">
         {activeTab === 'TODAY' && <SmartToday />}
         {activeTab === 'GOALS' && <GoalsWorkspace />}
         {activeTab === 'UNIVERSITY' && <UniversityWorkspace />}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   BookOpen, 
   Briefcase, 
@@ -13,9 +13,11 @@ import {
   Moon,
   Dumbbell,
   Calendar,
-  Trophy
+  Trophy,
+  Bell
 } from 'lucide-react';
 import { useAppStore, type ActiveTab } from '../stores/appStore';
+import { NotificationSettingsModal } from './NotificationSettingsModal';
 
 interface MoreMenuModalProps {
   isOpen: boolean;
@@ -24,6 +26,7 @@ interface MoreMenuModalProps {
 
 export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({ isOpen, onClose }) => {
   const { setActiveTab } = useAppStore();
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
 
   if (!isOpen) return null;
 
@@ -152,6 +155,26 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({ isOpen, onClose })
           ))}
         </div>
 
+        {/* Quick Settings & Notifications Action */}
+        <div className="pt-2 border-t border-white/[0.08]">
+          <button
+            type="button"
+            onClick={() => setIsNotifOpen(true)}
+            className="w-full p-3 rounded-2xl border border-sky-500/20 bg-sky-500/10 hover:bg-sky-500/15 flex items-center gap-3 text-right transition-all pressable cursor-pointer"
+          >
+            <div className="p-2 rounded-xl bg-sky-500/20 text-sky-400 shrink-0">
+              <Bell className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-bold text-white flex items-center gap-2">
+                <span>الإشعارات والتنبيهات الذكية</span>
+                <span className="text-[10px] text-sky-400 bg-sky-400/15 px-2 py-0.5 rounded-full font-bold">تخصيص</span>
+              </div>
+              <div className="text-[10px] text-[#8e8e93]">تفعيل إشعارات مواقيت الصلاة، الورد القرآني، والمبيعات</div>
+            </div>
+          </button>
+        </div>
+
         <div className="pt-2 border-t border-white/[0.08] text-center">
           <span className="text-[10px] text-[#8e8e93] flex items-center justify-center gap-1 font-mono">
             <ShieldCheck className="w-3 h-3 text-emerald-400" />
@@ -159,6 +182,11 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({ isOpen, onClose })
           </span>
         </div>
       </div>
+
+      <NotificationSettingsModal
+        isOpen={isNotifOpen}
+        onClose={() => setIsNotifOpen(false)}
+      />
     </div>
   );
 };

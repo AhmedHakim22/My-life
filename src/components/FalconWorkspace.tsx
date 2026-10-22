@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { fireConfettiSuccess } from '../lib/confetti';
+import { sendLocalNotification } from '../lib/notifications';
 
 interface WorkProjectSettings {
   campaignTitle: string;
@@ -115,6 +116,10 @@ export const FalconWorkspace: React.FC = () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     }
     showToast(`🎉 مبروك المبيعة الجديدة! إجمالي المبيعات الآن: ${updated.currentOrders} ${updated.metricUnit}`);
+    sendLocalNotification('🎉 مبيعة عمل جديدة!', {
+      body: `تم تسجيل مبيعة جديدة بنجاح! إجمالي المبيعات الآن: ${updated.currentOrders} من أصل ${updated.targetOrders} ${updated.metricUnit}. استمر في هذا الزخم!`,
+      tag: 'falcon-sale'
+    });
   };
 
   const handleDecrementOrders = () => {

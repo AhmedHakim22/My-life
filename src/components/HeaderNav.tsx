@@ -15,14 +15,19 @@ import {
   Moon,
   Dumbbell,
   Calendar,
-  Trophy
+  Trophy,
+  Bell
 } from 'lucide-react';
 import { useAppStore, type ActiveTab } from '../stores/appStore';
 import { CloudSyncModal } from './CloudSyncModal';
+import { NotificationSettingsModal } from './NotificationSettingsModal';
+import { getNotificationPermission } from '../lib/notifications';
 
 export const HeaderNav: React.FC = () => {
   const { activeTab, setActiveTab, setQuickCaptureOpen, syncStatus } = useAppStore();
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [isNotifModalOpen, setIsNotifModalOpen] = useState(false);
+  const notifPermission = typeof window !== 'undefined' ? getNotificationPermission() : 'default';
 
   const desktopNavItems: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
     { id: 'TODAY', label: 'اليوم', icon: <Compass className="w-4 h-4" /> },
@@ -77,8 +82,29 @@ export const HeaderNav: React.FC = () => {
           })}
         </nav>
 
-        {/* Right Quick Actions: Quick Capture & Sync Status */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Right Quick Actions: Quick Capture, Notification Bell & Sync Status */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Notification Center Button */}
+          <button
+            type="button"
+            onClick={() => setIsNotifModalOpen(true)}
+            className={`relative p-2 rounded-xl border text-xs font-bold transition-all pressable cursor-pointer ${
+              notifPermission === 'granted'
+                ? 'bg-sky-500/10 border-sky-400/25 text-sky-400'
+                : 'bg-white/[0.04] border-white/[0.08] text-[#8e8e93] hover:text-white'
+            }`}
+            title="الإشعارات والتنبيهات"
+            aria-label="الإشعارات والتنبيهات"
+          >
+            <Bell className="w-4 h-4" />
+            {notifPermission === 'granted' && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-sky-400 ring-2 ring-[#07080b]" />
+            )}
+            {notifPermission !== 'granted' && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-[#07080b] animate-ping" />
+            )}
+          </button>
+
           {/* Cloud Sync Status Pill */}
           <button
             type="button"
@@ -119,6 +145,11 @@ export const HeaderNav: React.FC = () => {
       <CloudSyncModal
         isOpen={isSyncModalOpen}
         onClose={() => setIsSyncModalOpen(false)}
+      />
+
+      <NotificationSettingsModal
+        isOpen={isNotifModalOpen}
+        onClose={() => setIsNotifModalOpen(false)}
       />
     </header>
   );

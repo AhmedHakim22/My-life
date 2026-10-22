@@ -33,7 +33,7 @@ export const BottomNav: React.FC = () => {
   return (
     <>
       {/* Apple visionOS & iOS Floating Glass Dock */}
-      <nav className="fixed bottom-3 left-3 right-3 z-40 bg-[#16171d]/85 backdrop-blur-3xl border border-white/[0.1] rounded-[28px] px-3 shadow-[0_16px_40px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.15)] sm:hidden">
+      <nav className="fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] left-3 right-3 z-40 bg-[#16171d]/85 backdrop-blur-3xl border border-white/[0.1] rounded-[28px] px-3 shadow-[0_16px_40px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.15)] sm:hidden">
         <div className="max-w-md mx-auto flex items-center justify-between h-14 relative">
           {mainNavItems.map((item, index) => {
             const isActive = activeTab === item.id;
