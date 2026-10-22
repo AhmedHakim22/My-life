@@ -80,31 +80,31 @@ export const DynamicIslandWidget: React.FC = () => {
             role="button"
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsExpanded(true); } }}
-            className="group h-10 px-3.5 rounded-full bg-slate-950/85 backdrop-blur-3xl border border-sky-400/35 hover:border-sky-300/60 shadow-[0_12px_36px_rgba(0,0,0,0.65),0_0_20px_rgba(56,189,248,0.2),inset_0_1px_1px_rgba(255,255,255,0.3)] flex items-center justify-between gap-2.5 transition-all cursor-pointer select-none pressable"
+            className="group h-10 px-3.5 rounded-full bg-[#16171d]/90 backdrop-blur-3xl border border-white/[0.12] hover:border-white/[0.22] shadow-[0_12px_36px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.15)] flex items-center justify-between gap-2.5 transition-all cursor-pointer select-none pressable"
           >
             {/* Right: Next Prayer Countdown */}
             <div className="flex items-center gap-2 min-w-0">
-              <span className="w-2 h-2 rounded-full bg-sky-400 shadow-[0_0_8px_#38bdf8] animate-pulse" />
-              <div className="flex items-center gap-1 text-[11px] font-bold text-slate-200">
+              <span className="w-2 h-2 rounded-full bg-sky-400 shadow-[0_0_8px_#38bdf8]" />
+              <div className="flex items-center gap-1 text-[11px] font-bold text-white">
                 <Sun className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 <span className="text-sky-300">{nextPrayer?.nameArabic || 'الصلاة'}:</span>
                 <span className="font-mono text-white">{nextPrayer?.timeFormatted || '--:--'}</span>
-                <span className="text-[10px] text-slate-400 font-mono hidden xs:inline">({freeMinutes}د)</span>
+                <span className="text-[10px] text-[#8e8e93] font-mono hidden xs:inline">({freeMinutes}د)</span>
               </div>
             </div>
 
             {/* Center: Glowing Pulse / Status */}
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-sky-500/15 border border-sky-400/30 text-[10px] text-sky-200 font-black shadow-inner truncate max-w-[130px] sm:max-w-[170px]">
-              <Sparkles className="w-3 h-3 text-sky-300 shrink-0" />
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-400/20 text-[10px] text-sky-300 font-bold truncate max-w-[130px] sm:max-w-[170px]">
+              <Sparkles className="w-3 h-3 text-sky-400 shrink-0" />
               <span className="truncate">
                 {bestNextAction?.task?.title || (activeChallenge ? activeChallenge.title : 'يومك منظم')}
               </span>
             </div>
 
             {/* Left: Challenge indicator or Expand Icon */}
-            <div className="flex items-center gap-1.5 shrink-0 text-slate-400 group-hover:text-sky-300 transition-colors">
+            <div className="flex items-center gap-1.5 shrink-0 text-[#8e8e93] group-hover:text-white transition-colors">
               {activeChallenge && (
-                <span className="text-[10px] font-mono font-bold text-amber-300 bg-amber-950/70 border border-amber-500/30 px-1.5 py-0.2 rounded-md hidden xs:inline">
+                <span className="text-[10px] font-mono font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded-md hidden xs:inline">
                   {challengeCompletedCount}/{challengeTotalCount} 🏆
                 </span>
               )}
@@ -115,12 +115,12 @@ export const DynamicIslandWidget: React.FC = () => {
           /* ========================================================
              EXPANDED: Apple visionOS Live Activity Card
              ======================================================== */
-          <div className="apple-card-glow rounded-[28px] p-4 space-y-3 shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_35px_rgba(56,189,248,0.25)] border border-sky-300/50 animate-in fade-in zoom-in-95 duration-200">
+          <div className="apple-card-glow rounded-[26px] p-4 space-y-3 shadow-2xl border border-sky-400/25 animate-in fade-in zoom-in-95 duration-150">
             {/* Header: Title & Close/Minimize Controls */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+            <div className="flex items-center justify-between border-b border-white/[0.08] pb-2.5">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_10px_#38bdf8] animate-pulse" />
-                <span className="text-xs font-black text-sky-300 tracking-wide">
+                <span className="w-2 h-2 rounded-full bg-sky-400 shadow-[0_0_8px_#38bdf8]" />
+                <span className="text-xs font-bold text-white tracking-wide">
                   الجزيرة التفاعلية • Live Activity
                 </span>
               </div>
@@ -129,7 +129,7 @@ export const DynamicIslandWidget: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsExpanded(false)}
-                  className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors pressable cursor-pointer"
+                  className="p-1 rounded-full text-[#8e8e93] hover:text-white hover:bg-white/10 transition-colors pressable cursor-pointer"
                   title="تصغير الكبسولة"
                   aria-label="تصغير الكبسولة"
                 >
@@ -138,7 +138,7 @@ export const DynamicIslandWidget: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => { setIsExpanded(false); setIsDismissed(true); }}
-                  className="text-[10px] font-bold text-slate-400 hover:text-rose-300 px-2 py-0.5 rounded-lg hover:bg-rose-950/40 transition-colors pressable cursor-pointer"
+                  className="text-[10px] font-bold text-[#8e8e93] hover:text-rose-300 px-2 py-0.5 rounded-lg hover:bg-rose-500/15 transition-colors pressable cursor-pointer"
                   title="إخفاء مؤقت"
                 >
                   إخفاء
@@ -154,18 +154,18 @@ export const DynamicIslandWidget: React.FC = () => {
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveTab('FAITH'); } }}
-                className="p-2.5 rounded-2xl bg-slate-950/70 border border-sky-400/20 hover:border-sky-300/40 flex items-center justify-between cursor-pointer transition-all pressable"
+                className="p-2.5 rounded-2xl bg-black/30 border border-white/[0.06] hover:border-white/[0.12] flex items-center justify-between cursor-pointer transition-all pressable"
               >
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-xl bg-amber-500/15 text-amber-300 flex items-center justify-center">
                     <Sun className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="text-[10px] text-slate-400 font-bold">صلاة {nextPrayer?.nameArabic || 'القادمة'}</div>
+                    <div className="text-[10px] text-[#8e8e93] font-bold">صلاة {nextPrayer?.nameArabic || 'القادمة'}</div>
                     <div className="font-mono font-bold text-white text-xs">{nextPrayer?.timeFormatted}</div>
                   </div>
                 </div>
-                <span className="text-[10px] font-mono font-bold text-amber-300 bg-amber-950/60 px-1.5 py-0.5 rounded-md border border-amber-600/30">
+                <span className="text-[10px] font-mono font-bold text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded-md border border-amber-500/20">
                   {freeMinutes} د
                 </span>
               </div>
@@ -176,20 +176,20 @@ export const DynamicIslandWidget: React.FC = () => {
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveTab('CHALLENGES'); } }}
-                className="p-2.5 rounded-2xl bg-slate-950/70 border border-amber-500/20 hover:border-amber-400/40 flex items-center justify-between cursor-pointer transition-all pressable"
+                className="p-2.5 rounded-2xl bg-black/30 border border-white/[0.06] hover:border-white/[0.12] flex items-center justify-between cursor-pointer transition-all pressable"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0">
+                  <div className="w-7 h-7 rounded-xl bg-amber-500/15 text-amber-300 flex items-center justify-center shrink-0">
                     <Trophy className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[10px] text-slate-400 font-bold truncate">تحدي الـ 90</div>
+                    <div className="text-[10px] text-[#8e8e93] font-bold truncate">تحدي الـ 90</div>
                     <div className="font-mono font-bold text-amber-300 text-xs">
                       {activeChallenge ? `اليوم ${activeChallenge.currentDay || 1}/90` : 'لا يوجد'}
                     </div>
                   </div>
                 </div>
-                <span className="text-[10px] font-mono font-bold text-emerald-300 bg-emerald-950/60 px-1.5 py-0.5 rounded-md border border-emerald-600/30 shrink-0">
+                <span className="text-[10px] font-mono font-bold text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20 shrink-0">
                   {challengeCompletedCount}/{challengeTotalCount}
                 </span>
               </div>
@@ -199,24 +199,24 @@ export const DynamicIslandWidget: React.FC = () => {
             {bestNextAction ? (
               <div className="space-y-2 pt-1">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                  <span className="font-bold text-[#8e8e93] flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-sky-400" />
                     <span>المهمة الحالية الموصى بها الآن:</span>
                   </span>
-                  <span className="text-[10px] font-mono text-sky-300 bg-sky-950/70 px-2 py-0.5 rounded-md border border-sky-400/30">
+                  <span className="text-[10px] font-mono text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded-md border border-sky-400/20">
                     {bestNextAction.task.estimatedMinutes} دقيقة
                   </span>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-slate-950/80 border border-sky-400/30 flex items-center justify-between gap-3">
-                  <span className="text-xs sm:text-sm font-black text-white truncate flex-1">
+                <div className="p-3 rounded-2xl bg-black/30 border border-white/[0.06] flex items-center justify-between gap-3">
+                  <span className="text-xs sm:text-sm font-bold text-white truncate flex-1">
                     {bestNextAction.task.title}
                   </span>
 
                   <button
                     type="button"
                     onClick={() => handleCompleteCurrentTask(bestNextAction.task.id)}
-                    className="apple-btn-primary text-xs py-2 px-3.5 rounded-xl flex items-center gap-1.5 shrink-0 pressable cursor-pointer shadow-md shadow-sky-400/30"
+                    className="apple-btn-primary text-xs py-2 px-3.5 rounded-xl flex items-center gap-1.5 shrink-0 pressable cursor-pointer shadow-sm"
                   >
                     <Check className="w-3.5 h-3.5 stroke-[3]" />
                     <span>تم (+25 XP)</span>
@@ -224,7 +224,7 @@ export const DynamicIslandWidget: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs font-bold text-center flex items-center justify-center gap-2">
+              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-bold text-center flex items-center justify-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 <span>جميع المهام ذات الأولوية منجزة بنجاح! راحة مستحقة ✨</span>
               </div>

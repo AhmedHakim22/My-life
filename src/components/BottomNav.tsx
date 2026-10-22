@@ -32,41 +32,41 @@ export const BottomNav: React.FC = () => {
 
   return (
     <>
-      {/* Apple iOS Floating Glass Dock */}
-      <nav className="fixed bottom-3 left-3 right-3 z-40 bg-slate-950/80 backdrop-blur-3xl border border-sky-400/30 rounded-[30px] px-3.5 shadow-[0_16px_45px_rgba(0,0,0,0.75),inset_0_1px_1px_rgba(255,255,255,0.35),0_0_25px_rgba(56,189,248,0.18)] sm:hidden">
-        <div className="max-w-md mx-auto flex items-center justify-between h-15 relative">
+      {/* Apple visionOS & iOS Floating Glass Dock */}
+      <nav className="fixed bottom-3 left-3 right-3 z-40 bg-[#16171d]/85 backdrop-blur-3xl border border-white/[0.1] rounded-[28px] px-3 shadow-[0_16px_40px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.15)] sm:hidden">
+        <div className="max-w-md mx-auto flex items-center justify-between h-14 relative">
           {mainNavItems.map((item, index) => {
             const isActive = activeTab === item.id;
             return (
               <React.Fragment key={item.id}>
                 {/* Center Floating Quick Capture (+) Button */}
                 {index === 2 && (
-                  <div className="relative -mt-6 flex flex-col items-center">
+                  <div className="relative -mt-5 flex flex-col items-center">
                     <button
                       type="button"
                       onClick={() => setQuickCaptureOpen(true)}
                       aria-label="تسجيل سريع"
-                      className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-sky-300 via-sky-400 to-sky-500 text-slate-950 flex items-center justify-center shadow-xl shadow-sky-400/50 border border-white/60 active:scale-90 transition-transform cursor-pointer group"
+                      className="w-12 h-12 rounded-2xl apple-btn-primary flex items-center justify-center shadow-lg active:scale-90 transition-transform cursor-pointer group"
                     >
-                      <Plus className="w-6 h-6 stroke-[3] group-hover:rotate-90 transition-transform duration-300" />
+                      <Plus className="w-6 h-6 stroke-[3] text-[#031422] group-hover:rotate-90 transition-transform duration-200" />
                     </button>
-                    <span className="text-[9px] font-black text-sky-300 mt-0.5 tracking-wide drop-shadow-[0_0_6px_rgba(56,189,248,0.6)]">إضافة</span>
+                    <span className="text-[9px] font-bold text-sky-400 mt-0.5 tracking-wide">إضافة</span>
                   </div>
                 )}
 
                 <button
                   type="button"
                   onClick={() => handleNavClick(item.id)}
-                  className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-2xl transition-all duration-200 pressable cursor-pointer ${
+                  className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-2xl transition-all duration-150 pressable cursor-pointer ${
                     isActive 
-                      ? 'bg-sky-400/20 text-sky-200 border border-sky-300/40 shadow-[0_0_18px_rgba(56,189,248,0.45)]' 
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-sky-400/15 text-sky-400' 
+                      : 'text-[#8e8e93] hover:text-white'
                   }`}
                 >
-                  <div className={`transition-all duration-200 ${isActive ? 'scale-110 drop-shadow-[0_0_10px_rgba(56,189,248,0.8)]' : ''}`}>
+                  <div className={`transition-transform duration-150 ${isActive ? 'scale-105 text-sky-400' : ''}`}>
                     {item.icon}
                   </div>
-                  <span className={`text-[10px] mt-0.5 tracking-tight ${isActive ? 'font-black text-sky-200' : 'font-medium'}`}>
+                  <span className={`text-[10px] mt-0.5 tracking-tight ${isActive ? 'font-bold text-sky-400' : 'font-medium'}`}>
                     {item.label}
                   </span>
                 </button>

@@ -150,41 +150,37 @@ export const SmartToday: React.FC = () => {
 
   return (
     <div className="space-y-4 pb-24 pt-3 relative">
-      {/* 3D Ambient Glowing Orbs in Background */}
-      <div className="absolute -top-10 right-1/4 w-80 h-80 bg-sky-400/25 rounded-full blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-64 -left-12 w-96 h-96 bg-sky-500/20 rounded-full blur-3xl pointer-events-none -z-10" />
-
       {/* 1. Apple iOS Large Title Header */}
       <header className="flex items-center justify-between pt-1 pb-1">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_12px_#38bdf8] animate-pulse" />
-            <span className="text-[11px] font-black text-sky-300 tracking-wider">
+            <span className="w-2 h-2 rounded-full bg-sky-400 shadow-[0_0_8px_#38bdf8]" />
+            <span className="text-[11px] font-bold text-sky-400 tracking-wider">
               مَسار • المرشد اليومي
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            صباح النور <span className="bg-gradient-to-r from-sky-200 via-sky-300 to-sky-400 bg-clip-text text-transparent">يا أحمد 👋</span>
+            صباح النور <span className="text-sky-300">يا أحمد 👋</span>
           </h1>
-          <p className="text-xs text-slate-400 font-medium">
+          <p className="text-xs text-[#8e8e93] font-medium">
             {todayFormatted} • جاهز لإنجاز أهدافك؟
           </p>
         </div>
 
-        {/* Scientific Rank Badge with Apple Glass styling */}
+        {/* Scientific Rank Badge with Apple Health styling */}
         <button
           type="button"
           onClick={() => setActiveTab('JOURNAL')}
-          className="min-h-[46px] px-3.5 py-2 rounded-2xl border border-purple-400/40 bg-purple-950/40 backdrop-blur-xl flex items-center gap-2.5 pressable cursor-pointer shadow-lg hover:border-purple-300/70"
+          className="min-h-[44px] px-3.5 py-1.5 rounded-2xl apple-card flex items-center gap-2.5 pressable cursor-pointer border border-white/[0.08] hover:border-white/[0.18]"
         >
-          <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-400/40 flex items-center justify-center text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.3)]">
+          <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-400/20 flex items-center justify-center text-purple-300">
             <GraduationCap className="w-4 h-4" />
           </div>
           <div className="text-right">
-            <div className="text-xs font-black text-purple-200">
+            <div className="text-xs font-bold text-white">
               {rankProgress.currentRank.titleArabic}
             </div>
-            <div className="text-[10px] text-purple-300 font-mono font-bold">
+            <div className="text-[10px] text-[#8e8e93] font-mono font-bold">
               {rankProgress.totalXP} XP
             </div>
           </div>
@@ -196,7 +192,7 @@ export const SmartToday: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('SCHEDULE')}
-          className="w-full bg-rose-950/70 border border-rose-500/50 p-2.5 rounded-2xl text-xs text-rose-200 flex items-center justify-between gap-2 pressable cursor-pointer shadow-lg hover:border-rose-400 min-h-[44px]"
+          className="w-full bg-rose-500/10 border border-rose-500/25 p-2.5 rounded-2xl text-xs text-rose-200 flex items-center justify-between gap-2 pressable cursor-pointer shadow-sm hover:border-rose-400/40 min-h-[44px]"
         >
           <div className="flex items-center gap-2 text-right">
             <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
@@ -204,7 +200,7 @@ export const SmartToday: React.FC = () => {
               تنبيه الحمل الزائد: المهام تتجاوز السعة بـ {Math.round((weeklyPlan.unscheduledMinutes / 60) * 10) / 10} ساعة
             </span>
           </div>
-          <span className="text-[10px] text-rose-300 font-bold bg-rose-900/80 px-2 py-1 rounded-full shrink-0 flex items-center gap-1">
+          <span className="text-[10px] text-rose-300 font-bold bg-rose-950/80 px-2 py-1 rounded-full shrink-0 flex items-center gap-1 border border-rose-500/20">
             <span>المخطط</span>
             <ChevronRight className="w-3 h-3" />
           </span>
@@ -217,23 +213,23 @@ export const SmartToday: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('FAITH')}
-          className="glass-panel-emerald rounded-3xl p-3.5 flex items-center justify-between shadow-lg relative overflow-hidden text-right pressable cursor-pointer border border-emerald-500/30 hover:border-emerald-400/50 min-h-[64px]"
+          className="apple-card rounded-[22px] p-3.5 flex items-center justify-between shadow-md relative overflow-hidden text-right pressable cursor-pointer border border-white/[0.08] hover:border-white/[0.18] min-h-[64px]"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(16,185,129,0.25)]">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-300 border border-emerald-400/20 flex items-center justify-center shrink-0">
               <Sun className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xs font-black text-emerald-200 flex items-center gap-1.5">
+              <div className="text-xs font-bold text-white flex items-center gap-1.5">
                 <span>صلاة {prayers.nextPrayer.nameArabic} القادمة</span>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
               </div>
-              <div className="text-[11px] text-emerald-300/90 font-mono mt-0.5">
-                الساعة <strong>{prayers.nextPrayer.timeFormatted}</strong> (متبقي {prayers.freeWindowMinutes} د)
+              <div className="text-[11px] text-[#8e8e93] font-mono mt-0.5">
+                الساعة <strong className="text-emerald-300">{prayers.nextPrayer.timeFormatted}</strong> (متبقي {prayers.freeWindowMinutes} د)
               </div>
             </div>
           </div>
-          <span className="text-[10px] font-bold text-emerald-300 bg-emerald-950/80 px-2.5 py-1 rounded-full border border-emerald-600/40">
+          <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
             القاهرة 📍
           </span>
         </button>
@@ -242,20 +238,20 @@ export const SmartToday: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('UNIVERSITY')}
-          className="glass-panel rounded-3xl p-3.5 flex items-center justify-between shadow-lg relative overflow-hidden text-right pressable cursor-pointer border border-purple-500/30 hover:border-purple-400/50 min-h-[64px]"
+          className="apple-card rounded-[22px] p-3.5 flex items-center justify-between shadow-md relative overflow-hidden text-right pressable cursor-pointer border border-white/[0.08] hover:border-white/[0.18] min-h-[64px]"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-400/30 flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(168,85,247,0.25)]">
+            <div className="w-10 h-10 rounded-2xl bg-purple-500/15 text-purple-300 border border-purple-400/20 flex items-center justify-center shrink-0">
               <School className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <div className="text-xs font-black text-purple-200 flex items-center gap-1">
+              <div className="text-xs font-bold text-white flex items-center gap-1">
                 <span>الجامعة • {todayArabicDay}</span>
               </div>
-              <div className="text-[11px] text-purple-300/90 truncate mt-0.5 font-medium">
+              <div className="text-[11px] text-[#8e8e93] truncate mt-0.5 font-medium">
                 {nextClass ? (
                   <>
-                    <strong className="text-white">{nextClass.subjectName}</strong> ({nextClass.startTime})
+                    <strong className="text-purple-300">{nextClass.subjectName}</strong> ({nextClass.startTime})
                   </>
                 ) : todaySlots.length > 0 ? (
                   'انتهت محاضرات اليوم بحمد الله 🎓'
@@ -265,31 +261,31 @@ export const SmartToday: React.FC = () => {
               </div>
             </div>
           </div>
-          <span className="text-[10px] font-bold text-purple-300 bg-purple-950/80 px-2.5 py-1 rounded-full border border-purple-700/40 shrink-0">
+          <span className="text-[10px] font-bold text-purple-300 bg-purple-500/10 px-2.5 py-1 rounded-full border border-purple-500/20 shrink-0">
             {todaySlots.length} حصص
           </span>
         </button>
       </section>
 
-      {/* 3. Apple Activity Squircle Widgets (Faith, Fitness, Goals, Challenges, Schedule) */}
+      {/* 3. Apple Health Squircle Activity Widgets (Faith, Fitness, Goals, Challenges, Schedule) */}
       <section className="grid grid-cols-3 sm:grid-cols-5 gap-2">
         {/* Quran Widget */}
         <button
           type="button"
           onClick={() => setActiveTab('FAITH')}
-          className="apple-widget p-3 flex flex-col justify-between text-right pressable cursor-pointer border border-emerald-500/30 hover:border-emerald-400/50 bg-slate-900/70 min-h-[82px]"
+          className="apple-widget p-3 flex flex-col justify-between text-right pressable cursor-pointer min-h-[84px]"
         >
           <div className="flex items-center justify-between">
-            <span className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shadow-[0_0_8px_rgba(16,185,129,0.3)]">
+            <span className="w-7 h-7 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
               <Moon className="w-3.5 h-3.5" />
             </span>
-            <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.2 rounded-md">ورد</span>
+            <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded-md">ورد</span>
           </div>
           <div>
-            <div className="text-sm font-black font-mono text-white mt-1.5">
+            <div className="text-base font-black font-mono text-white mt-1.5">
               {todayQuranPages}/3 ص
             </div>
-            <div className="text-[10px] text-slate-400 font-bold mt-0.5">القرآن الكريم</div>
+            <div className="text-[10px] text-[#8e8e93] font-medium mt-0.5">القرآن الكريم</div>
           </div>
         </button>
 
@@ -297,19 +293,19 @@ export const SmartToday: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('FITNESS')}
-          className="apple-widget p-3 flex flex-col justify-between text-right pressable cursor-pointer border border-rose-500/30 hover:border-rose-400/50 bg-slate-900/70 min-h-[82px]"
+          className="apple-widget p-3 flex flex-col justify-between text-right pressable cursor-pointer min-h-[84px]"
         >
           <div className="flex items-center justify-between">
-            <span className="w-7 h-7 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center shadow-[0_0_8px_rgba(244,63,94,0.3)]">
+            <span className="w-7 h-7 rounded-xl bg-rose-500/15 text-rose-400 flex items-center justify-center">
               <Dumbbell className="w-3.5 h-3.5" />
             </span>
-            <span className="text-[10px] text-rose-400 font-bold bg-rose-950/60 px-1.5 py-0.2 rounded-md">20د</span>
+            <span className="text-[10px] text-rose-400 font-bold bg-rose-500/10 px-1.5 py-0.5 rounded-md">20د</span>
           </div>
           <div>
-            <div className="text-sm font-black font-mono text-white mt-1.5">
+            <div className="text-base font-black font-mono text-white mt-1.5">
               {todayMovementMinutes}/20 د
             </div>
-            <div className="text-[10px] text-slate-400 font-bold mt-0.5">الحركة والرياضة</div>
+            <div className="text-[10px] text-[#8e8e93] font-medium mt-0.5">الحركة والرياضة</div>
           </div>
         </button>
 
@@ -317,19 +313,19 @@ export const SmartToday: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('GOALS')}
-          className="apple-widget p-3 flex flex-col justify-between text-right pressable cursor-pointer border border-sky-400/40 hover:border-sky-300/70 bg-slate-900/70 min-h-[82px] shadow-[0_4px_16px_rgba(56,189,248,0.18)]"
+          className="apple-widget p-3 flex flex-col justify-between text-right pressable cursor-pointer min-h-[84px]"
         >
           <div className="flex items-center justify-between">
-            <span className="w-7 h-7 rounded-full bg-sky-400/25 text-sky-200 flex items-center justify-center shadow-[0_0_10px_rgba(56,189,248,0.4)]">
+            <span className="w-7 h-7 rounded-xl bg-sky-500/15 text-sky-300 flex items-center justify-center">
               <Target className="w-3.5 h-3.5" />
             </span>
-            <span className="text-[10px] text-sky-300 font-extrabold bg-sky-950/70 px-1.5 py-0.2 rounded-md border border-sky-500/30">أهداف</span>
+            <span className="text-[10px] text-sky-300 font-bold bg-sky-500/10 px-1.5 py-0.5 rounded-md">أهداف</span>
           </div>
           <div>
-            <div className="text-sm font-black font-mono text-white mt-1.5">
+            <div className="text-base font-black font-mono text-white mt-1.5">
               {activeGoalsCount} نشطة
             </div>
-            <div className="text-[10px] text-slate-300 font-bold mt-0.5">مسار الأهداف</div>
+            <div className="text-[10px] text-[#8e8e93] font-medium mt-0.5">مسار الأهداف</div>
           </div>
         </button>
 
@@ -337,19 +333,19 @@ export const SmartToday: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('CHALLENGES')}
-          className="apple-widget p-3 flex flex-col justify-between text-right pressable cursor-pointer border border-amber-500/30 hover:border-amber-400/50 bg-slate-900/70 min-h-[82px]"
+          className="apple-widget p-3 flex flex-col justify-between text-right pressable cursor-pointer min-h-[84px]"
         >
           <div className="flex items-center justify-between">
-            <span className="w-7 h-7 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center shadow-[0_0_8px_rgba(245,158,11,0.3)]">
+            <span className="w-7 h-7 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center">
               <Trophy className="w-3.5 h-3.5" />
             </span>
-            <span className="text-[10px] text-amber-400 font-bold bg-amber-950/60 px-1.5 py-0.2 rounded-md">الـ 90</span>
+            <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded-md">الـ 90</span>
           </div>
           <div>
-            <div className="text-sm font-black font-mono text-white mt-1.5">
+            <div className="text-base font-black font-mono text-white mt-1.5">
               {activeChallenges.length} نشطة
             </div>
-            <div className="text-[10px] text-slate-400 font-bold mt-0.5">التحديات</div>
+            <div className="text-[10px] text-[#8e8e93] font-medium mt-0.5">التحديات</div>
           </div>
         </button>
 
@@ -357,53 +353,50 @@ export const SmartToday: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('SCHEDULE')}
-          className="apple-widget p-3 flex flex-col justify-between text-right pressable cursor-pointer border border-blue-500/30 hover:border-blue-400/50 bg-slate-900/70 min-h-[82px]"
+          className="apple-widget p-3 flex flex-col justify-between text-right pressable cursor-pointer min-h-[84px]"
         >
           <div className="flex items-center justify-between">
-            <span className="w-7 h-7 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center shadow-[0_0_8px_rgba(59,130,246,0.3)]">
+            <span className="w-7 h-7 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center">
               <Calendar className="w-3.5 h-3.5" />
             </span>
-            <span className="text-[10px] text-blue-400 font-bold bg-blue-950/60 px-1.5 py-0.2 rounded-md">جدول</span>
+            <span className="text-[10px] text-blue-400 font-bold bg-blue-500/10 px-1.5 py-0.5 rounded-md">جدول</span>
           </div>
           <div>
-            <div className="text-sm font-black font-mono text-white mt-1.5">
+            <div className="text-base font-black font-mono text-white mt-1.5">
               {weeklyPlan.isOverloaded ? 'حمل زائد' : 'متزن ✓'}
             </div>
-            <div className="text-[10px] text-slate-400 font-bold mt-0.5">المخطط الأسبوعي</div>
+            <div className="text-[10px] text-[#8e8e93] font-medium mt-0.5">المخطط الأسبوعي</div>
           </div>
         </button>
       </section>
 
-      {/* 3. Hero Card: Best Next Action (Apple Intelligence Glow Card) */}
+      {/* 3. Hero Card: Best Next Action (Apple Intelligence Hero Card) */}
       {bestNextAction ? (
-        <section className="apple-card-glow rounded-[28px] p-5.5 shadow-[0_20px_50px_rgba(56,189,248,0.25)] relative overflow-hidden border border-sky-300/50">
-          {/* Subtle background refraction orb */}
-          <div className="absolute -top-12 -left-12 w-40 h-40 rounded-full bg-sky-400/25 blur-3xl pointer-events-none" />
-
+        <section className="apple-card-glow rounded-[26px] p-5 shadow-2xl relative overflow-hidden border border-sky-400/25">
           {/* Top highlight pill */}
           <div className="flex items-center justify-between mb-3.5 relative z-10">
-            <span className="inline-flex items-center gap-1.5 bg-sky-400/25 text-sky-100 border border-sky-300/50 text-[11px] font-black px-3.5 py-1 rounded-full shadow-[0_0_16px_rgba(56,189,248,0.35)]">
-              <Sparkles className="w-3.5 h-3.5 text-sky-300 fill-sky-300" />
+            <span className="inline-flex items-center gap-1.5 bg-sky-500/10 text-sky-300 border border-sky-400/25 text-[11px] font-bold px-3 py-1 rounded-full">
+              <Sparkles className="w-3.5 h-3.5 text-sky-400 fill-sky-400" />
               <span>التوصية الذكية الأنسب لك الآن</span>
             </span>
 
-            <span className="text-[10px] font-mono text-sky-200 bg-sky-950/80 px-2.5 py-0.5 rounded-full border border-sky-400/40 font-bold">
+            <span className="text-[10px] font-mono text-[#8e8e93] bg-white/[0.04] px-2.5 py-0.5 rounded-full border border-white/[0.08] font-bold">
               {bestNextAction.task.estimatedMinutes} دقيقة
             </span>
           </div>
 
           <div className="space-y-3.5 relative z-10">
-            <h2 className="text-base sm:text-xl font-black text-white leading-snug">
+            <h2 className="text-base sm:text-lg font-black text-white leading-snug">
               {bestNextAction.task.title}
             </h2>
 
-            {/* Explainable Reasoning Card */}
-            <div className="bg-slate-950/70 p-3.5 rounded-2xl border border-sky-400/35 space-y-1.5 backdrop-blur-xl">
-              <div className="flex items-center gap-1.5 text-[11px] font-black text-sky-300">
+            {/* Explainable Reasoning Inset Card */}
+            <div className="bg-black/35 p-3.5 rounded-2xl border border-white/[0.06] space-y-1.5">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-sky-400">
                 <Target className="w-3.5 h-3.5 text-sky-400" />
                 <span>لماذا اختار مَسار هذه الخطوة بالذات؟</span>
               </div>
-              <p className="text-xs text-slate-200 leading-relaxed pr-5 font-normal">
+              <p className="text-xs text-slate-300 leading-relaxed pr-5 font-normal">
                 {bestNextAction.rationaleArabic}
               </p>
             </div>
@@ -413,7 +406,7 @@ export const SmartToday: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleCompleteTask(bestNextAction.task.id)}
-                className="apple-btn-primary flex-1 min-h-[50px] text-xs py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 pressable cursor-pointer shadow-lg shadow-sky-400/30"
+                className="apple-btn-primary flex-1 min-h-[48px] text-xs py-3 px-4 rounded-2xl flex items-center justify-center gap-2 pressable cursor-pointer shadow-md"
               >
                 <CheckCircle2 className="w-4 h-4 stroke-[3]" />
                 <span>أنجزتها الآن (+25 XP)</span>
@@ -422,17 +415,17 @@ export const SmartToday: React.FC = () => {
               <button
                 type="button"
                 onClick={() => postponeTask(bestNextAction.task.id)}
-                className="min-h-[50px] bg-slate-900/80 hover:bg-slate-800 text-slate-200 font-bold text-xs py-3.5 px-4 rounded-2xl flex items-center justify-center gap-1.5 border border-sky-400/20 pressable cursor-pointer"
+                className="min-h-[48px] bg-white/[0.06] hover:bg-white/[0.1] text-white font-bold text-xs py-3 px-4 rounded-2xl flex items-center justify-center gap-1.5 border border-white/[0.08] pressable cursor-pointer"
                 title="تأجيل المهمة لوقت لاحق"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
+                <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
                 <span>تأجيل</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => deleteTask(bestNextAction.task.id)}
-                className="min-h-[50px] bg-slate-900/80 hover:bg-rose-950/60 hover:text-rose-300 text-slate-400 font-bold text-xs py-3.5 px-3.5 rounded-2xl flex items-center justify-center border border-white/10 pressable cursor-pointer transition-colors"
+                className="min-h-[48px] bg-white/[0.06] hover:bg-rose-500/20 hover:text-rose-300 text-slate-400 font-bold text-xs py-3 px-3.5 rounded-2xl flex items-center justify-center border border-white/[0.08] pressable cursor-pointer transition-colors"
                 title="حذف المهمة نهائياً"
                 aria-label="حذف المهمة"
               >
@@ -442,12 +435,12 @@ export const SmartToday: React.FC = () => {
           </div>
         </section>
       ) : (
-        <section className="apple-card rounded-3xl p-6 text-center space-y-2.5 border border-emerald-500/30">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-400 border border-emerald-400/30 mx-auto flex items-center justify-center shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+        <section className="apple-card rounded-[26px] p-6 text-center space-y-2.5 border border-emerald-500/25">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-400 border border-emerald-400/20 mx-auto flex items-center justify-center">
             <CheckCircle2 className="w-6 h-6 stroke-[2.5]" />
           </div>
           <h3 className="text-base font-bold text-white">يومك منظم ورايق ومفيش مهام متأخرة! ✨</h3>
-          <p className="text-xs text-slate-400 max-w-xs mx-auto">
+          <p className="text-xs text-[#8e8e93] max-w-xs mx-auto">
             تقدر تقرأ صفحتين في كتاب النانو، أو تسجل فكرة جديدة لفالكون، أو تضيف مهمة من علامة (+) بالأسفل.
           </p>
         </section>
@@ -455,11 +448,11 @@ export const SmartToday: React.FC = () => {
 
       {/* 4. Postponement Intervention Alert (3-Miss Threshold) */}
       {bestNextAction?.isPostponementIntervention && (
-        <div className="bg-amber-950/60 border border-amber-600/50 rounded-2xl p-3.5 flex items-start gap-3 text-right shadow-lg">
+        <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-3.5 flex items-start gap-3 text-right shadow-sm">
           <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
           <div className="space-y-1">
             <h4 className="text-xs font-bold text-amber-200">تدخل ودي لإعادة جدولة الأولويات (3 تأجيلات متتالية)</h4>
-            <p className="text-xs text-amber-300/80 leading-relaxed">
+            <p className="text-xs text-amber-300/90 leading-relaxed">
               {bestNextAction.interventionProposal}
             </p>
           </div>
@@ -468,31 +461,31 @@ export const SmartToday: React.FC = () => {
 
       {/* 5. Atomic Action: Read 2 Pages Card (Apple Glass Card) */}
       {currentReadingBook && (
-        <section className="apple-card rounded-2xl p-4 flex items-center justify-between shadow-lg relative overflow-hidden">
+        <section className="apple-card rounded-[22px] p-3.5 flex items-center justify-between shadow-md relative overflow-hidden border border-white/[0.08]">
           <div className="flex items-center gap-3.5 flex-1 min-w-0">
             {/* Book icon/cover */}
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.2)] shrink-0">
-              <BookOpen className="w-6 h-6" />
+            <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 border border-emerald-400/20 flex items-center justify-center text-emerald-400 shrink-0">
+              <BookOpen className="w-5 h-5" />
             </div>
 
             <div className="flex-1 min-w-0 space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-white">عادة صفحتين فقط</span>
-                <span className="text-[10px] bg-emerald-950/80 text-emerald-300 px-2 py-0.5 rounded-full font-mono font-bold border border-emerald-700/40">
+                <span className="text-[10px] bg-emerald-500/10 text-emerald-300 px-2 py-0.5 rounded-full font-mono font-bold border border-emerald-500/20">
                   +15 XP
                 </span>
               </div>
 
               {/* Progress Bar */}
-              <div className="w-full bg-slate-950/80 h-2 rounded-full overflow-hidden max-w-[190px] border border-white/5">
+              <div className="w-full bg-white/[0.06] h-1.5 rounded-full overflow-hidden max-w-[190px]">
                 <div 
-                  className="bg-gradient-to-r from-emerald-400 to-teal-400 h-full rounded-full transition-all duration-500"
+                  className="bg-emerald-400 h-full rounded-full transition-all duration-500"
                   style={{ width: `${Math.min(100, Math.round((currentReadingBook.currentPage / Math.max(1, currentReadingBook.totalPages)) * 100))}%` }}
                 />
               </div>
 
-              <p className="text-[11px] text-slate-400 font-mono truncate">
-                صفحة <strong className="text-emerald-400">{currentReadingBook.currentPage}</strong> من {currentReadingBook.totalPages}
+              <p className="text-[11px] text-[#8e8e93] font-mono truncate">
+                صفحة <strong className="text-emerald-300">{currentReadingBook.currentPage}</strong> من {currentReadingBook.totalPages}
               </p>
             </div>
           </div>
@@ -500,7 +493,7 @@ export const SmartToday: React.FC = () => {
           <button
             type="button"
             onClick={() => handleReadTwoPages(currentReadingBook.resourceId)}
-            className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs py-2.5 px-3.5 rounded-xl flex items-center gap-1.5 shadow-lg shadow-emerald-900/30 pressable cursor-pointer shrink-0"
+            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs py-2 px-3.5 rounded-xl flex items-center gap-1.5 shadow-sm pressable cursor-pointer shrink-0"
           >
             <span>قرأت صفحتين</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -513,7 +506,7 @@ export const SmartToday: React.FC = () => {
         const justCompleted = tasks.find(t => t.id === lastCompletedTaskId);
         if (!justCompleted || justCompleted.status !== 'DONE') return null;
         return (
-          <div className="bg-emerald-950/80 border border-emerald-500/50 p-3 rounded-2xl flex items-center justify-between gap-2 shadow-lg animate-in slide-in-from-top duration-200">
+          <div className="bg-[#14151a]/95 border border-emerald-500/30 p-3 rounded-2xl flex items-center justify-between gap-2 shadow-lg backdrop-blur-xl animate-in slide-in-from-top duration-200">
             <div className="flex items-center gap-2 text-xs text-emerald-200 min-w-0">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <span className="truncate">تم إنجاز: <strong>{justCompleted.title}</strong></span>
@@ -524,7 +517,7 @@ export const SmartToday: React.FC = () => {
                 await uncompleteTask(justCompleted.id);
                 setLastCompletedTaskId(null);
               }}
-              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-[11px] px-3 py-1.5 rounded-xl flex items-center gap-1 shrink-0 pressable cursor-pointer shadow"
+              className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 font-bold text-[11px] px-3 py-1.5 rounded-xl flex items-center gap-1 shrink-0 pressable cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>تراجع (إلغاء الإنجاز) ↩️</span>
@@ -541,7 +534,7 @@ export const SmartToday: React.FC = () => {
           || (h && h.lastCompletedDate === todayStr);
         if (!h || !isDoneToday) return null;
         return (
-          <div className="bg-emerald-950/80 border border-emerald-500/50 p-3 rounded-2xl flex items-center justify-between gap-2 shadow-lg animate-in slide-in-from-top duration-200">
+          <div className="bg-[#14151a]/95 border border-emerald-500/30 p-3 rounded-2xl flex items-center justify-between gap-2 shadow-lg backdrop-blur-xl animate-in slide-in-from-top duration-200">
             <div className="flex items-center gap-2 text-xs text-emerald-200 min-w-0">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <span className="truncate">تم تسجيل عادة: <strong>{h.title}</strong></span>
@@ -552,7 +545,7 @@ export const SmartToday: React.FC = () => {
                 await toggleHabitToday(h.id);
                 setLastCompletedHabitId(null);
               }}
-              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-[11px] px-3 py-1.5 rounded-xl flex items-center gap-1 shrink-0 pressable cursor-pointer shadow"
+              className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 font-bold text-[11px] px-3 py-1.5 rounded-xl flex items-center gap-1 shrink-0 pressable cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>تراجع (إلغاء الإنجاز) ↩️</span>
@@ -563,7 +556,7 @@ export const SmartToday: React.FC = () => {
 
       {/* 3.3 Undo Read 2 Pages Banner */}
       {justReadBookId && (
-        <div className="bg-teal-950/80 border border-teal-500/50 p-3 rounded-2xl flex items-center justify-between gap-2 shadow-lg animate-in slide-in-from-top duration-200">
+        <div className="bg-[#14151a]/95 border border-teal-500/30 p-3 rounded-2xl flex items-center justify-between gap-2 shadow-lg backdrop-blur-xl animate-in slide-in-from-top duration-200">
           <div className="flex items-center gap-2 text-xs text-teal-200 min-w-0">
             <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
             <span className="truncate">تم تسجيل قراءة صفحتين بنجاح (+15 XP)</span>
@@ -574,7 +567,7 @@ export const SmartToday: React.FC = () => {
               await undoReadTwoPagesAction(justReadBookId);
               setJustReadBookId(null);
             }}
-            className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold text-[11px] px-3 py-1.5 rounded-xl flex items-center gap-1 shrink-0 pressable cursor-pointer shadow"
+            className="bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/30 font-bold text-[11px] px-3 py-1.5 rounded-xl flex items-center gap-1 shrink-0 pressable cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>تراجع عن الصفحتين ↩️</span>
@@ -586,29 +579,29 @@ export const SmartToday: React.FC = () => {
       <section className="space-y-2.5">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
+            <span className="w-5 h-5 rounded-lg bg-sky-500/15 text-sky-400 flex items-center justify-center">
               <Zap className="w-3.5 h-3.5 fill-sky-400 text-sky-400" />
             </span>
-            <h2 className="text-xs font-black text-slate-200 uppercase tracking-wider">
+            <h2 className="text-xs font-bold text-white uppercase tracking-wider">
               أولويات اليوم ({pendingTasks.length})
             </h2>
           </div>
-          <span className="text-[10px] text-sky-300/80 font-mono font-bold bg-sky-950/60 px-2 py-0.5 rounded-full border border-sky-800/40">
+          <span className="text-[10px] text-sky-300 font-mono font-bold bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-400/20">
             أول 3 مهام مقترحة
           </span>
         </div>
 
         {/* Grouped Inset Card for Tasks */}
-        <div className="apple-card rounded-3xl p-0 overflow-hidden divide-y divide-white/[0.08] border border-sky-400/25 shadow-xl">
+        <div className="apple-card rounded-[24px] p-0 overflow-hidden divide-y divide-white/[0.06] border border-white/[0.08] shadow-lg">
           {todayTasks.length === 0 ? (
-            <div className="p-6 text-center text-xs text-slate-400">
+            <div className="p-6 text-center text-xs text-[#8e8e93]">
               لا توجد مهام معلقة لهذا اليوم، استمتع بوقتك أو أضف مهمة جديدة ✨
             </div>
           ) : (
             todayTasks.map(task => (
               <div
                 key={task.id}
-                className="p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:bg-sky-500/[0.04] transition-colors"
+                className="p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:bg-white/[0.02] transition-colors"
               >
                 <div className="flex items-center gap-3.5 flex-1 min-w-0">
                   {/* Apple Reminders Circular Check Ring */}
@@ -616,19 +609,19 @@ export const SmartToday: React.FC = () => {
                     type="button"
                     onClick={() => handleCompleteTask(task.id)}
                     aria-label="إكمال المهمة"
-                    className="w-6 h-6 rounded-full border-2 border-sky-400/60 hover:border-sky-300 hover:bg-sky-400/25 flex items-center justify-center shrink-0 transition-all pressable cursor-pointer group active:scale-90 shadow-[0_0_8px_rgba(56,189,248,0.2)]"
+                    className="w-6 h-6 rounded-full border-[1.5px] border-white/25 hover:border-sky-400 hover:bg-sky-400/15 flex items-center justify-center shrink-0 transition-all pressable cursor-pointer group active:scale-95"
                     title="اضغط للإنجاز"
                   >
-                    <span className="w-2.5 h-2.5 rounded-full bg-sky-300 opacity-0 group-hover:opacity-100 transition-opacity shadow-[0_0_6px_#7dd3fc]" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-sky-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
 
                   <div className="flex flex-col min-w-0 flex-1">
-                    <span className="text-xs sm:text-sm font-semibold text-slate-100 truncate">{task.title}</span>
+                    <span className="text-xs sm:text-sm font-semibold text-white truncate">{task.title}</span>
                     {task.goalId && (() => {
                       const linkedGoal = goals.find(g => g.id === task.goalId);
                       if (!linkedGoal) return null;
                       return (
-                        <span className="text-[10px] text-sky-400 font-medium truncate flex items-center gap-1 mt-0.5">
+                        <span className="text-[10px] text-sky-300 font-medium truncate flex items-center gap-1 mt-0.5">
                           <Target className="w-2.5 h-2.5 shrink-0 text-sky-400" />
                           <span className="truncate">{linkedGoal.title}</span>
                         </span>
@@ -638,19 +631,19 @@ export const SmartToday: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1 bg-slate-950/60 px-2 py-0.5 rounded-full border border-white/5">
-                    <Clock className="w-3 h-3 text-slate-500" />
+                  <span className="text-[10px] text-[#8e8e93] font-mono flex items-center gap-1 bg-white/[0.04] px-2 py-0.5 rounded-full border border-white/[0.06]">
+                    <Clock className="w-3 h-3 text-[#8e8e93]" />
                     {task.estimatedMinutes}د
                   </span>
                   {task.postponementCount > 0 && (
-                    <span className="text-[9px] text-amber-300 font-bold bg-amber-950/70 px-1.5 py-0.5 rounded-full border border-amber-800/40">
+                    <span className="text-[9px] text-amber-300 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20">
                       أُجلت {task.postponementCount}
                     </span>
                   )}
                   <button
                     type="button"
                     onClick={() => deleteTask(task.id)}
-                    className="p-1.5 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 pressable cursor-pointer transition-colors"
+                    className="p-1.5 rounded-xl text-[#8e8e93] hover:text-rose-400 hover:bg-rose-500/15 pressable cursor-pointer transition-colors"
                     title="حذف المهمة"
                     aria-label="حذف المهمة"
                   >
@@ -668,21 +661,21 @@ export const SmartToday: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowCompletedTasks(!showCompletedTasks)}
-              className="text-[11px] font-bold text-slate-400 hover:text-slate-200 flex items-center justify-between w-full py-2 px-3 rounded-2xl bg-slate-900/50 border border-white/5 transition-colors pressable cursor-pointer"
+              className="text-[11px] font-bold text-[#8e8e93] hover:text-white flex items-center justify-between w-full py-2 px-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] transition-colors pressable cursor-pointer"
             >
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 <span>المهام المنجزة ({completedTasks.length}) — اضغط للإلغاء أو التراجع</span>
               </div>
-              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${showCompletedTasks ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-3.5 h-3.5 text-[#8e8e93] transition-transform ${showCompletedTasks ? 'rotate-180' : ''}`} />
             </button>
 
             {showCompletedTasks && (
-              <div className="mt-2 apple-card rounded-3xl p-0 overflow-hidden divide-y divide-white/[0.04] animate-in fade-in duration-200">
+              <div className="mt-2 apple-card rounded-[24px] p-0 overflow-hidden divide-y divide-white/[0.04] border border-white/[0.06] animate-in fade-in duration-200">
                 {completedTasks.map(task => (
                   <div
                     key={task.id}
-                    className="p-3 sm:p-3.5 flex items-center justify-between gap-3 text-slate-400 hover:bg-white/[0.02]"
+                    className="p-3 sm:p-3.5 flex items-center justify-between gap-3 text-[#8e8e93] hover:bg-white/[0.02]"
                   >
                     <button
                       type="button"
@@ -690,17 +683,17 @@ export const SmartToday: React.FC = () => {
                       className="flex items-center gap-3 flex-1 min-w-0 text-right pressable cursor-pointer group"
                       title="اضغط لإلغاء الإنجاز وإعادة المهمة كغير مكتملة"
                     >
-                      <div className="w-6 h-6 rounded-full bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400 flex items-center justify-center shrink-0 group-hover:bg-amber-500/20 group-hover:border-amber-400 group-hover:text-amber-300 transition-all">
+                      <div className="w-6 h-6 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0 group-hover:bg-amber-500/20 group-hover:border-amber-400 group-hover:text-amber-300 transition-all">
                         <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" />
                       </div>
-                      <span className="text-xs line-through text-slate-400 group-hover:text-slate-200 truncate">{task.title}</span>
+                      <span className="text-xs line-through text-[#8e8e93] group-hover:text-white truncate">{task.title}</span>
                     </button>
 
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         type="button"
                         onClick={() => uncompleteTask(task.id)}
-                        className="text-[10px] font-bold text-amber-300 hover:text-amber-200 bg-amber-950/60 border border-amber-600/40 px-2.5 py-1 rounded-full flex items-center gap-1 pressable cursor-pointer shadow-sm"
+                        className="text-[10px] font-bold text-amber-300 hover:text-amber-200 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full flex items-center gap-1 pressable cursor-pointer shadow-sm"
                       >
                         <RotateCcw className="w-3 h-3" />
                         <span>إلغاء الإنجاز ↩️</span>
@@ -708,7 +701,7 @@ export const SmartToday: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => deleteTask(task.id)}
-                        className="p-1.5 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 pressable cursor-pointer transition-colors"
+                        className="p-1.5 rounded-xl text-[#8e8e93] hover:text-rose-400 hover:bg-rose-500/15 pressable cursor-pointer transition-colors"
                         title="حذف المهمة"
                         aria-label="حذف المهمة"
                       >
@@ -723,15 +716,15 @@ export const SmartToday: React.FC = () => {
         )}
       </section>
 
-      {/* 6.5. Active Challenges Daily Checklist (Apple Activity Style) */}
+      {/* 6.5. Active Challenges Daily Checklist (Apple Inset Style) */}
       {activeChallenges.length > 0 && (
         <section className="space-y-3 pt-2">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+              <span className="w-5 h-5 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center">
                 <Trophy className="w-3.5 h-3.5" />
               </span>
-              <h2 className="text-xs font-black text-slate-200 uppercase tracking-wider">
+              <h2 className="text-xs font-bold text-white uppercase tracking-wider">
                 مهام التحديات النشطة ({activeChallenges.length})
               </h2>
             </div>
@@ -755,21 +748,21 @@ export const SmartToday: React.FC = () => {
               return (
                 <div
                   key={challenge.id}
-                  className="apple-card border border-amber-500/30 rounded-3xl p-4 space-y-3 shadow-xl"
+                  className="apple-card border border-white/[0.08] rounded-[24px] p-4 space-y-3 shadow-lg"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-base shadow-[0_0_12px_rgba(245,158,11,0.2)]">
+                      <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center text-base">
                         {challenge.trophyIcon || '🏆'}
                       </div>
                       <div>
                         <span className="text-xs font-bold text-white block">{challenge.title}</span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-950/60 text-amber-300 border border-amber-500/30 inline-block mt-0.5">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 inline-block mt-0.5">
                           اليوم {challenge.currentDay || 1}/{challenge.durationDays}
                         </span>
                       </div>
                     </div>
-                    <span className="text-[11px] font-mono text-slate-300 bg-slate-900/80 px-2.5 py-1 rounded-full border border-white/5">
+                    <span className="text-[11px] font-mono text-[#8e8e93] bg-white/[0.04] px-2.5 py-1 rounded-full border border-white/[0.06]">
                       {completedTaskIds.length}/{totalTasks} منجز
                     </span>
                   </div>
@@ -783,28 +776,28 @@ export const SmartToday: React.FC = () => {
                           onClick={() => toggleChallengeTaskToday(challenge.id, task.id)}
                           className={`p-2.5 rounded-2xl border flex items-center justify-between gap-2.5 text-xs cursor-pointer select-none transition-all pressable ${
                             isDone
-                              ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
-                              : 'bg-slate-900/60 border-white/5 hover:border-white/15 text-slate-200'
+                              ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-200'
+                              : 'bg-white/[0.03] border-white/[0.06] hover:border-white/15 text-white'
                           }`}
                         >
                           <div className="flex items-center gap-2.5 truncate">
                             <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
-                              isDone ? 'bg-emerald-400 text-slate-950 shadow-[0_0_8px_#34d399]' : 'border-2 border-slate-500 text-transparent'
+                              isDone ? 'bg-emerald-400 text-slate-950' : 'border-[1.5px] border-white/25 text-transparent'
                             }`}>
                               ✓
                             </span>
-                            <span className={`truncate text-xs font-medium ${isDone ? 'line-through text-slate-400' : 'text-slate-100'}`}>
+                            <span className={`truncate text-xs font-medium ${isDone ? 'line-through text-[#8e8e93]' : 'text-white'}`}>
                               {task.icon} {task.title}
                             </span>
                           </div>
-                          <span className="text-[10px] font-mono text-slate-400 shrink-0">{task.durationMinutes}د</span>
+                          <span className="text-[10px] font-mono text-[#8e8e93] shrink-0">{task.durationMinutes}د</span>
                         </div>
                       );
                     })}
                   </div>
 
                   {isAllDone && (
-                    <div className="p-2.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 text-xs font-bold text-center flex items-center justify-center gap-2">
+                    <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-bold text-center flex items-center justify-center gap-2">
                       <Sparkles className="w-3.5 h-3.5" />
                       <span>أتممت جميع مهام التحدي لهذا اليوم بنجاح 🎉</span>
                     </div>
@@ -816,18 +809,18 @@ export const SmartToday: React.FC = () => {
         </section>
       )}
 
-      {/* 7. Today's Habits & Streaks (Apple Health / Activity Cards) */}
+      {/* 7. Today's Habits & Streaks (Apple Health Activity Cards) */}
       <section className="space-y-2.5 pt-1">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+            <span className="w-5 h-5 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center">
               <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
             </span>
-            <h2 className="text-xs font-black text-slate-200 uppercase tracking-wider">
+            <h2 className="text-xs font-bold text-white uppercase tracking-wider">
               العادات والروتين اليومي
             </h2>
           </div>
-          <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+          <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
             سلسلة الـ 3 أيام سماح 🛡️
           </span>
         </div>
@@ -844,16 +837,16 @@ export const SmartToday: React.FC = () => {
                 key={habit.id}
                 onClick={() => handleToggleHabit(habit.id)}
                 title={isCompleted ? 'اضغط لإلغاء الإنجاز والتراجع ↩️' : 'اضغط لتسجيل الإنجاز'}
-                className={`p-3.5 rounded-3xl border text-right transition-all flex flex-col justify-between h-28 pressable cursor-pointer relative group ${
+                className={`apple-widget p-3.5 rounded-[22px] border text-right transition-all flex flex-col justify-between min-h-[110px] pressable cursor-pointer relative group ${
                   isCompleted
-                    ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-100 shadow-[0_0_20px_rgba(16,185,129,0.18)] hover:border-emerald-400/60'
-                    : 'apple-card text-slate-300 hover:border-white/20'
+                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-100 shadow-md'
+                    : 'bg-[#1a1b22]/70 border-white/[0.08] text-white hover:border-white/20'
                 }`}
               >
                 <div className="flex items-start justify-between w-full gap-2">
                   <span className="text-xs font-bold leading-snug line-clamp-2 text-white">{habit.title}</span>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-transform ${
-                    isCompleted ? 'bg-emerald-400 text-slate-950 scale-105 shadow-[0_0_10px_#34d399]' : 'border-2 border-slate-500/70'
+                    isCompleted ? 'bg-emerald-400 text-slate-950 scale-105' : 'border-[1.5px] border-white/25'
                   }`}>
                     {isCompleted && <CheckCircle2 className="w-4 h-4 stroke-[3]" />}
                   </div>
@@ -866,7 +859,7 @@ export const SmartToday: React.FC = () => {
                   </div>
 
                   {isCompleted && (
-                    <span className="text-[9px] text-amber-300 font-bold bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-600/40 flex items-center gap-0.5 shadow-sm">
+                    <span className="text-[9px] text-amber-300 font-bold bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/25 flex items-center gap-0.5 shadow-sm">
                       <RotateCcw className="w-2.5 h-2.5" />
                       <span>إلغاء</span>
                     </span>

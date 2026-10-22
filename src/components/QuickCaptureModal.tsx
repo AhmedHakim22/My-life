@@ -94,18 +94,18 @@ export const QuickCaptureModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="apple-card border border-sky-400/40 rounded-t-[32px] sm:rounded-3xl w-full max-w-md p-5 space-y-4 shadow-[0_20px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(56,189,248,0.25)] animate-in fade-in slide-in-from-bottom duration-200">
-        <div className="w-12 h-1.5 bg-slate-700/80 rounded-full mx-auto -mt-1 mb-1 sm:hidden" />
-        <div className="flex items-center justify-between border-b border-white/10 pb-3">
-          <h2 className="text-sm font-black text-white flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_10px_#38bdf8]" />
+      <div className="apple-card border border-white/[0.1] rounded-t-[32px] sm:rounded-[26px] w-full max-w-md p-5 space-y-4 shadow-2xl animate-in fade-in slide-in-from-bottom duration-200">
+        <div className="w-12 h-1 bg-white/20 rounded-full mx-auto -mt-1 mb-1 sm:hidden" />
+        <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+          <h2 className="text-sm font-bold text-white flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-sky-400 shadow-[0_0_8px_#38bdf8]" />
             <span>تسجيل سريع (Quick Capture)</span>
           </h2>
           <button
             type="button"
             onClick={() => setQuickCaptureOpen(false)}
             aria-label="إغلاق"
-            className="w-8 h-8 rounded-full bg-slate-900/80 border border-white/10 text-slate-400 hover:text-slate-100 flex items-center justify-center pressable cursor-pointer"
+            className="w-8 h-8 rounded-full bg-white/[0.06] border border-white/[0.08] text-[#8e8e93] hover:text-white flex items-center justify-center pressable cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>

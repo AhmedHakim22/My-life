@@ -52,26 +52,26 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-150">
       <div 
-        className="apple-card border border-sky-400/40 rounded-3xl max-w-md w-full p-6 text-slate-100 shadow-[0_20px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(56,189,248,0.25)] space-y-5 max-h-[90vh] overflow-y-auto"
+        className="apple-card border border-white/[0.1] rounded-[26px] max-w-md w-full p-6 text-slate-100 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto"
         dir="rtl"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+        <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
           <div className="flex items-center gap-2.5">
-            <div className="p-2.5 bg-sky-400/20 text-sky-300 rounded-2xl border border-sky-400/40 shadow-[0_0_12px_rgba(56,189,248,0.35)]">
+            <div className="p-2.5 bg-sky-500/15 text-sky-400 rounded-2xl border border-sky-400/20">
               <Cloud className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-black text-white">مزامنة سحابة سوبا بيز (Supabase)</h2>
-              <p className="text-xs text-sky-300/80 font-mono font-bold">Project: phogtpgejvstfxkrhjqz</p>
+              <h2 className="text-base font-bold text-white">مزامنة سحابة سوبا بيز (Supabase)</h2>
+              <p className="text-xs text-[#8e8e93] font-mono">Project: phogtpgejvstfxkrhjqz</p>
             </div>
           </div>
           <button 
             type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition"
+            className="w-8 h-8 rounded-full bg-white/[0.06] border border-white/[0.08] text-[#8e8e93] hover:text-white flex items-center justify-center pressable cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>

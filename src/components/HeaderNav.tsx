@@ -39,26 +39,24 @@ export const HeaderNav: React.FC = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-[#040814]/80 backdrop-blur-3xl border-b border-sky-400/20 px-4 py-2.5 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
+    <header className="sticky top-0 z-40 bg-[#07080b]/80 backdrop-blur-3xl border-b border-white/[0.08] px-4 py-2.5 shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
       <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
         {/* Brand Logo & Title */}
         <div className="flex items-center gap-2.5 shrink-0">
-          <div className="w-8 h-8 rounded-2xl bg-gradient-to-tr from-sky-300 via-sky-400 to-sky-500 p-0.5 shadow-md shadow-sky-400/40">
-            <div className="w-full h-full bg-[#040814] rounded-[14px] flex items-center justify-center text-sky-300 font-black text-sm">
-              مـ
-            </div>
+          <div className="w-8 h-8 rounded-xl bg-[#1c1d24] border border-white/[0.12] flex items-center justify-center text-sky-400 font-black text-sm shadow-sm">
+            مـ
           </div>
           <div>
             <div className="text-sm font-black text-white tracking-tight flex items-center gap-1.5">
               <span>مَسار</span>
-              <span className="text-[10px] text-sky-200 font-mono font-black bg-sky-500/20 border border-sky-400/40 px-2 py-0.2 rounded-full shadow-[0_0_8px_rgba(56,189,248,0.3)]">V2.0</span>
+              <span className="text-[10px] text-sky-400 font-mono font-bold bg-sky-500/10 border border-sky-400/20 px-2 py-0.2 rounded-full">V2.0</span>
             </div>
-            <span className="text-[10px] text-slate-400 hidden sm:inline">Personal Life Coach & Study OS</span>
+            <span className="text-[10px] text-[#8e8e93] hidden sm:inline">Personal Life Coach & Study OS</span>
           </div>
         </div>
 
         {/* Desktop / Tablet Navigation Pills */}
-        <nav className="hidden sm:flex items-center gap-1 bg-slate-950/70 p-1 rounded-2xl border border-sky-400/20 backdrop-blur-xl">
+        <nav className="hidden sm:flex items-center gap-1 bg-white/[0.04] p-1 rounded-2xl border border-white/[0.08] backdrop-blur-xl">
           {desktopNavItems.map(item => {
             const isActive = activeTab === item.id;
             return (
@@ -66,10 +64,10 @@ export const HeaderNav: React.FC = () => {
                 key={item.id}
                 type="button"
                 onClick={() => setActiveTab(item.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 pressable cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs transition-all flex items-center gap-1.5 pressable cursor-pointer ${
                   isActive
-                    ? 'bg-gradient-to-r from-sky-300 via-sky-400 to-sky-500 text-slate-950 font-black shadow-lg shadow-sky-400/35'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                    ? 'apple-pill-active'
+                    : 'text-[#8e8e93] hover:text-white hover:bg-white/5'
                 }`}
               >
                 {item.icon}
@@ -87,17 +85,17 @@ export const HeaderNav: React.FC = () => {
             onClick={() => setIsSyncModalOpen(true)}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all pressable cursor-pointer ${
               syncStatus.isConnected && syncStatus.tablesFound
-                ? 'bg-emerald-500/15 border-emerald-400/40 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
                 : syncStatus.isConnected
-                ? 'bg-amber-500/15 border-amber-400/40 text-amber-300 animate-pulse'
-                : 'bg-slate-900/60 border-white/10 text-slate-400 hover:text-slate-200'
+                ? 'bg-amber-500/15 border-amber-500/30 text-amber-300 animate-pulse'
+                : 'bg-white/[0.04] border-white/[0.08] text-[#8e8e93] hover:text-white'
             }`}
             title="سحابة سوبا بيز"
           >
             <Cloud className={`w-3.5 h-3.5 ${syncStatus.isSyncing ? 'animate-spin text-sky-400' : ''}`} />
             <span className={`w-2 h-2 rounded-full shrink-0 ${
               syncStatus.isConnected && syncStatus.tablesFound
-                ? 'bg-emerald-400 shadow-[0_0_6px_#10b981]'
+                ? 'bg-emerald-400'
                 : syncStatus.isConnected
                 ? 'bg-amber-400'
                 : 'bg-slate-500'
@@ -110,7 +108,7 @@ export const HeaderNav: React.FC = () => {
           <button
             type="button"
             onClick={() => setQuickCaptureOpen(true)}
-            className="apple-btn-primary text-xs font-black px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-md shadow-sky-500/25 pressable cursor-pointer"
+            className="apple-btn-primary text-xs font-bold px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm pressable cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span className="hidden sm:inline">تسجيل سريع</span>

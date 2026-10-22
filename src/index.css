@@ -2,15 +2,16 @@
 
 @theme {
   --font-sans: 'Readex Pro', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
-  --color-brand-bg: #040814;
-  --color-brand-surface: #0a1326;
-  --color-brand-border: #1e293b;
-  --color-brand-action: #38bdf8;
+  --color-brand-bg: #07080b;
+  --color-brand-surface: #14151a;
+  --color-brand-card: #1c1d24;
+  --color-brand-border: rgba(255, 255, 255, 0.08);
+  --color-brand-action: #0ea5e9;
   --color-brand-sky: #38bdf8;
   --color-brand-sky-light: #7dd3fc;
-  --color-brand-success: #10b981;
-  --color-brand-warning: #f59e0b;
-  --color-brand-xp: #a855f7;
+  --color-brand-success: #34c759;
+  --color-brand-warning: #ff9f0a;
+  --color-brand-xp: #bf5af2;
 }
 
 :root {
@@ -19,137 +20,135 @@
 
 body {
   font-family: var(--font-sans);
-  background-color: #040814;
+  background-color: #07080b;
   background-image: 
-    radial-gradient(circle at 50% -5%, rgba(56, 189, 248, 0.38) 0%, rgba(14, 165, 233, 0.18) 32%, transparent 68%),
-    radial-gradient(circle at 95% 25%, rgba(125, 211, 252, 0.24) 0%, transparent 48%),
-    radial-gradient(circle at 5% 45%, rgba(56, 189, 248, 0.20) 0%, transparent 45%),
-    radial-gradient(circle at 85% 75%, rgba(14, 165, 233, 0.22) 0%, transparent 50%),
-    radial-gradient(circle at 50% 105%, rgba(56, 189, 248, 0.28) 0%, transparent 55%);
+    radial-gradient(ellipse 90% 50% at 50% -12%, rgba(56, 189, 248, 0.18) 0%, rgba(14, 165, 233, 0.05) 50%, transparent 80%),
+    radial-gradient(circle at 85% 95%, rgba(56, 189, 248, 0.08) 0%, transparent 60%);
   background-attachment: fixed;
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: #f8fafc;
+  color: #f5f5f7;
   min-height: 100vh;
 }
 
 /* ============================================================
-   Apple iOS HIG & Figma-Grade Design Tokens
-   Vibrant Light Sky Blue, Translucent Frosted Glass & Specular Light
+   Apple HIG & Spatial visionOS Design System
+   Pure System Materials, Inset Grouped Hierarchy & Disciplined Accents
    ============================================================ */
 
+/* Apple System Secondary Fill Material */
 .glass-panel, .apple-card {
-  background: rgba(10, 18, 36, 0.68);
-  backdrop-filter: blur(32px) saturate(210%);
-  -webkit-backdrop-filter: blur(32px) saturate(210%);
-  border: 1px solid rgba(125, 211, 252, 0.22);
+  background: rgba(24, 25, 31, 0.78);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 
-    0 12px 36px -8px rgba(0, 0, 0, 0.55),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.28),
-    inset 0 -1px 1px 0 rgba(56, 189, 248, 0.12);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    0 8px 30px -6px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+  transition: border-color 0.2s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.2s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .glass-panel:hover, .apple-card:hover {
-  border-color: rgba(125, 211, 252, 0.38);
+  border-color: rgba(255, 255, 255, 0.16);
 }
 
+/* Apple Intelligence / Hero Lifted Glass Material */
 .glass-panel-glow, .apple-card-glow {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.22) 0%, rgba(10, 20, 42, 0.85) 100%);
-  backdrop-filter: blur(36px) saturate(220%);
-  -webkit-backdrop-filter: blur(36px) saturate(220%);
-  border: 1px solid rgba(125, 211, 252, 0.55);
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.09) 0%, rgba(20, 22, 28, 0.88) 100%);
+  backdrop-filter: blur(32px) saturate(190%);
+  -webkit-backdrop-filter: blur(32px) saturate(190%);
+  border: 1px solid rgba(56, 189, 248, 0.28);
   box-shadow: 
-    0 18px 48px -10px rgba(56, 189, 248, 0.38), 
-    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.45),
-    inset 0 0 20px 0 rgba(56, 189, 248, 0.15);
+    0 16px 40px -10px rgba(0, 0, 0, 0.65), 
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.25),
+    0 0 24px -6px rgba(56, 189, 248, 0.15);
 }
 
 .glass-panel-emerald {
-  background: linear-gradient(135deg, rgba(6, 78, 59, 0.32) 0%, rgba(10, 20, 40, 0.82) 100%);
-  backdrop-filter: blur(32px) saturate(200%);
-  -webkit-backdrop-filter: blur(32px) saturate(200%);
-  border: 1px solid rgba(52, 211, 153, 0.35);
-  box-shadow: 0 14px 38px -10px rgba(16, 185, 129, 0.25), inset 0 1px 1px 0 rgba(255, 255, 255, 0.24);
+  background: linear-gradient(180deg, rgba(52, 199, 89, 0.09) 0%, rgba(20, 22, 28, 0.88) 100%);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(52, 199, 89, 0.24);
+  box-shadow: 0 10px 32px -8px rgba(0, 0, 0, 0.55), inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
 }
 
 .glass-panel-purple {
-  background: linear-gradient(135deg, rgba(88, 28, 135, 0.32) 0%, rgba(10, 20, 40, 0.82) 100%);
-  backdrop-filter: blur(32px) saturate(200%);
-  -webkit-backdrop-filter: blur(32px) saturate(200%);
-  border: 1px solid rgba(192, 132, 252, 0.35);
-  box-shadow: 0 14px 38px -10px rgba(168, 85, 247, 0.25), inset 0 1px 1px 0 rgba(255, 255, 255, 0.24);
+  background: linear-gradient(180deg, rgba(191, 90, 242, 0.09) 0%, rgba(20, 22, 28, 0.88) 100%);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(191, 90, 242, 0.24);
+  box-shadow: 0 10px 32px -8px rgba(0, 0, 0, 0.55), inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
 }
 
-/* Apple Squircle Widget Container */
+/* Apple Health / Activity Squircle Widget */
 .apple-widget {
-  background: rgba(11, 21, 42, 0.72);
-  backdrop-filter: blur(28px) saturate(190%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%);
-  border: 1px solid rgba(125, 211, 252, 0.2);
-  border-radius: 1.5rem;
-  box-shadow: 0 10px 28px -6px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.2);
-  transition: all 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+  background: rgba(26, 27, 34, 0.75);
+  backdrop-filter: blur(24px) saturate(170%);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.35rem;
+  box-shadow: 0 6px 20px -4px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .apple-widget:hover {
-  border-color: rgba(125, 211, 252, 0.42);
-  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1.5px);
 }
 .apple-widget:active {
-  transform: scale(0.96);
+  transform: scale(0.97);
 }
 
-/* Apple Primary Action Button (Light Sky Blue Luminous Accent) */
+/* Apple Primary Action Button (Tactile, Confident, Clean) */
 .apple-btn-primary {
-  background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 45%, #0ea5e9 100%);
-  color: #031322;
-  font-weight: 900;
-  border-radius: 1.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+  color: #031422;
+  font-weight: 800;
+  border-radius: 1.15rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow: 
-    0 8px 24px -2px rgba(56, 189, 248, 0.55), 
-    inset 0 1.5px 1px rgba(255, 255, 255, 0.65);
-  transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+    0 4px 16px -2px rgba(14, 165, 233, 0.4), 
+    inset 0 1px 1px rgba(255, 255, 255, 0.45);
+  transition: all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
   cursor: pointer;
 }
 .apple-btn-primary:hover {
-  filter: brightness(1.06);
+  filter: brightness(1.05);
   box-shadow: 
-    0 10px 28px -2px rgba(56, 189, 248, 0.7), 
-    inset 0 1.5px 1px rgba(255, 255, 255, 0.8);
+    0 6px 20px -2px rgba(14, 165, 233, 0.55), 
+    inset 0 1px 1px rgba(255, 255, 255, 0.6);
 }
 .apple-btn-primary:active {
-  transform: scale(0.96);
+  transform: scale(0.97);
   filter: brightness(0.95);
 }
 
 /* Apple Segmented Control Container & Active Pill */
 .apple-segmented-container {
-  background: rgba(3, 8, 20, 0.85);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(125, 211, 252, 0.18);
-  border-radius: 1.25rem;
-  padding: 0.3rem;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.65);
+  background: rgba(18, 19, 24, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1.15rem;
+  padding: 0.25rem;
+  box-shadow: inset 0 1.5px 4px rgba(0, 0, 0, 0.5);
 }
 
 .apple-pill-active {
-  background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
-  color: #031322;
-  font-weight: 900;
-  box-shadow: 0 4px 16px -2px rgba(56, 189, 248, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.45);
+  background: #38bdf8;
+  color: #031422;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 /* Apple Spring Micro-interaction */
 .pressable {
-  transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
   will-change: transform;
 }
 .pressable:active {
-  transform: scale(0.96);
+  transform: scale(0.97);
 }
 
 /* iOS Safe Area Padding Helper */
@@ -159,16 +158,16 @@ body {
 
 /* Custom Eye-Friendly Scrollbar */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(125, 211, 252, 0.25);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(56, 189, 248, 0.6);
+  background: rgba(56, 189, 248, 0.4);
 }

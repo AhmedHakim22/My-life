@@ -78,14 +78,14 @@ export const App: React.FC = () => {
         {activeTab === 'JOURNAL' && (
           <div className="space-y-3 pb-24 pt-3">
             {/* Segmented Switcher between Journaling & Scientific Ladder Analytics */}
-            <div className="grid grid-cols-2 p-1 rounded-2xl bg-slate-950/80 neo-sunken border border-slate-800 text-xs font-bold max-w-md mx-auto">
+            <div className="apple-segmented-container grid grid-cols-2 text-xs font-bold max-w-md mx-auto">
               <button
                 type="button"
                 onClick={() => setJournalSubTab('JOURNAL')}
                 className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2 pressable cursor-pointer ${
                   journalSubTab === 'JOURNAL'
-                    ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-extrabold shadow-md shadow-emerald-500/25'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'apple-pill-active'
+                    : 'text-[#8e8e93] hover:text-white'
                 }`}
               >
                 <BookMarked className="w-4 h-4" />
@@ -96,8 +96,8 @@ export const App: React.FC = () => {
                 onClick={() => setJournalSubTab('ANALYTICS')}
                 className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2 pressable cursor-pointer ${
                   journalSubTab === 'ANALYTICS'
-                    ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-extrabold shadow-md shadow-purple-500/25'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'apple-pill-active'
+                    : 'text-[#8e8e93] hover:text-white'
                 }`}
               >
                 <GraduationCap className="w-4 h-4" />
@@ -118,7 +118,7 @@ export const App: React.FC = () => {
 
       {/* Global Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-20 left-4 right-4 max-w-sm mx-auto z-50 glass-panel border border-sky-400/40 text-slate-100 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-xl text-xs font-bold text-center animate-in fade-in slide-in-from-bottom duration-200">
+        <div className="fixed bottom-20 left-4 right-4 max-w-sm mx-auto z-50 apple-card border border-white/[0.12] text-white px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-3xl text-xs font-bold text-center animate-in fade-in slide-in-from-bottom duration-150">
           {toastMessage}
         </div>
       )}
