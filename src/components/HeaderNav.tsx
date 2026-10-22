@@ -19,14 +19,10 @@ import {
   Bell
 } from 'lucide-react';
 import { useAppStore, type ActiveTab } from '../stores/appStore';
-import { CloudSyncModal } from './CloudSyncModal';
-import { NotificationSettingsModal } from './NotificationSettingsModal';
 import { getNotificationPermission } from '../lib/notifications';
 
 export const HeaderNav: React.FC = () => {
-  const { activeTab, setActiveTab, setQuickCaptureOpen, syncStatus } = useAppStore();
-  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
-  const [isNotifModalOpen, setIsNotifModalOpen] = useState(false);
+  const { activeTab, setActiveTab, setQuickCaptureOpen, setSyncModalOpen, setNotifModalOpen, syncStatus } = useAppStore();
   const notifPermission = typeof window !== 'undefined' ? getNotificationPermission() : 'default';
 
   const desktopNavItems: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
@@ -87,7 +83,7 @@ export const HeaderNav: React.FC = () => {
           {/* Notification Center Button */}
           <button
             type="button"
-            onClick={() => setIsNotifModalOpen(true)}
+            onClick={() => setNotifModalOpen(true)}
             className={`relative p-2 rounded-xl border text-xs font-bold transition-all pressable cursor-pointer ${
               notifPermission === 'granted'
                 ? 'bg-sky-500/10 border-sky-400/25 text-sky-400'
@@ -108,7 +104,7 @@ export const HeaderNav: React.FC = () => {
           {/* Cloud Sync Status Pill */}
           <button
             type="button"
-            onClick={() => setIsSyncModalOpen(true)}
+            onClick={() => setSyncModalOpen(true)}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all pressable cursor-pointer ${
               syncStatus.isConnected && syncStatus.tablesFound
                 ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
@@ -141,16 +137,6 @@ export const HeaderNav: React.FC = () => {
           </button>
         </div>
       </div>
-
-      <CloudSyncModal
-        isOpen={isSyncModalOpen}
-        onClose={() => setIsSyncModalOpen(false)}
-      />
-
-      <NotificationSettingsModal
-        isOpen={isNotifModalOpen}
-        onClose={() => setIsNotifModalOpen(false)}
-      />
     </header>
   );
 };

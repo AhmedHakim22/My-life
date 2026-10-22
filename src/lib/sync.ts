@@ -165,8 +165,62 @@ export interface SyncPullResult {
   error?: string;
 }
 
+export const SHADOW_SYNC_COLLECTIONS = [
+  'worshipLogs',
+  'quranLogs',
+  'qiyamSessions',
+  'timetableSlots',
+  'academicQuizzes',
+  'academicAssignments',
+  'studentActivities',
+  'challenges',
+  'challengeLogs',
+  'movementLogs',
+  'workoutLogs',
+  'availabilityRules',
+  'scheduleBlocks',
+  'schedulePlans',
+  'intentions',
+  'goalIntentions',
+  'domains',
+  'categories',
+  'goalMilestones',
+  'goalLinks',
+  'courseModules',
+  'courseLessons'
+] as const;
+
+export const SHADOW_STATE_ROW_ID = 'sys-shadow-state-sync';
+
 /**
- * Push all local Dexie records to Supabase with auto-healing and graceful schema resilience.
+ * Unpacks the compressed shadow state payload into local Dexie tables.
+ * Guarantees instant two-way synchronization for unmigrated tables.
+ */
+export async function unpackShadowState(rawPayload: string | Record<string, any>): Promise<boolean> {
+  try {
+    const parsed = typeof rawPayload === 'string' ? JSON.parse(rawPayload) : rawPayload;
+    if (!parsed || !parsed.data) return false;
+
+    for (const col of SHADOW_SYNC_COLLECTIONS) {
+      const records = parsed.data[col];
+      if (Array.isArray(records) && (db as any)[col]) {
+        const table = (db as any)[col];
+        await table.clear();
+        if (records.length > 0) {
+          await table.bulkPut(records);
+        }
+      }
+    }
+    return true;
+  } catch (e) {
+    console.warn('Failed to unpack shadow state:', e);
+    return false;
+  }
+}
+
+/**
+ * Push all local Dexie records to Supabase with auto-healing, shadow state resilience,
+ * and zero-configuration cross-device parity.
  */
 export async function pushAllToSupabase(): Promise<SyncPushResult> {
   if (!isSupabaseConfigured || !supabase) {
@@ -178,12 +232,16 @@ export async function pushAllToSupabase(): Promise<SyncPushResult> {
   const missingTables: string[] = [];
 
   try {
+    // 1. Push standard mapped tables to remote PostgreSQL
     for (const mapping of TABLE_MAPPINGS) {
-      // @ts-ignore
-      if (!db[mapping.dexie]) continue;
-      // @ts-ignore
-      const localRecords = await db[mapping.dexie].toArray();
+      if (!(db as any)[mapping.dexie]) continue;
+      let localRecords = await (db as any)[mapping.dexie].toArray();
       if (!localRecords || localRecords.length === 0) continue;
+
+      if (mapping.dexie === 'journalEntries') {
+        localRecords = localRecords.filter((r: any) => !r.id.startsWith('sys-'));
+        if (localRecords.length === 0) continue;
+      }
 
       const remotePayloads = localRecords.map(toSnakeCase);
       const res = await upsertWithAutoHealing(mapping.remote, remotePayloads, mapping.pk);
@@ -196,6 +254,47 @@ export async function pushAllToSupabase(): Promise<SyncPushResult> {
       } else {
         totalSynced += localRecords.length;
       }
+    }
+
+    // 2. Push Shadow State for unmigrated entities (Prayers, Quran, Timetable, Challenges, etc.)
+    try {
+      const shadowData: Record<string, any[]> = {};
+      let unmigratedCount = 0;
+      for (const col of SHADOW_SYNC_COLLECTIONS) {
+        if ((db as any)[col]) {
+          const records = await (db as any)[col].toArray();
+          shadowData[col] = records;
+          unmigratedCount += records.length;
+        }
+      }
+
+      const shadowTimestamp = new Date().toISOString();
+      const shadowPayload = {
+        version: 1,
+        updatedAt: shadowTimestamp,
+        data: shadowData
+      };
+
+      const { error: shadowErr } = await supabase
+        .from('journal_entries')
+        .upsert({
+          id: SHADOW_STATE_ROW_ID,
+          date: '2099-12-31',
+          mode: 'SHADOW_STATE_SYNC',
+          content: JSON.stringify(shadowPayload),
+          tags: ['system', 'sync']
+        }, { onConflict: 'id' });
+
+      if (!shadowErr) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('masaar_last_shadow_push', shadowTimestamp);
+        }
+        totalSynced += unmigratedCount;
+      } else {
+        console.warn('Shadow sync push warning:', shadowErr.message);
+      }
+    } catch (shadowErr) {
+      console.warn('Shadow sync exception:', shadowErr);
     }
 
     // If failedTables (network or auth errors) is 0, existing tables succeeded!
@@ -233,8 +332,7 @@ export async function pullAllFromSupabase(): Promise<SyncPullResult> {
 
   try {
     for (const mapping of TABLE_MAPPINGS) {
-      // @ts-ignore
-      if (!db[mapping.dexie]) continue;
+      if (!(db as any)[mapping.dexie]) continue;
 
       const { data, error } = await supabase.from(mapping.remote).select('*');
       if (error) {
@@ -253,10 +351,26 @@ export async function pullAllFromSupabase(): Promise<SyncPullResult> {
       }
 
       if (data && data.length > 0) {
-        const localRecords = data.map(toCamelCase);
-        // @ts-ignore
-        await db[mapping.dexie].bulkPut(localRecords);
-        totalPulled += data.length;
+        if (mapping.dexie === 'journalEntries') {
+          // Check for shadow state row
+          const shadowRow = data.find((row: any) => row.id === SHADOW_STATE_ROW_ID);
+          if (shadowRow && shadowRow.content) {
+            await unpackShadowState(shadowRow.content);
+            totalPulled += 1;
+          }
+          // Filter out system shadow row before putting into Dexie journalEntries
+          const normalEntries = data
+            .filter((row: any) => !row.id.startsWith('sys-'))
+            .map(toCamelCase);
+          if (normalEntries.length > 0) {
+            await db.journalEntries.bulkPut(normalEntries as any);
+            totalPulled += normalEntries.length;
+          }
+        } else {
+          const localRecords = data.map(toCamelCase);
+          await (db as any)[mapping.dexie].bulkPut(localRecords);
+          totalPulled += data.length;
+        }
       }
     }
 
@@ -337,13 +451,28 @@ export function subscribeToRealtimeSync(): void {
       .on('postgres_changes', { event: '*', schema: 'public' }, async (payload) => {
         console.log('⚡ Realtime update from another device:', payload.table, payload.eventType);
 
+        // 1. Intercept Shadow State Updates (Prayers, Quran, Timetable, Challenges, etc.)
+        if (payload.table === 'journal_entries') {
+          const newRecord = payload.new as any;
+          if (newRecord?.id === SHADOW_STATE_ROW_ID && newRecord?.content) {
+            const success = await unpackShadowState(newRecord.content);
+            if (success && onRemoteChangeCallback) {
+              onRemoteChangeCallback();
+            }
+            return;
+          }
+        }
+
+        // 2. Intercept Standard Mapped Tables
         const mapping = TABLE_MAPPINGS.find(m => m.remote === payload.table);
         if (mapping && (db as any)[mapping.dexie]) {
           const dexieTable = (db as any)[mapping.dexie];
           try {
             if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
               const localRecord = toCamelCase(payload.new as Record<string, any>);
-              await dexieTable.put(localRecord);
+              if (localRecord.id && !localRecord.id.startsWith('sys-')) {
+                await dexieTable.put(localRecord);
+              }
             } else if (payload.eventType === 'DELETE') {
               const oldRecord = payload.old as Record<string, any>;
               const pkField = mapping.pk.includes(',') ? 'id' : mapping.pk;

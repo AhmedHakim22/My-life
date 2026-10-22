@@ -66,11 +66,11 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-md p-0 sm:p-4 flex flex-col justify-end sm:justify-center items-center animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div 
-        className="apple-card border border-white/[0.12] rounded-t-[32px] sm:rounded-[26px] max-w-md w-full p-5 sm:p-6 text-slate-100 shadow-2xl space-y-4 max-h-[85vh] sm:max-h-[90vh] overflow-y-auto"
+        className="apple-card border border-white/[0.12] rounded-t-[32px] sm:rounded-[26px] max-w-md w-full p-5 sm:p-6 text-slate-100 shadow-2xl space-y-4 my-0 sm:my-auto max-h-[85vh] overflow-y-auto"
         dir="rtl"
         onClick={e => e.stopPropagation()}
       >

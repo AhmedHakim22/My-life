@@ -15,13 +15,25 @@ import { FitnessWorkspace } from './components/FitnessWorkspace';
 import { ChallengesWorkspace } from './components/ChallengesWorkspace';
 import { WeeklyScheduleWorkspace } from './components/WeeklyScheduleWorkspace';
 import { QuickCaptureModal } from './components/QuickCaptureModal';
+import { CloudSyncModal } from './components/CloudSyncModal';
+import { NotificationSettingsModal } from './components/NotificationSettingsModal';
 import { DynamicIslandWidget } from './components/DynamicIslandWidget';
 import { WifiOff, Loader2, BookMarked, GraduationCap } from 'lucide-react';
 import { getNotificationSettings, sendLocalNotification } from './lib/notifications';
 import { subscribeToRealtimeSync, registerRemoteChangeHandler, pullAllFromSupabase } from './lib/sync';
 
 export const App: React.FC = () => {
-  const { isLoaded, loadAllData, activeTab, toastMessage, prayers } = useAppStore();
+  const { 
+    isLoaded, 
+    loadAllData, 
+    activeTab, 
+    toastMessage, 
+    prayers,
+    isSyncModalOpen,
+    setSyncModalOpen,
+    isNotifModalOpen,
+    setNotifModalOpen
+  } = useAppStore();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [journalSubTab, setJournalSubTab] = useState<'JOURNAL' | 'ANALYTICS'>('JOURNAL');
   const lastNotifiedPrayerRef = useRef<string>('');
@@ -31,14 +43,14 @@ export const App: React.FC = () => {
 
     // 1. Initialize Realtime Cross-Device WebSocket Listener
     registerRemoteChangeHandler(() => {
-      loadAllData();
+      loadAllData(true);
     });
     subscribeToRealtimeSync();
 
     // 2. Initial silent cloud pull to catch changes made on other device while offline
     pullAllFromSupabase().then(res => {
       if (res.count > 0) {
-        loadAllData();
+        loadAllData(true);
       }
     }).catch(console.debug);
 
@@ -47,7 +59,7 @@ export const App: React.FC = () => {
       if (document.visibilityState === 'visible' && navigator.onLine) {
         const res = await pullAllFromSupabase();
         if (res.count > 0) {
-          await loadAllData();
+          await loadAllData(true);
         }
       }
     };
@@ -60,7 +72,7 @@ export const App: React.FC = () => {
       if (navigator.onLine && document.visibilityState === 'visible') {
         const res = await pullAllFromSupabase();
         if (res.count > 0) {
-          await loadAllData();
+          await loadAllData(true);
         }
       }
     }, 60000);
@@ -180,8 +192,18 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* Floating Quick Capture Modal */}
+      {/* Floating Root-Level Modals */}
       <QuickCaptureModal />
+
+      <CloudSyncModal
+        isOpen={isSyncModalOpen}
+        onClose={() => setSyncModalOpen(false)}
+      />
+
+      <NotificationSettingsModal
+        isOpen={isNotifModalOpen}
+        onClose={() => setNotifModalOpen(false)}
+      />
 
       {/* Bottom Navigation for Mobile */}
       <BottomNav />

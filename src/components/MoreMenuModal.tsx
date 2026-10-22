@@ -17,7 +17,6 @@ import {
   Bell
 } from 'lucide-react';
 import { useAppStore, type ActiveTab } from '../stores/appStore';
-import { NotificationSettingsModal } from './NotificationSettingsModal';
 
 interface MoreMenuModalProps {
   isOpen: boolean;
@@ -25,8 +24,7 @@ interface MoreMenuModalProps {
 }
 
 export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({ isOpen, onClose }) => {
-  const { setActiveTab } = useAppStore();
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const { setActiveTab, setNotifModalOpen } = useAppStore();
 
   if (!isOpen) return null;
 
@@ -165,7 +163,10 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({ isOpen, onClose })
         <div className="pt-2 border-t border-white/[0.08]">
           <button
             type="button"
-            onClick={() => setIsNotifOpen(true)}
+            onClick={() => {
+              setNotifModalOpen(true);
+              onClose();
+            }}
             className="w-full p-3 rounded-2xl border border-sky-500/20 bg-sky-500/10 hover:bg-sky-500/15 flex items-center gap-3 text-right transition-all pressable cursor-pointer"
           >
             <div className="p-2 rounded-xl bg-sky-500/20 text-sky-400 shrink-0">
@@ -188,11 +189,6 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({ isOpen, onClose })
           </span>
         </div>
       </div>
-
-      <NotificationSettingsModal
-        isOpen={isNotifOpen}
-        onClose={() => setIsNotifOpen(false)}
-      />
     </div>
   );
 };

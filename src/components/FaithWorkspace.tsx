@@ -312,21 +312,21 @@ export const FaithWorkspace: React.FC = () => {
               return (
                 <div
                   key={item.key}
-                  className={`glass-panel border rounded-2xl p-3.5 flex items-center justify-between gap-3 transition-all ${
+                  className={`glass-panel border rounded-2xl p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 transition-all overflow-hidden ${
                     item.info.isNext
                       ? 'border-emerald-500/50 bg-emerald-950/20 shadow-lg shadow-emerald-950/30'
                       : 'border-slate-800/80 bg-slate-900/60'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
                       item.info.isNext ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/30' : 'bg-slate-800 text-slate-300'
                     }`}>
                       {item.info.isNext ? 'الآن' : <Clock className="w-4 h-4" />}
                     </div>
 
-                    <div>
-                      <div className="flex items-center gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h4 className="text-sm font-bold text-white">{item.name}</h4>
                         {item.info.isNext && (
                           <span className="text-[10px] bg-emerald-900/60 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
@@ -334,20 +334,13 @@ export const FaithWorkspace: React.FC = () => {
                           </span>
                         )}
                         {isCompleted && (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] bg-teal-950 text-teal-300 px-2 py-0.5 rounded-full font-bold border border-teal-700/40">
-                              {isInMosque ? 'في المسجد 🕌' : 'أُديت ✅'}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => deletePrayerWorship(item.prayerName)}
-                              className="text-[10px] text-amber-400 hover:text-amber-300 bg-amber-950/70 hover:bg-amber-900/70 border border-amber-800/50 px-2 py-0.5 rounded-md flex items-center gap-1 transition-colors cursor-pointer"
-                              title="إلغاء تسجيل الصلاة والتراجع عنها"
-                            >
-                              <RotateCcw className="w-2.5 h-2.5" />
-                              <span>إلغاء</span>
-                            </button>
-                          </div>
+                          <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold border ${
+                            isInMosque
+                              ? 'bg-emerald-950 text-emerald-300 border-emerald-700/50'
+                              : 'bg-teal-950 text-teal-300 border-teal-700/40'
+                          }`}>
+                            {isInMosque ? 'في المسجد 🕌' : 'أُديت ✅'}
+                          </span>
                         )}
                       </div>
                       <p className="text-xs text-slate-400 font-mono mt-0.5">
@@ -356,33 +349,39 @@ export const FaithWorkspace: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Prayer Action Buttons */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => logPrayerWorship(item.prayerName, 'COMPLETED', true)}
-                      className={`text-xs px-2.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-                        isInMosque
-                          ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
-                          : 'bg-slate-800/80 hover:bg-emerald-900/50 text-slate-300 hover:text-emerald-300 border border-slate-700/60'
-                      }`}
-                      title={isInMosque ? 'اضغط لإلغاء التسجيل ↩️' : 'صليت في المسجد'}
-                    >
-                      المسجد 🕌
-                    </button>
+                  {/* Prayer Action Controls */}
+                  <div className="flex items-center justify-end gap-1.5 shrink-0 self-end sm:self-center">
+                    {isCompleted ? (
+                      <button
+                        type="button"
+                        onClick={() => deletePrayerWorship(item.prayerName)}
+                        className="text-xs text-amber-400 hover:text-amber-300 bg-amber-950/70 hover:bg-amber-900/70 border border-amber-800/50 px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
+                        title="تراجع عن تسجيل الصلاة"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>تراجع ↩️</span>
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => logPrayerWorship(item.prayerName, 'COMPLETED', true)}
+                          className="text-xs px-2.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer bg-slate-800/80 hover:bg-emerald-900/50 text-slate-300 hover:text-emerald-300 border border-slate-700/60 active:scale-95"
+                          title="صليت في المسجد"
+                        >
+                          المسجد 🕌
+                        </button>
 
-                    <button
-                      type="button"
-                      onClick={() => logPrayerWorship(item.prayerName, 'COMPLETED', false)}
-                      className={`text-xs px-2.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-                        isCompleted && !isInMosque
-                          ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/20'
-                          : 'bg-slate-800/80 hover:bg-teal-900/50 text-slate-300 hover:text-teal-300 border border-slate-700/60'
-                      }`}
-                      title={isCompleted && !isInMosque ? 'اضغط لإلغاء التسجيل ↩️' : 'صليت'}
-                    >
-                      صليت ✅
-                    </button>
+                        <button
+                          type="button"
+                          onClick={() => logPrayerWorship(item.prayerName, 'COMPLETED', false)}
+                          className="text-xs px-2.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer bg-slate-800/80 hover:bg-teal-900/50 text-slate-300 hover:text-teal-300 border border-slate-700/60 active:scale-95"
+                          title="صليت"
+                        >
+                          صليت ✅
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               );

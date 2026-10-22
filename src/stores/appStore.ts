@@ -130,11 +130,15 @@ interface AppState {
   // Modals & UI
   isQuickCaptureOpen: boolean;
   setQuickCaptureOpen: (open: boolean) => void;
+  isSyncModalOpen: boolean;
+  setSyncModalOpen: (open: boolean) => void;
+  isNotifModalOpen: boolean;
+  setNotifModalOpen: (open: boolean) => void;
   toastMessage: string | null;
   showToast: (msg: string) => void;
 
   // Core Actions
-  loadAllData: () => Promise<void>;
+  loadAllData: (skipAutoPush?: boolean) => Promise<void>;
   
   // 1. One-Tap Atomic Read 2 Pages Action
   readTwoPagesAction: (bookResourceId?: string) => Promise<void>;
@@ -328,6 +332,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   isQuickCaptureOpen: false,
   setQuickCaptureOpen: (open) => set({ isQuickCaptureOpen: open }),
+  isSyncModalOpen: false,
+  setSyncModalOpen: (open) => set({ isSyncModalOpen: open }),
+  isNotifModalOpen: false,
+  setNotifModalOpen: (open) => set({ isNotifModalOpen: open }),
   toastMessage: null,
   showToast: (msg) => {
     set({ toastMessage: msg });
@@ -405,6 +413,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     }));
     get().showToast(`تمت المزامنة بنجاح! تم رفع ${pushRes.syncedCount} عنصر إلى السحابة ☁️✨`);
+    await get().loadAllData(true);
   },
 
   loadAllData: async (skipAutoPush = false) => {
@@ -434,7 +443,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       habits,
       habitLogs,
       xpTransactions,
-      journalEntries,
+      rawJournalEntries,
       timetableSlots,
       academicQuizzes,
       academicAssignments,
@@ -537,7 +546,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       habits,
       habitLogs,
       xpTransactions,
-      journalEntries,
+      journalEntries: rawJournalEntries.filter(e => !e.id.startsWith('sys-')),
       timetableSlots,
       academicQuizzes,
       academicAssignments,
