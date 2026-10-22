@@ -166,6 +166,7 @@ export interface SyncPullResult {
 }
 
 export const SHADOW_SYNC_COLLECTIONS = [
+  'tombstones',
   'worshipLogs',
   'quranLogs',
   'qiyamSessions',
@@ -193,24 +194,122 @@ export const SHADOW_SYNC_COLLECTIONS = [
 export const SHADOW_STATE_ROW_ID = 'sys-shadow-state-sync';
 
 /**
+ * Deletes a record from remote Supabase table, records a local tombstone,
+ * and queues deletion in Dexie syncQueue if offline.
+ * Prevents zombie resurrection across devices permanently.
+ */
+export async function deleteRemoteEntity(dexieTable: string, recordId: string, pkField = 'id'): Promise<void> {
+  // 1. Record Tombstone in local Dexie if not already recorded
+  try {
+    const existing = await db.tombstones.where('entityId').equals(recordId).first();
+    if (!existing) {
+      await db.tombstones.put({
+        id: `tomb-${dexieTable}-${recordId}`,
+        entityType: dexieTable as any,
+        entityId: recordId,
+        deletedAt: new Date().toISOString()
+      });
+    }
+  } catch (err) {
+    console.debug('Tombstone save quiet error:', err);
+  }
+
+  const mapping = TABLE_MAPPINGS.find(m => m.dexie === dexieTable);
+  const remoteTable = mapping ? mapping.remote : dexieTable.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+  const pk = mapping ? (mapping.pk.includes(',') ? 'id' : mapping.pk) : pkField;
+
+  // 2. If online and Supabase configured, delete from remote Supabase immediately
+  if (isSupabaseConfigured && supabase && (typeof navigator === 'undefined' || navigator.onLine)) {
+    try {
+      const { error } = await supabase.from(remoteTable).delete().eq(pk, recordId);
+      if (error) {
+        if (
+          error.code === '42P01' || 
+          error.code === 'PGRST205' || 
+          error.message.includes('schema cache') || 
+          error.message.includes('Could not find the table')
+        ) {
+          return;
+        }
+        console.warn(`Remote delete error for ${remoteTable}/${recordId}:`, error.message);
+        await db.syncQueue.add({
+          tableName: remoteTable,
+          recordId,
+          operation: 'DELETE',
+          payload: {},
+          createdAt: Date.now(),
+          retryCount: 0
+        });
+      }
+    } catch (netErr) {
+      console.warn(`Remote delete exception for ${remoteTable}:`, netErr);
+      await db.syncQueue.add({
+        tableName: remoteTable,
+        recordId,
+        operation: 'DELETE',
+        payload: {},
+        createdAt: Date.now(),
+        retryCount: 0
+      });
+    }
+  } else {
+    // Offline: queue deletion
+    try {
+      await db.syncQueue.add({
+        tableName: remoteTable,
+        recordId,
+        operation: 'DELETE',
+        payload: {},
+        createdAt: Date.now(),
+        retryCount: 0
+      });
+    } catch (qErr) {
+      console.debug('SyncQueue add quiet error:', qErr);
+    }
+  }
+}
+
+/**
  * Unpacks the compressed shadow state payload into local Dexie tables.
- * Guarantees instant two-way synchronization for unmigrated tables.
+ * Guarantees instant two-way synchronization for unmigrated tables and enforces tombstones.
  */
 export async function unpackShadowState(rawPayload: string | Record<string, any>): Promise<boolean> {
   try {
     const parsed = typeof rawPayload === 'string' ? JSON.parse(rawPayload) : rawPayload;
     if (!parsed || !parsed.data) return false;
 
+    // 1. Unpack collections
     for (const col of SHADOW_SYNC_COLLECTIONS) {
       const records = parsed.data[col];
       if (Array.isArray(records) && (db as any)[col]) {
         const table = (db as any)[col];
-        await table.clear();
-        if (records.length > 0) {
-          await table.bulkPut(records);
+        if (col === 'tombstones') {
+          // Merge tombstones into local DB
+          if (records.length > 0) {
+            await table.bulkPut(records);
+          }
+        } else {
+          await table.clear();
+          if (records.length > 0) {
+            await table.bulkPut(records);
+          }
         }
       }
     }
+
+    // 2. Enforce tombstones: purge any local records matching active tombstones
+    try {
+      const allTombstones = await db.tombstones.toArray();
+      for (const tomb of allTombstones) {
+        const mapping = TABLE_MAPPINGS.find(m => m.dexie === (tomb.entityType as any) || m.remote === (tomb.entityType as any));
+        if (mapping && (db as any)[mapping.dexie]) {
+          await (db as any)[mapping.dexie].delete(tomb.entityId);
+        }
+      }
+    } catch (purgeErr) {
+      console.debug('Tombstone purge quiet error:', purgeErr);
+    }
+
     return true;
   } catch (e) {
     console.warn('Failed to unpack shadow state:', e);
@@ -269,9 +368,15 @@ export async function pushAllToSupabase(): Promise<SyncPushResult> {
       }
 
       const shadowTimestamp = new Date().toISOString();
+      const deviceRole = typeof window !== 'undefined' 
+        ? (localStorage.getItem('masaar_device_role') || 'PRIMARY')
+        : 'PRIMARY';
+
       const shadowPayload = {
         version: 1,
         updatedAt: shadowTimestamp,
+        deviceRole,
+        isPrimary: deviceRole === 'PRIMARY',
         data: shadowData
       };
 
@@ -367,9 +472,29 @@ export async function pullAllFromSupabase(): Promise<SyncPullResult> {
             totalPulled += normalEntries.length;
           }
         } else {
-          const localRecords = data.map(toCamelCase);
-          await (db as any)[mapping.dexie].bulkPut(localRecords);
-          totalPulled += data.length;
+          // Check tombstones to prevent resurrecting deleted entities!
+          const tombstones = await db.tombstones.toArray();
+          const tombstoneIds = new Set(tombstones.map(t => t.entityId));
+
+          const cleanRows: any[] = [];
+          for (const row of data) {
+            const pkField = mapping.pk.includes(',') ? 'id' : mapping.pk;
+            const rowId = row[pkField] || row.id;
+            if (rowId && tombstoneIds.has(rowId)) {
+              // Row was deleted locally! Purge from Supabase to prevent resurrection
+              if (isSupabaseConfigured && supabase) {
+                void supabase.from(mapping.remote).delete().eq(pkField, rowId);
+              }
+            } else {
+              cleanRows.push(row);
+            }
+          }
+
+          if (cleanRows.length > 0) {
+            const localRecords = cleanRows.map(toCamelCase);
+            await (db as any)[mapping.dexie].bulkPut(localRecords);
+            totalPulled += cleanRows.length;
+          }
         }
       }
     }
@@ -471,6 +596,15 @@ export function subscribeToRealtimeSync(): void {
             if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
               const localRecord = toCamelCase(payload.new as Record<string, any>);
               if (localRecord.id && !localRecord.id.startsWith('sys-')) {
+                // If this entity was already deleted on this device, reject and purge remote
+                const tomb = await db.tombstones.where('entityId').equals(localRecord.id).first();
+                if (tomb) {
+                  if (supabase) {
+                    const pkField = mapping.pk.includes(',') ? 'id' : mapping.pk;
+                    void supabase.from(mapping.remote).delete().eq(pkField, localRecord.id);
+                  }
+                  return;
+                }
                 await dexieTable.put(localRecord);
               }
             } else if (payload.eventType === 'DELETE') {
@@ -479,6 +613,13 @@ export function subscribeToRealtimeSync(): void {
               const pkVal = oldRecord[pkField] || oldRecord.id;
               if (pkVal) {
                 await dexieTable.delete(pkVal);
+                // Record tombstone locally so it won't be resurrected
+                await db.tombstones.put({
+                  id: `tomb-${mapping.dexie}-${pkVal}`,
+                  entityType: mapping.dexie as any,
+                  entityId: pkVal,
+                  deletedAt: new Date().toISOString()
+                });
               }
             }
           } catch (dexErr) {

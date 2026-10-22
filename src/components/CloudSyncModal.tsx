@@ -9,7 +9,9 @@ import {
   ShieldCheck, 
   Database, 
   AlertTriangle,
-  X
+  X,
+  Smartphone,
+  Laptop
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 
@@ -19,7 +21,7 @@ interface CloudSyncModalProps {
 }
 
 export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose }) => {
-  const { syncStatus, checkCloudStatus, syncWithCloud, showToast } = useAppStore();
+  const { syncStatus, checkCloudStatus, syncWithCloud, showToast, deviceRole, setDeviceRole } = useAppStore();
   const [copied, setCopied] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
 
@@ -118,6 +120,59 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
             <div className="p-3 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs text-sky-300 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>المزامنة التلقائية اللحظية (Realtime Auto-Sync) مفعّلة تلقائياً بين الهاتف واللابتوب ⚡</span>
+            </div>
+
+            {/* Device Role Hierarchy Card */}
+            <div className="p-3.5 bg-white/[0.04] border border-white/[0.08] rounded-2xl space-y-2.5">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    {deviceRole === 'PRIMARY' ? (
+                      <Smartphone className="w-4 h-4 text-emerald-400" />
+                    ) : (
+                      <Laptop className="w-4 h-4 text-sky-400" />
+                    )}
+                    <h4 className="text-xs font-bold text-white">
+                      {deviceRole === 'PRIMARY' ? 'هذا الجهاز: الهاتف الأساسي (المرجع الرئيسي)' : 'هذا الجهاز: جهاز تابع (يتبع الهاتف)'}
+                    </h4>
+                  </div>
+                  <p className="text-[11px] text-[#8e8e93] mt-1 leading-relaxed">
+                    {deviceRole === 'PRIMARY'
+                      ? '📱 هاتفك هو المرجع الأساسي للمهام والصلوات. اللاب توب يزامن منه لحظياً ويتبع تحديثاته.'
+                      : '💻 هذا الجهاز يعمل كتابع، يستقبل تحديثات الهاتف الأساسي فورياً وبدون تعارض.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-1.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setDeviceRole('PRIMARY')}
+                  className={`py-2 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    deviceRole === 'PRIMARY'
+                      ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                      : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 border border-white/[0.08]'
+                  }`}
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>الهاتف الأساسي</span>
+                  {deviceRole === 'PRIMARY' && <CheckCircle2 className="w-3.5 h-3.5 mr-auto" />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDeviceRole('SECONDARY')}
+                  className={`py-2 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    deviceRole === 'SECONDARY'
+                      ? 'bg-sky-500 text-slate-950 shadow-md shadow-sky-500/20'
+                      : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 border border-white/[0.08]'
+                  }`}
+                >
+                  <Laptop className="w-3.5 h-3.5" />
+                  <span>جهاز تابع</span>
+                  {deviceRole === 'SECONDARY' && <CheckCircle2 className="w-3.5 h-3.5 mr-auto" />}
+                </button>
+              </div>
             </div>
 
             <button

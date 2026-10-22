@@ -51,8 +51,11 @@ import {
   pushAllToSupabase, 
   pullAllFromSupabase, 
   processSyncQueue,
-  scheduleAutoPush 
+  scheduleAutoPush,
+  deleteRemoteEntity
 } from '../lib/sync';
+
+export type DeviceRole = 'PRIMARY' | 'SECONDARY';
 
 export type ActiveTab = 
   | 'TODAY' 
@@ -279,11 +282,37 @@ interface AppState {
   };
   checkCloudStatus: () => Promise<void>;
   syncWithCloud: () => Promise<void>;
+  deviceRole: DeviceRole;
+  setDeviceRole: (role: DeviceRole) => void;
+}
+
+function getInitialDeviceRole(): DeviceRole {
+  if (typeof window === 'undefined') return 'PRIMARY';
+  const saved = localStorage.getItem('masaar_device_role') as DeviceRole | null;
+  if (saved === 'PRIMARY' || saved === 'SECONDARY') return saved;
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const detectedRole: DeviceRole = isMobile ? 'PRIMARY' : 'SECONDARY';
+  localStorage.setItem('masaar_device_role', detectedRole);
+  return detectedRole;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
   activeTab: 'TODAY',
   setActiveTab: (tab) => set({ activeTab: tab }),
+
+  deviceRole: getInitialDeviceRole(),
+  setDeviceRole: (role: DeviceRole) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('masaar_device_role', role);
+    }
+    set({ deviceRole: role });
+    get().showToast(
+      role === 'PRIMARY' 
+        ? 'تم تعيين هذا الجهاز كـ "الهاتف الأساسي" 📱 (المرجع الرئيسي للمزامنة)'
+        : 'تم تعيين هذا الجهاز كـ "جهاز تابع" 💻 (يتبع الهاتف الأساسي تلقائياً)'
+    );
+    scheduleAutoPush(500);
+  },
 
   isLoaded: false,
   domains: [],
@@ -910,6 +939,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       });
     });
 
+    // Remote Supabase delete & tombstone sync
+    await deleteRemoteEntity('tasks', taskId);
+
     if (task?.goalId) {
       await get().recalculateGoalProgress(task.goalId);
     }
@@ -955,6 +987,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     await db.goals.delete(id);
     await db.goalMilestones.where('goalId').equals(id).delete();
     await db.goalLinks.where('goalId').equals(id).delete();
+    await deleteRemoteEntity('goals', id);
     await get().loadAllData();
     get().showToast('تم حذف الهدف ومعالمه المرتبطة');
   },
@@ -992,6 +1025,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const ms = get().goalMilestones.find(m => m.id === id);
     if (!ms) return;
     await db.goalMilestones.delete(id);
+    await deleteRemoteEntity('goalMilestones', id);
     await get().recalculateGoalProgress(ms.goalId);
     await get().loadAllData();
   },
@@ -1081,12 +1115,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   deleteCategory: async (id) => {
     await db.categories.delete(id);
-    await db.tombstones.put({
-      id: `tomb-cat-${id}`,
-      entityType: 'CATEGORY',
-      entityId: id,
-      deletedAt: new Date().toISOString()
-    });
+    await deleteRemoteEntity('categories', id);
     await get().loadAllData();
     get().showToast('تم حذف التصنيف');
   },
@@ -1125,6 +1154,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         deletedAt: new Date().toISOString()
       });
     });
+    await deleteRemoteEntity('categories', id);
     await get().loadAllData();
     get().showToast('تم حذف التصنيف بنجاح');
   },
@@ -1156,6 +1186,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         reason: `User deleted book: ${bookTitle}`
       });
     });
+    await deleteRemoteEntity('learningResources', resourceId);
+    await deleteRemoteEntity('bookDetails', resourceId, 'resource_id');
     await get().loadAllData();
     get().showToast(`تم حذف كتاب "${bookTitle}" بنجاح 🗑️`);
   },
@@ -1205,6 +1237,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         deletedAt: new Date().toISOString()
       });
     });
+    await deleteRemoteEntity('learningResources', resourceId);
+    await deleteRemoteEntity('courseDetails', resourceId, 'resource_id');
     await get().loadAllData();
     get().showToast(`تم حذف المورد "${title}" بنجاح 🗑️`);
   },
@@ -1278,6 +1312,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       });
     });
 
+    await deleteRemoteEntity('skills', skillId);
     await get().loadAllData();
     get().showToast(`تم حذف مهارة "${skillName}" وفك ارتباطاتها بنجاح 🗑️`);
   },
@@ -1312,8 +1347,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     const sessions = await db.studySessions.where('subjectId').equals(id).toArray();
     for (const session of sessions) {
       await db.studySessions.delete(session.id);
+      await deleteRemoteEntity('studySessions', session.id);
     }
     await db.universitySubjects.delete(id);
+    await deleteRemoteEntity('universitySubjects', id);
     await get().loadAllData();
     get().showToast('تم حذف المادة وجلساتها بنجاح 🗑️');
   },
@@ -1336,6 +1373,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   deleteStudySession: async (sessionId) => {
     await db.studySessions.delete(sessionId);
+    await deleteRemoteEntity('studySessions', sessionId);
     await get().loadAllData();
     get().showToast('تم حذف الجلسة بنجاح 🗑️');
   },
@@ -1500,6 +1538,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   deleteQuiz: async (id) => {
     await db.academicQuizzes.delete(id);
+    await deleteRemoteEntity('academicQuizzes', id);
     await get().loadAllData();
     get().showToast('تم حذف الكويز بنجاح 🗑️');
   },
@@ -1557,6 +1596,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   deleteAssignment: async (id) => {
     await db.academicAssignments.delete(id);
+    await deleteRemoteEntity('academicAssignments', id);
     await get().loadAllData();
     get().showToast('تم حذف التكليف 🗑️');
   },
@@ -1594,6 +1634,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   deleteStudentActivity: async (id) => {
     await db.studentActivities.delete(id);
+    await deleteRemoteEntity('studentActivities', id);
     await get().loadAllData();
     get().showToast('تم حذف مهمة النشاط 🗑️');
   },
@@ -1786,6 +1827,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       deletedAt: new Date().toISOString(),
       reason: 'User deleted journal entry'
     });
+    await deleteRemoteEntity('journalEntries', id);
     await get().loadAllData();
     get().showToast('تم حذف التدوينة بنجاح 🗑️');
   },
@@ -1821,6 +1863,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       entityId: id,
       deletedAt: new Date().toISOString()
     });
+    await deleteRemoteEntity('intentions', id);
     await get().loadAllData();
     get().showToast('تم حذف النية');
   },
@@ -1874,6 +1917,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const todayStr = getCairoDateString();
     const id = `worship-${todayStr}-${prayerName}`;
     await db.worshipLogs.delete(id);
+    await deleteRemoteEntity('worshipLogs', id);
     await get().loadAllData();
     get().showToast(`تم إلغاء تسجيل صلاة ${prayerName} ↩️`);
   },
@@ -1913,6 +1957,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!targetLog) return;
 
     await db.quranLogs.delete(logId);
+    await deleteRemoteEntity('quranLogs', logId);
 
     // Re-check today's total pages
     const remainingTodayQuran = await db.quranLogs.where('date').equals(todayStr).toArray();
@@ -1954,6 +1999,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   deleteQiyamSession: async (id) => {
     await db.qiyamSessions.delete(id);
+    await deleteRemoteEntity('qiyamSessions', id);
     await get().loadAllData();
   },
 
@@ -1996,6 +2042,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       entityId: id,
       deletedAt: new Date().toISOString()
     });
+    await deleteRemoteEntity('workoutLogs', id);
     await get().loadAllData();
     get().showToast('تم حذف سجل التمرين');
   },
@@ -2014,6 +2061,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   deleteAvailabilityRule: async (id) => {
     await db.availabilityRules.delete(id);
+    await deleteRemoteEntity('availabilityRules', id);
     await get().loadAllData();
     get().showToast('تم حذف قاعدة التفرغ');
   },
@@ -2262,6 +2310,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       deletedAt: new Date().toISOString(),
       reason: `User deleted challenge: ${title}`
     });
+    await deleteRemoteEntity('challenges', id);
     await get().loadAllData();
     get().showToast(`تم حذف ${title} بنجاح 🗑️`);
   },

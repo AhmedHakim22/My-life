@@ -18,7 +18,7 @@ import { QuickCaptureModal } from './components/QuickCaptureModal';
 import { CloudSyncModal } from './components/CloudSyncModal';
 import { NotificationSettingsModal } from './components/NotificationSettingsModal';
 import { DynamicIslandWidget } from './components/DynamicIslandWidget';
-import { WifiOff, Loader2, BookMarked, GraduationCap } from 'lucide-react';
+import { WifiOff, Loader2, BookMarked, GraduationCap, X } from 'lucide-react';
 import { getNotificationSettings, sendLocalNotification } from './lib/notifications';
 import { subscribeToRealtimeSync, registerRemoteChangeHandler, pullAllFromSupabase } from './lib/sync';
 
@@ -35,6 +35,7 @@ export const App: React.FC = () => {
     setNotifModalOpen
   } = useAppStore();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isOfflineBannerDismissed, setIsOfflineBannerDismissed] = useState(false);
   const [journalSubTab, setJournalSubTab] = useState<'JOURNAL' | 'ANALYTICS'>('JOURNAL');
   const lastNotifiedPrayerRef = useRef<string>('');
 
@@ -77,7 +78,10 @@ export const App: React.FC = () => {
       }
     }, 60000);
 
-    const handleOnline = () => setIsOnline(true);
+    const handleOnline = () => {
+      setIsOnline(true);
+      setIsOfflineBannerDismissed(false);
+    };
     const handleOffline = () => setIsOnline(false);
 
     window.addEventListener('online', handleOnline);
@@ -132,10 +136,20 @@ export const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-transparent text-slate-100 flex flex-col justify-between selection:bg-sky-500 selection:text-slate-950 font-sans">
       {/* Offline Status Banner */}
-      {!isOnline && (
-        <div className="bg-amber-950/80 border-b border-amber-800/60 py-1.5 px-3 text-center text-[11px] font-bold text-amber-300 flex items-center justify-center gap-1.5 shadow-md sticky top-0 z-50 backdrop-blur-md">
-          <WifiOff className="w-3.5 h-3.5 text-amber-400" />
-          <span>أنت تعمل أوفلاين.. جميع تعديلاتك محفوظة بأمان محلياً في المتصفح</span>
+      {!isOnline && !isOfflineBannerDismissed && (
+        <div className="bg-amber-950/90 border-b border-amber-800/60 py-1.5 px-3.5 text-center text-[11px] font-bold text-amber-300 flex items-center justify-between shadow-md sticky top-0 z-50 backdrop-blur-md animate-in slide-in-from-top-2 duration-150">
+          <div className="flex items-center gap-2 mx-auto">
+            <WifiOff className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span>أنت تعمل أوفلاين.. جميع تعديلاتك محفوظة بأمان محلياً في المتصفح</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsOfflineBannerDismissed(true)}
+            className="p-1 hover:bg-amber-900/60 text-amber-400 hover:text-amber-200 rounded-lg transition-colors cursor-pointer shrink-0"
+            title="إخفاء التنبيه"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
