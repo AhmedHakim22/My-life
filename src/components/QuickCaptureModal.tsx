@@ -93,8 +93,14 @@ export const QuickCaptureModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="apple-card border border-white/[0.1] rounded-t-[32px] sm:rounded-[26px] w-full max-w-md p-5 space-y-4 shadow-2xl animate-in fade-in slide-in-from-bottom duration-200">
+    <div 
+      className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4"
+      onClick={() => setQuickCaptureOpen(false)}
+    >
+      <div 
+        className="apple-card border border-white/[0.1] rounded-t-[32px] sm:rounded-[26px] w-full max-w-md p-5 max-h-[85vh] sm:max-h-[90vh] overflow-y-auto space-y-4 shadow-2xl animate-in fade-in slide-in-from-bottom duration-200"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="w-12 h-1 bg-white/20 rounded-full mx-auto -mt-1 mb-1 sm:hidden" />
         <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
           <h2 className="text-sm font-bold text-white flex items-center gap-2">

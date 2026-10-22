@@ -81,8 +81,16 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#07080b]/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-[#14151a] border border-white/[0.12] rounded-t-[32px] sm:rounded-3xl p-5 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto space-y-5 shadow-2xl animate-in slide-in-from-bottom-6 duration-200">
+    <div 
+      className="fixed inset-0 z-50 bg-[#07080b]/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-[#14151a] border border-white/[0.12] rounded-t-[32px] sm:rounded-3xl p-5 sm:p-6 w-full max-w-md max-h-[85vh] sm:max-h-[90vh] overflow-y-auto space-y-5 shadow-2xl animate-in slide-in-from-bottom-6 duration-200"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Mobile Swipe/Pull Indicator */}
+        <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto -mt-1 mb-1 sm:hidden" />
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[0.08] pb-3.5">

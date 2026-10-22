@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Cloud, 
   CloudOff, 
@@ -22,6 +22,16 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
   const { syncStatus, checkCloudStatus, syncWithCloud, showToast } = useAppStore();
   const [copied, setCopied] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -55,11 +65,18 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-150">
+    <div 
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150"
+      onClick={onClose}
+    >
       <div 
-        className="apple-card border border-white/[0.1] rounded-[26px] max-w-md w-full p-6 text-slate-100 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto"
+        className="apple-card border border-white/[0.12] rounded-t-[32px] sm:rounded-[26px] max-w-md w-full p-5 sm:p-6 text-slate-100 shadow-2xl space-y-4 max-h-[85vh] sm:max-h-[90vh] overflow-y-auto"
         dir="rtl"
+        onClick={e => e.stopPropagation()}
       >
+        {/* Mobile Swipe/Pull Indicator */}
+        <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto -mt-1 mb-2 sm:hidden" />
+
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
           <div className="flex items-center gap-2.5">
@@ -237,6 +254,18 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
         <div className="border-t border-slate-800/80 pt-3 flex items-center gap-2 text-[11px] text-slate-400">
           <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>مَسار مصمم بمعمارية Local-First: كل شيء يعمل بدون نت، والمزامنة السحابية اختيارية لحفظ نسخ احتياطية.</span>
+        </div>
+
+        {/* Full-Width Close Button for Easy Mobile Dismissal */}
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-3 px-4 rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] text-white text-xs font-bold transition-all pressable cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
+          >
+            <X className="w-4 h-4" />
+            <span>إغلاق النافذة</span>
+          </button>
         </div>
       </div>
     </div>
