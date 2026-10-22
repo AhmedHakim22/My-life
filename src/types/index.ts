@@ -346,7 +346,7 @@ export interface SyncQueueItem {
 
 export interface Tombstone {
   id: string; // e.g. "tomb-subj-spectro" or "tomb-book-123"
-  entityType: 'BOOK' | 'RESOURCE' | 'SUBJECT' | 'TIMETABLE_SLOT' | 'CATEGORY' | 'GOAL' | 'HABIT' | 'INTENTION' | 'WORKOUT';
+  entityType: 'BOOK' | 'RESOURCE' | 'SUBJECT' | 'TIMETABLE_SLOT' | 'CATEGORY' | 'GOAL' | 'HABIT' | 'INTENTION' | 'WORKOUT' | 'SKILL';
   entityId: string;
   deletedAt: string;
   reason?: string;

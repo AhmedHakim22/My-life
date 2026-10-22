@@ -158,6 +158,8 @@ interface AppState {
   linkSkillResource: (skillId: string, resourceId: string) => Promise<void>;
   unlinkSkillResource: (skillId: string, resourceId: string) => Promise<void>;
   addSkillEvidence: (evidence: Omit<SkillEvidence, 'id'>) => Promise<string>;
+  updateSkill: (skillId: string, updates: Partial<Skill>) => Promise<void>;
+  deleteSkill: (skillId: string) => Promise<void>;
 
   // Content Management: Books & Resources CRUD + Deletion Tombstones
   deleteBook: (resourceId: string) => Promise<void>;
@@ -1029,6 +1031,55 @@ export const useAppStore = create<AppState>((set, get) => ({
     await get().loadAllData();
     get().showToast('تم تسجيل شاهد الكفاءة والإتقان 🏆');
     return id;
+  },
+
+  updateSkill: async (skillId, updates) => {
+    const now = new Date().toISOString();
+    await db.skills.update(skillId, {
+      ...updates,
+      updatedAt: now
+    });
+    await get().loadAllData();
+    get().showToast('تم تحديث بيانات المهارة بنجاح ✨');
+  },
+
+  deleteSkill: async (skillId) => {
+    const skill = get().skills.find(s => s.id === skillId);
+    const skillName = skill?.name || '';
+
+    await db.transaction('rw', [
+      db.skills,
+      db.skillResources,
+      db.skillEvidence,
+      db.tasks,
+      db.tombstones
+    ], async () => {
+      // 1. Delete skill record
+      await db.skills.delete(skillId);
+
+      // 2. Delete junction links in skillResources
+      await db.skillResources.where('skillId').equals(skillId).delete();
+
+      // 3. Delete evidence in skillEvidence
+      await db.skillEvidence.where('skillId').equals(skillId).delete();
+
+      // 4. Detach skillId from tasks without deleting tasks themselves
+      const linkedTasks = await db.tasks.where('skillId').equals(skillId).toArray();
+      for (const t of linkedTasks) {
+        await db.tasks.update(t.id, { skillId: undefined });
+      }
+
+      // 5. Add tombstone to prevent resurrection on sync or reload
+      await db.tombstones.put({
+        id: `tomb-skill-${skillId}`,
+        entityType: 'SKILL',
+        entityId: skillId,
+        deletedAt: new Date().toISOString()
+      });
+    });
+
+    await get().loadAllData();
+    get().showToast(`تم حذف مهارة "${skillName}" وفك ارتباطاتها بنجاح 🗑️`);
   },
 
   // 3. University Study Actions

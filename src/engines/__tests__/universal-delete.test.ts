@@ -114,4 +114,68 @@ describe('Sprint 1 — Universal Content Management & Deletion Tombstones', () =
     expect(updatedDetails?.totalPages).toBe(350);
     expect(updatedDetails?.shelf).toBe('Finished');
   });
+
+  it('deleting a skill removes the skill, cleans up skillResources junction links and evidence, and records a tombstone', async () => {
+    const store = useAppStore.getState();
+
+    // 1. Add skill
+    await store.addSkill('Quantum Computing', 'علمي', 5);
+    const skills = await db.skills.toArray();
+    const skillId = skills[0].id;
+
+    // 2. Add book & link to skill
+    await store.addBook('Quantum Mechanics in Action', 'Physicist', 400);
+    const books = await db.learningResources.where('type').equals('BOOK').toArray();
+    const bookId = books[0].id;
+    await store.linkSkillResource(skillId, bookId);
+
+    // 3. Add task linked to skill
+    await store.addTask('Review Quantum Circuit Exercises', 'P1_URGENT_IMPORTANT', 45, undefined, undefined, skillId);
+    const tasks = await db.tasks.where('skillId').equals(skillId).toArray();
+    expect(tasks.length).toBe(1);
+
+    // 4. Delete the skill
+    await store.deleteSkill(skillId);
+
+    // Verify skill is gone from db.skills
+    const deletedSkill = await db.skills.get(skillId);
+    expect(deletedSkill).toBeUndefined();
+
+    // Verify junction links are cleaned up
+    const links = await db.skillResources.where('skillId').equals(skillId).toArray();
+    expect(links.length).toBe(0);
+
+    // Verify the book is STILL intact!
+    const book = await db.learningResources.get(bookId);
+    expect(book).toBeDefined();
+
+    // Verify task is still intact, but with skillId detached
+    const task = await db.tasks.get(tasks[0].id);
+    expect(task).toBeDefined();
+    expect(task?.skillId).toBeUndefined();
+
+    // Verify tombstone is recorded
+    const tombstones = await db.tombstones.where('entityId').equals(skillId).toArray();
+    expect(tombstones.length).toBe(1);
+    expect(tombstones[0].entityType).toBe('SKILL');
+  });
+
+  it('updating a skill updates its name, category, and targetLevel', async () => {
+    const store = useAppStore.getState();
+
+    await store.addSkill('Python 101', 'تقني', 3);
+    const skills = await db.skills.toArray();
+    const skillId = skills[0].id;
+
+    await store.updateSkill(skillId, {
+      name: 'Advanced Python Architecture',
+      category: 'بزنس',
+      targetLevel: 8
+    });
+
+    const updated = await db.skills.get(skillId);
+    expect(updated?.name).toBe('Advanced Python Architecture');
+    expect(updated?.category).toBe('بزنس');
+    expect(updated?.targetLevel).toBe(8);
+  });
 });

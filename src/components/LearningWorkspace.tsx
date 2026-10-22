@@ -17,7 +17,10 @@ import {
   Filter,
   Check,
   X,
-  PlayCircle
+  PlayCircle,
+  Trash2,
+  Edit3,
+  AlertTriangle
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import type { Skill, LearningResource, CustomCategory } from '../types';
@@ -31,6 +34,8 @@ export const LearningWorkspace: React.FC = () => {
     categories, 
     skillResources,
     addSkill, 
+    updateSkill,
+    deleteSkill,
     addCourseResource, 
     linkSkillResource, 
     unlinkSkillResource, 
@@ -47,6 +52,13 @@ export const LearningWorkspace: React.FC = () => {
   const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
   const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
   const [linkingSkillId, setLinkingSkillId] = useState<string | null>(null);
+
+  // Edit / Delete Skill state
+  const [deletingSkill, setDeletingSkill] = useState<Skill | null>(null);
+  const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
+  const [editSkillName, setEditSkillName] = useState('');
+  const [editSkillCategory, setEditSkillCategory] = useState('تقني');
+  const [editSkillTargetLevel, setEditSkillTargetLevel] = useState(5);
 
   // New Skill Form
   const [newSkillName, setNewSkillName] = useState('');
@@ -261,9 +273,34 @@ export const LearningWorkspace: React.FC = () => {
                         </h3>
                       </div>
 
-                      <span className="text-xs font-mono font-bold text-purple-400 bg-purple-950/40 border border-purple-800/50 px-2 py-0.5 rounded-lg">
-                        مستوى {skill.baselineLevel} / {skill.targetLevel}
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-xs font-mono font-bold text-purple-400 bg-purple-950/40 border border-purple-800/50 px-2 py-0.5 rounded-lg">
+                          مستوى {skill.baselineLevel} / {skill.targetLevel}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingSkill(skill);
+                            setEditSkillName(skill.name);
+                            setEditSkillCategory(skill.category);
+                            setEditSkillTargetLevel(skill.targetLevel);
+                          }}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-purple-300 hover:bg-slate-800/60 pressable cursor-pointer"
+                          title="تعديل المهارة"
+                          aria-label="تعديل المهارة"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeletingSkill(skill)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 pressable cursor-pointer"
+                          title="حذف المهارة"
+                          aria-label="حذف المهارة"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Dual Progress: Consumption vs Competence */}
@@ -711,6 +748,138 @@ export const LearningWorkspace: React.FC = () => {
                 );
               })}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Skill Confirmation Modal */}
+      {deletingSkill && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-slate-900 border border-rose-500/40 rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">حذف المهارة</h3>
+                <p className="text-xs text-slate-400">تأكيد إزالة المهارة من شجرة المعرفة</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs text-slate-300 space-y-1">
+              <p className="font-bold text-white">هل أنت متأكد من حذف مهارة "{deletingSkill.name}"؟</p>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                سيتم فك ارتباط المهارة بالكتب والكورسات دون حذف المصادر نفسها، وسيتم تسجيل شاهد حذف لمنع عودتها عند المزامنة.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={async () => {
+                  await deleteSkill(deletingSkill.id);
+                  setDeletingSkill(null);
+                }}
+                className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs py-2.5 px-4 rounded-xl pressable cursor-pointer shadow-lg shadow-rose-900/40"
+              >
+                نعم، احذف المهارة
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeletingSkill(null)}
+                className="bg-slate-800 text-slate-300 font-bold text-xs py-2.5 px-4 rounded-xl pressable cursor-pointer"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Skill Modal */}
+      {editingSkill && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-slate-900 border border-purple-500/40 rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-4 h-4 text-purple-400" />
+                <h3 className="text-sm font-bold text-white">تعديل المهارة</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingSkill(null)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async e => {
+                e.preventDefault();
+                if (!editSkillName.trim()) return;
+                await updateSkill(editingSkill.id, {
+                  name: editSkillName.trim(),
+                  category: editSkillCategory,
+                  targetLevel: Number(editSkillTargetLevel) || 5
+                });
+                setEditingSkill(null);
+              }}
+              className="space-y-3"
+            >
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-300">اسم المهارة</label>
+                <input
+                  type="text"
+                  value={editSkillName}
+                  onChange={e => setEditSkillName(e.target.value)}
+                  required
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-300">التصنيف</label>
+                <select
+                  value={editSkillCategory}
+                  onChange={e => setEditSkillCategory(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
+                >
+                  <option value="تقني">تقني (Technical)</option>
+                  <option value="علمي">علمي (Scientific)</option>
+                  <option value="بزنس">بزنس وإدارة (Business)</option>
+                  <option value="مهارات ناعمة">مهارات ناعمة (Soft Skills)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-300">المستوى المستهدف (1-10)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={editSkillTargetLevel}
+                  onChange={e => setEditSkillTargetLevel(Number(e.target.value))}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500 font-mono"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="submit"
+                  className="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs py-2.5 px-4 rounded-xl pressable cursor-pointer shadow-lg shadow-purple-900/40"
+                >
+                  حفظ التعديلات
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingSkill(null)}
+                  className="bg-slate-800 text-slate-300 font-bold text-xs py-2.5 px-4 rounded-xl pressable cursor-pointer"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

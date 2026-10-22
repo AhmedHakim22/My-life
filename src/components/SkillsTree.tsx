@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { Cpu, Plus, Code, CheckCircle2, Award, ExternalLink, BookOpen, Video } from 'lucide-react';
+import { Cpu, Plus, Code, CheckCircle2, Award, ExternalLink, BookOpen, Video, Trash2 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import type { Skill } from '../types';
 
 export const SkillsTree: React.FC = () => {
-  const { skills, addSkill, learningResources } = useAppStore();
+  const { skills, addSkill, deleteSkill, learningResources } = useAppStore();
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [isAddingSkill, setIsAddingSkill] = useState(false);
   const [newSkillName, setNewSkillName] = useState('');
   const [newSkillCategory, setNewSkillCategory] = useState<Skill['category']>('تقني');
+  const [deletingSkillId, setDeletingSkillId] = useState<string | null>(null);
 
   const categories = ['ALL', 'تقني', 'علمي', 'بزنس', 'مهارات ناعمة'];
   const filteredSkills = skills.filter(s => selectedCategory === 'ALL' || s.category === selectedCategory);
@@ -122,10 +123,18 @@ export const SkillsTree: React.FC = () => {
                 </h3>
               </div>
 
-              <div className="text-left font-mono">
-                <span className="text-xs font-bold text-purple-400">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-purple-400 font-mono">
                   المستوى {skill.baselineLevel} / {skill.targetLevel}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => setDeletingSkillId(skill.id)}
+                  className="p-1 rounded text-slate-500 hover:text-rose-400 pressable cursor-pointer"
+                  title="حذف المهارة"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
 
@@ -176,6 +185,35 @@ export const SkillsTree: React.FC = () => {
           </div>
         ))}
       </div>
+
+      {/* Delete Skill Confirm Modal */}
+      {deletingSkillId && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-rose-500/40 rounded-2xl p-5 max-w-sm w-full space-y-3">
+            <h3 className="text-sm font-bold text-white">تأكيد حذف المهارة</h3>
+            <p className="text-xs text-slate-300">هل أنت متأكد من حذف هذه المهارة من شجرة المهارات؟</p>
+            <div className="flex gap-2 justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingSkillId(null)}
+                className="text-xs text-slate-400 px-3 py-1.5"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await deleteSkill(deletingSkillId);
+                  setDeletingSkillId(null);
+                }}
+                className="bg-rose-600 text-white font-bold text-xs px-4 py-1.5 rounded-xl"
+              >
+                تأكيد الحذف
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
