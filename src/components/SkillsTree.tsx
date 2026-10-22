@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Cpu, Plus, Code, CheckCircle2, Award, ExternalLink, BookOpen, Video, Trash2 } from 'lucide-react';
+import { Cpu, Plus, Code, CheckCircle2, Award, ExternalLink, BookOpen, Video, Trash2, Globe } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import type { Skill } from '../types';
 
@@ -11,7 +11,7 @@ export const SkillsTree: React.FC = () => {
   const [newSkillCategory, setNewSkillCategory] = useState<Skill['category']>('تقني');
   const [deletingSkillId, setDeletingSkillId] = useState<string | null>(null);
 
-  const categories = ['ALL', 'تقني', 'علمي', 'بزنس', 'مهارات ناعمة'];
+  const categories = ['ALL', 'تقني', 'علمي', 'لغات', 'بزنس', 'مهارات ناعمة'];
   const filteredSkills = skills.filter(s => selectedCategory === 'ALL' || s.category === selectedCategory);
 
   const handleCreateSkill = async (e: React.FormEvent) => {
@@ -56,13 +56,13 @@ export const SkillsTree: React.FC = () => {
             autoFocus
             className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-purple-500"
           />
-          <div className="flex gap-2">
-            {(['تقني', 'علمي', 'بزنس', 'مهارات ناعمة'] as Skill['category'][]).map(cat => (
+          <div className="flex gap-1.5 flex-wrap">
+            {(['تقني', 'علمي', 'لغات', 'بزنس', 'مهارات ناعمة'] as Skill['category'][]).map(cat => (
               <button
                 key={cat}
                 type="button"
                 onClick={() => setNewSkillCategory(cat)}
-                className={`flex-1 py-1 text-[11px] rounded-lg border font-medium ${
+                className={`flex-1 py-1 px-2 text-[11px] rounded-lg border font-medium ${
                   newSkillCategory === cat ? 'bg-purple-500 text-slate-950 border-purple-400 font-bold' : 'border-slate-800 text-slate-400'
                 }`}
               >
@@ -115,7 +115,16 @@ export const SkillsTree: React.FC = () => {
           >
             <div className="flex items-start justify-between">
               <div>
-                <span className="text-[10px] text-purple-300 bg-purple-950/80 px-2 py-0.5 rounded border border-purple-800/40 font-bold">
+                <span className={`text-[10px] px-2 py-0.5 rounded border font-bold inline-flex items-center gap-1 ${
+                  skill.category === 'لغات'
+                    ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800/40'
+                    : skill.category === 'علمي'
+                    ? 'bg-cyan-950/80 text-cyan-300 border-cyan-800/40'
+                    : skill.category === 'بزنس'
+                    ? 'bg-amber-950/80 text-amber-300 border-amber-800/40'
+                    : 'bg-purple-950/80 text-purple-300 border-purple-800/40'
+                }`}>
+                  {skill.category === 'لغات' && <Globe className="w-2.5 h-2.5" />}
                   {skill.category}
                 </span>
                 <h3 className="text-sm font-bold text-slate-100 mt-1 flex items-center gap-2">

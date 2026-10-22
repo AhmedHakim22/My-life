@@ -60,7 +60,7 @@ erDiagram
 - `user_id` (UUID, FK -> `auth.users`)
 - `parent_skill_id` (UUID, Nullable, FK -> `skills.id` ON DELETE SET NULL)
 - `name` (TEXT, Not Null, e.g. "Python", "Semiconductor Physics")
-- `category` (TEXT, e.g. "تقني", "علمي", "بزنس", "مهارات ناعمة")
+- `category` (TEXT, e.g. "تقني", "علمي", "لغات", "بزنس", "مهارات ناعمة")
 - `baseline_level` (INTEGER, Default 1)
 - `target_level` (INTEGER, Default 5)
 - `content_progress` (INTEGER, 0-100, نسبة استهلاك الكورسات والمصادر)
