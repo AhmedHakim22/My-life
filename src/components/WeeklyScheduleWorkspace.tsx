@@ -62,9 +62,9 @@ export const WeeklyScheduleWorkspace: React.FC = () => {
       <div className="absolute top-0 right-1/4 w-80 h-80 bg-sky-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
 
       {/* Header Banner */}
-      <header className="glass-panel border border-sky-500/20 rounded-3xl p-4.5 shadow-xl relative overflow-hidden">
+      <header className="apple-card border border-sky-400/30 rounded-[28px] p-5 shadow-xl relative overflow-hidden">
         <div className="space-y-1">
-          <span className="text-[11px] font-black text-sky-400 bg-sky-950/80 px-2.5 py-0.5 rounded-full border border-sky-500/30 flex items-center gap-1 w-fit">
+          <span className="text-[11px] font-black text-sky-300 bg-sky-950/80 px-2.5 py-0.5 rounded-full border border-sky-400/35 flex items-center gap-1 w-fit shadow-sm">
             <Compass className="w-3.5 h-3.5 text-sky-400" />
             المخطط الأسبوعي الذكي والمحكوم بالسعة
           </span>
@@ -79,18 +79,18 @@ export const WeeklyScheduleWorkspace: React.FC = () => {
 
         {/* Capacity & Overload Summary KPI Cards */}
         <div className="grid grid-cols-3 gap-2 mt-4">
-          <div className="glass-panel p-3 rounded-2xl border border-slate-800 text-center">
+          <div className="apple-widget p-3 rounded-2xl text-center">
             <span className="text-[10px] text-slate-400 font-bold block">الساعات المتاحة</span>
             <span className="text-base font-black text-emerald-400 font-mono">{availableHours} س</span>
           </div>
 
-          <div className="glass-panel p-3 rounded-2xl border border-slate-800 text-center">
+          <div className="apple-widget p-3 rounded-2xl text-center">
             <span className="text-[10px] text-slate-400 font-bold block">المطلوب إنجازه</span>
-            <span className="text-base font-black text-sky-400 font-mono">{requiredHours} س</span>
+            <span className="text-base font-black text-sky-300 font-mono">{requiredHours} س</span>
           </div>
 
-          <div className={`glass-panel p-3 rounded-2xl border text-center ${
-            plan.isOverloaded ? 'border-rose-500/40 bg-rose-950/20' : 'border-slate-800'
+          <div className={`apple-widget p-3 rounded-2xl text-center ${
+            plan.isOverloaded ? 'border-rose-500/40 bg-rose-950/30' : 'border-sky-400/20'
           }`}>
             <span className="text-[10px] text-slate-400 font-bold block">
               {plan.isOverloaded ? 'حمل زائد (Overload)' : 'ساعات الفائض / الأمان'}
@@ -127,15 +127,15 @@ export const WeeklyScheduleWorkspace: React.FC = () => {
               key={d}
               type="button"
               onClick={() => setSelectedDay(d)}
-              className={`px-3 py-2 rounded-2xl text-xs font-bold whitespace-nowrap border transition-all cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap border transition-all cursor-pointer flex items-center gap-1.5 pressable ${
                 isSelected
-                  ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-slate-950 border-sky-400 font-extrabold shadow-md shadow-sky-500/20'
-                  : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-slate-200'
+                  ? 'bg-gradient-to-r from-sky-300 via-sky-400 to-sky-500 text-slate-950 border-white/40 font-black shadow-lg shadow-sky-400/35'
+                  : 'bg-slate-950/70 border-sky-400/15 text-slate-400 hover:text-slate-200 hover:border-sky-400/30'
               }`}
             >
               <span>{d}</span>
               <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                isSelected ? 'bg-slate-950/30 text-slate-950 font-black' : 'bg-slate-800 text-slate-400'
+                isSelected ? 'bg-slate-950/30 text-slate-950 font-black' : 'bg-slate-900 text-slate-400'
               }`}>
                 {count}
               </span>

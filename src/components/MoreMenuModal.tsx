@@ -103,23 +103,24 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({ isOpen, onClose })
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xl flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-      <div className="glass-panel bg-slate-900/90 border border-slate-700/70 rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-md space-y-4 shadow-2xl animate-in slide-in-from-bottom duration-300">
+      <div className="apple-card border border-sky-400/40 rounded-t-[32px] sm:rounded-3xl p-5 w-full max-w-md space-y-4 shadow-[0_20px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(56,189,248,0.25)] animate-in slide-in-from-bottom duration-300">
         <div className="w-12 h-1.5 bg-slate-700/80 rounded-full mx-auto -mt-1 mb-1 sm:hidden" />
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-400">
+            <div className="w-8 h-8 rounded-2xl bg-sky-400/20 border border-sky-400/40 flex items-center justify-center text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.35)]">
               <Layers className="w-4 h-4" />
             </div>
-            <h3 className="text-sm font-extrabold text-white">
+            <h3 className="text-sm font-black text-white">
               جميع مساحات مَسار
             </h3>
           </div>
           <button 
             type="button" 
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1"
+            aria-label="إغلاق"
+            className="w-8 h-8 rounded-full bg-slate-900/80 border border-white/10 text-slate-400 hover:text-white flex items-center justify-center pressable cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 

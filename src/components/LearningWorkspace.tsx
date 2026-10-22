@@ -188,7 +188,7 @@ export const LearningWorkspace: React.FC = () => {
       </div>
 
       {/* 2. Sub-tab Navigation */}
-      <div className="grid grid-cols-4 p-1 rounded-2xl bg-slate-950/80 neo-sunken border border-slate-800 text-xs font-bold">
+      <div className="apple-segmented-container grid grid-cols-4 gap-1 text-xs font-bold">
         {[
           { id: 'SKILLS', label: 'المهارات', icon: <Cpu className="w-3.5 h-3.5" /> },
           { id: 'COURSES', label: 'الكورسات', icon: <Video className="w-3.5 h-3.5" /> },
@@ -199,9 +199,9 @@ export const LearningWorkspace: React.FC = () => {
             key={tab.id}
             type="button"
             onClick={() => setActiveSubTab(tab.id as any)}
-            className={`py-2 px-1.5 rounded-xl transition-all flex items-center justify-center gap-1.5 pressable cursor-pointer ${
+            className={`py-2 px-1.5 rounded-2xl transition-all flex items-center justify-center gap-1.5 pressable cursor-pointer ${
               activeSubTab === tab.id
-                ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-extrabold shadow-md shadow-purple-500/25'
+                ? 'apple-pill-active'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >

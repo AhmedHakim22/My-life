@@ -52,20 +52,20 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
       <div 
-        className="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-md w-full p-6 text-slate-100 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto"
+        className="apple-card border border-sky-400/40 rounded-3xl max-w-md w-full p-6 text-slate-100 shadow-[0_20px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(56,189,248,0.25)] space-y-5 max-h-[90vh] overflow-y-auto"
         dir="rtl"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div className="flex items-center justify-between border-b border-white/10 pb-4">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-sky-500/10 text-sky-400 rounded-xl border border-sky-500/20">
+            <div className="p-2.5 bg-sky-400/20 text-sky-300 rounded-2xl border border-sky-400/40 shadow-[0_0_12px_rgba(56,189,248,0.35)]">
               <Cloud className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold">مزامنة سحابة سوبا بيز (Supabase)</h2>
-              <p className="text-xs text-slate-400 font-mono">Project: phogtpgejvstfxkrhjqz</p>
+              <h2 className="text-base font-black text-white">مزامنة سحابة سوبا بيز (Supabase)</h2>
+              <p className="text-xs text-sky-300/80 font-mono font-bold">Project: phogtpgejvstfxkrhjqz</p>
             </div>
           </div>
           <button 

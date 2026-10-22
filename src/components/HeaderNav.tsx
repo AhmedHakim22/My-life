@@ -39,26 +39,26 @@ export const HeaderNav: React.FC = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-[#060911]/80 backdrop-blur-3xl border-b border-white/[0.08] px-4 py-2.5">
+    <header className="sticky top-0 z-40 bg-[#040814]/80 backdrop-blur-3xl border-b border-sky-400/20 px-4 py-2.5 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
       <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
         {/* Brand Logo & Title */}
         <div className="flex items-center gap-2.5 shrink-0">
-          <div className="w-8 h-8 rounded-2xl bg-gradient-to-tr from-sky-400 via-sky-500 to-blue-600 p-0.5 shadow-md shadow-sky-500/30">
-            <div className="w-full h-full bg-[#060911] rounded-[14px] flex items-center justify-center text-sky-400 font-black text-sm">
+          <div className="w-8 h-8 rounded-2xl bg-gradient-to-tr from-sky-300 via-sky-400 to-sky-500 p-0.5 shadow-md shadow-sky-400/40">
+            <div className="w-full h-full bg-[#040814] rounded-[14px] flex items-center justify-center text-sky-300 font-black text-sm">
               مـ
             </div>
           </div>
           <div>
             <div className="text-sm font-black text-white tracking-tight flex items-center gap-1.5">
               <span>مَسار</span>
-              <span className="text-[10px] text-sky-300 font-mono font-extrabold bg-sky-950/70 border border-sky-500/30 px-1.5 py-0.2 rounded-full">V2.0</span>
+              <span className="text-[10px] text-sky-200 font-mono font-black bg-sky-500/20 border border-sky-400/40 px-2 py-0.2 rounded-full shadow-[0_0_8px_rgba(56,189,248,0.3)]">V2.0</span>
             </div>
             <span className="text-[10px] text-slate-400 hidden sm:inline">Personal Life Coach & Study OS</span>
           </div>
         </div>
 
         {/* Desktop / Tablet Navigation Pills */}
-        <nav className="hidden sm:flex items-center gap-1 bg-slate-900/60 p-1 rounded-2xl border border-white/10 backdrop-blur-xl">
+        <nav className="hidden sm:flex items-center gap-1 bg-slate-950/70 p-1 rounded-2xl border border-sky-400/20 backdrop-blur-xl">
           {desktopNavItems.map(item => {
             const isActive = activeTab === item.id;
             return (
@@ -68,7 +68,7 @@ export const HeaderNav: React.FC = () => {
                 onClick={() => setActiveTab(item.id)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 pressable cursor-pointer ${
                   isActive
-                    ? 'bg-sky-400 text-slate-950 font-black shadow-lg shadow-sky-500/30'
+                    ? 'bg-gradient-to-r from-sky-300 via-sky-400 to-sky-500 text-slate-950 font-black shadow-lg shadow-sky-400/35'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
                 }`}
               >

@@ -59,10 +59,10 @@ export const FalconWorkspace: React.FC = () => {
       {/* 3D Ambient Amber Glow (Trend 8) */}
       <div className="absolute top-0 right-10 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
 
-      {/* Header (Trend 9 Bold Typography & Trend 4 Glassmorphism) */}
-      <header className="glass-panel rounded-3xl p-4.5 flex items-center justify-between border border-white/10 shadow-xl shadow-black/40">
+      {/* Header */}
+      <header className="apple-card rounded-[28px] p-5 flex items-center justify-between shadow-xl">
         <div>
-          <span className="text-[11px] font-bold text-amber-400 tracking-wider uppercase">
+          <span className="text-[11px] font-black text-amber-400 tracking-wider uppercase">
             براند فالكون • كفرات وإكسسوارات الموبايل
           </span>
           <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-2 mt-0.5">
@@ -70,25 +70,25 @@ export const FalconWorkspace: React.FC = () => {
           </h1>
         </div>
 
-        <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center text-amber-300 font-black text-lg shadow-[0_0_12px_rgba(245,158,11,0.25)]">
+        <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 font-black text-lg shadow-[0_0_14px_rgba(245,158,11,0.3)]">
           F
         </div>
       </header>
 
-      {/* Brand Dashboard & Sales Goal Card (Trend 2 & Trend 3) */}
-      <section className="glass-panel-glow rounded-3xl p-5 space-y-4 border border-amber-500/30 shadow-2xl relative overflow-hidden">
+      {/* Brand Dashboard & Sales Goal Card */}
+      <section className="apple-card rounded-[28px] p-5 space-y-4 border border-amber-500/35 shadow-2xl relative overflow-hidden">
         {/* Subtle decorative glow */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400/70 to-transparent" />
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 text-slate-950 font-black text-xl flex items-center justify-center shadow-lg shadow-amber-500/30 shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-orange-500 text-slate-950 font-black text-xl flex items-center justify-center shadow-lg shadow-amber-500/30 shrink-0">
               🦅
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-black text-white">Falcon Cases & Accs</h2>
-                <span className="text-[10px] bg-amber-950/80 text-amber-300 px-2 py-0.5 rounded-full border border-amber-700/50 font-mono font-bold">
+                <span className="text-[10px] bg-amber-950/80 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-500/40 font-mono font-bold">
                   نشط 🚀
                 </span>
               </div>
@@ -98,7 +98,7 @@ export const FalconWorkspace: React.FC = () => {
         </div>
 
         {/* Monthly Target Progress */}
-        <div className="space-y-1.5 pt-1 border-t border-slate-800/80">
+        <div className="space-y-1.5 pt-1 border-t border-white/5">
           <div className="flex items-center justify-between text-xs text-slate-200">
             <span className="flex items-center gap-1.5 font-bold">
               <ShoppingBag className="w-3.5 h-3.5 text-amber-400" />
@@ -109,7 +109,7 @@ export const FalconWorkspace: React.FC = () => {
             </span>
           </div>
 
-          <div className="w-full bg-slate-950 neo-sunken h-2 rounded-full overflow-hidden">
+          <div className="w-full bg-slate-950/80 h-2 rounded-full overflow-hidden border border-white/5">
             <div
               className="bg-gradient-to-r from-amber-400 to-orange-500 h-full rounded-full transition-all duration-500"
               style={{ width: `${orderProgressPercent}%` }}
@@ -119,17 +119,17 @@ export const FalconWorkspace: React.FC = () => {
 
         {/* 3 KPI Metric Badges */}
         <div className="grid grid-cols-3 gap-2 pt-1 text-center">
-          <div className="glass-panel p-2.5 rounded-2xl border border-slate-800">
+          <div className="apple-widget p-2.5 rounded-2xl">
             <div className="text-[10px] text-slate-400">الحملة الحالية</div>
             <div className="text-xs font-bold text-white mt-0.5 truncate">كفرات الشتاء ❄️</div>
           </div>
-          <div className="glass-panel p-2.5 rounded-2xl border border-slate-800">
+          <div className="apple-widget p-2.5 rounded-2xl">
             <div className="text-[10px] text-slate-400">مهام قيد التنفيذ</div>
             <div className="text-xs font-black text-amber-400 font-mono mt-0.5">
               {falconTasks.filter(t => t.status === 'TODO').length} مهام
             </div>
           </div>
-          <div className="glass-panel p-2.5 rounded-2xl border border-slate-800">
+          <div className="apple-widget p-2.5 rounded-2xl">
             <div className="text-[10px] text-slate-400">أولوية الأسبوع</div>
             <div className="text-xs font-bold text-emerald-400 mt-0.5 truncate">شيت التغليف 📦</div>
           </div>
@@ -137,7 +137,7 @@ export const FalconWorkspace: React.FC = () => {
       </section>
 
       {/* Quick Add Falcon Task Input */}
-      <form onSubmit={handleAddFalconTask} className="glass-panel p-2 rounded-2xl border border-slate-800 flex gap-2 shadow-lg">
+      <form onSubmit={handleAddFalconTask} className="apple-card p-2 rounded-2xl border border-sky-400/25 flex gap-2 shadow-lg">
         <input
           type="text"
           value={newTaskTitle}
@@ -147,9 +147,9 @@ export const FalconWorkspace: React.FC = () => {
         />
         <button
           type="submit"
-          className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-md shadow-amber-900/30 pressable cursor-pointer shrink-0"
+          className="bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-md shadow-amber-900/30 pressable cursor-pointer shrink-0"
         >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
+          <Plus className="w-4 h-4 stroke-[3]" />
           <span>إضافة</span>
         </button>
       </form>

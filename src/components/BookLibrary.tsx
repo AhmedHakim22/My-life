@@ -102,10 +102,10 @@ export const BookLibrary: React.FC = () => {
       {/* 3D Ambient Emerald Glow (Trend 8) */}
       <div className="absolute top-0 right-10 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
 
-      {/* Header (Trend 9 Bold Typography & Trend 4 Glassmorphism) */}
-      <header className="glass-panel rounded-3xl p-4.5 flex items-center justify-between border border-white/10 shadow-xl shadow-black/40">
+      {/* Header */}
+      <header className="apple-card rounded-[28px] p-5 flex items-center justify-between shadow-xl">
         <div>
-          <span className="text-[11px] font-bold text-emerald-400 tracking-wider uppercase">
+          <span className="text-[11px] font-black text-emerald-400 tracking-wider uppercase">
             مكتبة القراءة والتعلم الذاتي
           </span>
           <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-2 mt-0.5">
@@ -116,15 +116,15 @@ export const BookLibrary: React.FC = () => {
         <button
           type="button"
           onClick={() => setIsAddBookModalOpen(true)}
-          className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 text-xs font-black px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-lg shadow-emerald-900/30 pressable cursor-pointer"
+          className="bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-teal-400 text-slate-950 text-xs font-black px-4 py-2.5 rounded-2xl flex items-center gap-1.5 shadow-lg shadow-emerald-500/25 pressable cursor-pointer"
         >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
+          <Plus className="w-4 h-4 stroke-[3]" />
           <span>إضافة كتاب</span>
         </button>
       </header>
 
       {/* Shelf Filter Segmented Control */}
-      <div className="grid grid-cols-4 p-1 rounded-2xl bg-slate-950/80 neo-sunken border border-slate-800 text-xs font-bold">
+      <div className="apple-segmented-container grid grid-cols-4 gap-1 text-xs font-bold">
         {[
           { id: 'ALL', label: 'الكل' },
           { id: 'Reading', label: 'أقرأه حالياً' },
@@ -135,9 +135,9 @@ export const BookLibrary: React.FC = () => {
             key={tab.id}
             type="button"
             onClick={() => setShelfFilter(tab.id as any)}
-            className={`py-2 text-[11px] font-bold rounded-xl transition-all pressable cursor-pointer text-center ${
+            className={`py-2 text-[11px] font-bold rounded-2xl transition-all pressable cursor-pointer text-center ${
               shelfFilter === tab.id
-                ? 'bg-emerald-500 text-slate-950 font-extrabold shadow-md shadow-emerald-500/25'
+                ? 'apple-pill-active'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >

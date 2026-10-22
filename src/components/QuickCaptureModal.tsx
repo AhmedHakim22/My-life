@@ -93,64 +93,65 @@ export const QuickCaptureModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="glass-panel bg-slate-900/95 border border-slate-700/70 rounded-t-3xl sm:rounded-3xl w-full max-w-md p-5 space-y-4 shadow-2xl animate-in fade-in slide-in-from-bottom duration-200">
+    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="apple-card border border-sky-400/40 rounded-t-[32px] sm:rounded-3xl w-full max-w-md p-5 space-y-4 shadow-[0_20px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(56,189,248,0.25)] animate-in fade-in slide-in-from-bottom duration-200">
         <div className="w-12 h-1.5 bg-slate-700/80 rounded-full mx-auto -mt-1 mb-1 sm:hidden" />
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <h2 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
-            ⚡ تسجيل سريع (Quick Capture)
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <h2 className="text-sm font-black text-white flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_10px_#38bdf8]" />
+            <span>تسجيل سريع (Quick Capture)</span>
           </h2>
           <button
             type="button"
             onClick={() => setQuickCaptureOpen(false)}
             aria-label="إغلاق"
-            className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-slate-100 flex items-center justify-center"
+            className="w-8 h-8 rounded-full bg-slate-900/80 border border-white/10 text-slate-400 hover:text-slate-100 flex items-center justify-center pressable cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Tab Selector */}
-        <div className="grid grid-cols-4 gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+        <div className="apple-segmented-container grid grid-cols-4 gap-1">
           <button
             type="button"
             onClick={() => setTab('TASK')}
-            className={`py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1 transition-colors ${
-              tab === 'TASK' ? 'bg-sky-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
+            className={`py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              tab === 'TASK' ? 'apple-pill-active' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <CheckSquare className="w-3.5 h-3.5" />
-            مهمة
+            <span>مهمة</span>
           </button>
           <button
             type="button"
             onClick={() => setTab('BOOK')}
-            className={`py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1 transition-colors ${
-              tab === 'BOOK' ? 'bg-sky-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
+            className={`py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              tab === 'BOOK' ? 'apple-pill-active' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Book className="w-3.5 h-3.5" />
-            كتاب
+            <span>كتاب</span>
           </button>
           <button
             type="button"
             onClick={() => setTab('COURSE')}
-            className={`py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1 transition-colors ${
-              tab === 'COURSE' ? 'bg-sky-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
+            className={`py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              tab === 'COURSE' ? 'apple-pill-active' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Video className="w-3.5 h-3.5" />
-            كورس
+            <span>كورس</span>
           </button>
           <button
             type="button"
             onClick={() => setTab('NOTE')}
-            className={`py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1 transition-colors ${
-              tab === 'NOTE' ? 'bg-sky-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
+            className={`py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              tab === 'NOTE' ? 'apple-pill-active' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
-            فكرة
+            <span>فكرة</span>
           </button>
         </div>
 
@@ -165,14 +166,14 @@ export const QuickCaptureModal: React.FC = () => {
                 placeholder="عنوان المهمة (مثلاً: تجهيز بوست فالكون أو شيت النانو)..."
                 autoFocus
                 required
-                className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-500"
+                className="w-full bg-slate-950/70 border border-sky-400/25 rounded-2xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400/40"
               />
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => setTaskPriority('P1_URGENT_IMPORTANT')}
-                  className={`py-2 text-[11px] rounded-lg border font-bold ${
-                    taskPriority === 'P1_URGENT_IMPORTANT' ? 'bg-red-950/60 border-red-500 text-red-300' : 'border-slate-800 text-slate-400'
+                  className={`py-2 text-[11px] rounded-xl border font-bold transition-all ${
+                    taskPriority === 'P1_URGENT_IMPORTANT' ? 'bg-red-950/70 border-red-500 text-red-300 shadow-sm' : 'border-slate-800 text-slate-400 hover:border-slate-700'
                   }`}
                 >
                   عاجل ومهم 🔴
@@ -180,8 +181,8 @@ export const QuickCaptureModal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setTaskPriority('P2_IMPORTANT')}
-                  className={`py-2 text-[11px] rounded-lg border font-bold ${
-                    taskPriority === 'P2_IMPORTANT' ? 'bg-sky-950/60 border-sky-500 text-sky-300' : 'border-slate-800 text-slate-400'
+                  className={`py-2 text-[11px] rounded-xl border font-bold transition-all ${
+                    taskPriority === 'P2_IMPORTANT' ? 'bg-sky-950/70 border-sky-400 text-sky-200 shadow-sm' : 'border-slate-800 text-slate-400 hover:border-slate-700'
                   }`}
                 >
                   استراتيجي 🔵
@@ -189,8 +190,8 @@ export const QuickCaptureModal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setTaskPriority('P3_NORMAL')}
-                  className={`py-2 text-[11px] rounded-lg border font-bold ${
-                    taskPriority === 'P3_NORMAL' ? 'bg-slate-800 border-slate-600 text-slate-200' : 'border-slate-800 text-slate-400'
+                  className={`py-2 text-[11px] rounded-xl border font-bold transition-all ${
+                    taskPriority === 'P3_NORMAL' ? 'bg-slate-800 border-slate-600 text-slate-200 shadow-sm' : 'border-slate-800 text-slate-400 hover:border-slate-700'
                   }`}
                 >
                   عادي ⚪
@@ -309,10 +310,10 @@ export const QuickCaptureModal: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-sky-500 to-sky-400 text-slate-950 font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 shadow-lg shadow-sky-500/20 active:scale-98 transition-transform"
+            className="apple-btn-primary w-full py-3.5 text-xs rounded-2xl flex items-center justify-center gap-2 shadow-xl shadow-sky-400/30"
           >
-            <Check className="w-4 h-4 stroke-[2.5]" />
-            حفظ فوري في مَسار
+            <Check className="w-4 h-4 stroke-[3]" />
+            <span>حفظ فوري في مَسار</span>
           </button>
         </form>
       </div>

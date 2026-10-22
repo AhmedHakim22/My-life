@@ -302,13 +302,13 @@ export const UniversityWorkspace: React.FC = () => {
       {/* 3D Ambient Purple Glow (Trend 8) */}
       <div className="absolute top-0 right-10 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
 
-      {/* Header & Ahmed's Study Pulse Dashboard (Trend 9 Bold Typography & Trend 4 Glassmorphism) */}
-      <header className="glass-panel rounded-3xl p-4.5 space-y-4 border border-white/10 shadow-xl shadow-black/40">
+      {/* Header & Ahmed's Study Pulse Dashboard (Apple HIG Design) */}
+      <header className="apple-card rounded-[28px] p-5 space-y-4 shadow-xl">
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-bold text-sky-400 tracking-wider uppercase flex items-center gap-1.5">
+            <span className="text-[11px] font-black text-sky-300 tracking-wider uppercase flex items-center gap-1.5">
               <span>AHMED STUDY PLANNER</span>
-              <span>✦</span>
+              <span className="text-sky-400">✦</span>
               <span className="text-purple-300">جامعة القاهرة • نانوتكنولوجي</span>
             </span>
             <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-2 mt-0.5">
@@ -316,13 +316,13 @@ export const UniversityWorkspace: React.FC = () => {
             </h1>
           </div>
 
-          <div className="w-10 h-10 rounded-2xl bg-purple-500/15 border border-purple-400/30 flex items-center justify-center text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.25)]">
+          <div className="w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-400/40 flex items-center justify-center text-purple-300 shadow-[0_0_14px_rgba(168,85,247,0.3)]">
             <Atom className="w-5 h-5 animate-spin-slow" />
           </div>
         </div>
 
         {/* Ahmed's Golden Rule Banner */}
-        <div className="bg-sky-950/40 p-2.5 rounded-2xl border border-sky-800/40 flex items-center gap-2 text-xs text-sky-200">
+        <div className="bg-sky-950/60 p-3 rounded-2xl border border-sky-400/30 flex items-center gap-2 text-xs text-sky-200 shadow-sm backdrop-blur-md">
           <Info className="w-4 h-4 text-sky-400 shrink-0" />
           <span>
             <b>القاعدة الذهبية:</b> خطوة واحدة كل مرة — شوف الكويز أو التسليم الأقرب، وبعدها ذاكر المادة الأعلى أولوية.
@@ -331,36 +331,36 @@ export const UniversityWorkspace: React.FC = () => {
 
         {/* Ahmed's 5 Quick Workload KPIs */}
         <div className="grid grid-cols-5 gap-1.5 text-center">
-          <div className="bg-slate-950/60 p-2 rounded-2xl border border-slate-800">
+          <div className="apple-widget p-2.5 rounded-2xl">
             <div className="text-[9px] text-slate-400 font-bold">باقي عالميد</div>
             <div className="text-xs font-black text-red-400 font-mono mt-0.5">{daysToMidterm} يوم</div>
           </div>
-          <div className="bg-slate-950/60 p-2 rounded-2xl border border-slate-800">
+          <div className="apple-widget p-2.5 rounded-2xl">
             <div className="text-[9px] text-slate-400 font-bold">للمذاكرة</div>
-            <div className="text-xs font-black text-sky-400 font-mono mt-0.5">{lecturesToStudyCount} مح</div>
+            <div className="text-xs font-black text-sky-300 font-mono mt-0.5">{lecturesToStudyCount} مح</div>
           </div>
-          <div className="bg-slate-950/60 p-2 rounded-2xl border border-slate-800">
+          <div className="apple-widget p-2.5 rounded-2xl">
             <div className="text-[9px] text-slate-400 font-bold">جاهز للتسليم</div>
             <div className="text-xs font-black text-emerald-400 font-mono mt-0.5">{readyToSubmitCount} واجب</div>
           </div>
-          <div className="bg-slate-950/60 p-2 rounded-2xl border border-slate-800">
+          <div className="apple-widget p-2.5 rounded-2xl">
             <div className="text-[9px] text-slate-400 font-bold">كويز 7 أيام</div>
             <div className="text-xs font-black text-amber-400 font-mono mt-0.5">{quizzesNext7Days}</div>
           </div>
-          <div className="bg-slate-950/60 p-2 rounded-2xl border border-slate-800">
+          <div className="apple-widget p-2.5 rounded-2xl">
             <div className="text-[9px] text-slate-400 font-bold">NASA & Sciora</div>
-            <div className="text-xs font-black text-purple-400 font-mono mt-0.5">{openActivityCount} نشاط</div>
+            <div className="text-xs font-black text-purple-300 font-mono mt-0.5">{openActivityCount} نشاط</div>
           </div>
         </div>
 
         {/* Ahmed's 6 Sub-Tabs Navigation */}
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 p-1 rounded-2xl bg-slate-950/80 neo-sunken border border-slate-800 text-[11px] font-bold">
+        <div className="apple-segmented-container grid grid-cols-3 sm:grid-cols-6 gap-1 text-[11px] font-bold">
           <button
             type="button"
             onClick={() => setActiveTab('LECTURES')}
-            className={`py-2 px-1.5 rounded-xl transition-all flex items-center justify-center gap-1 pressable cursor-pointer ${
+            className={`py-2 px-1.5 rounded-2xl transition-all flex items-center justify-center gap-1.5 pressable cursor-pointer ${
               activeTab === 'LECTURES'
-                ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-slate-950 font-black shadow-md shadow-sky-500/25'
+                ? 'apple-pill-active'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -371,9 +371,9 @@ export const UniversityWorkspace: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('ASSIGNMENTS')}
-            className={`py-2 px-1.5 rounded-xl transition-all flex items-center justify-center gap-1 pressable cursor-pointer ${
+            className={`py-2 px-1.5 rounded-2xl transition-all flex items-center justify-center gap-1.5 pressable cursor-pointer ${
               activeTab === 'ASSIGNMENTS'
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-black shadow-md shadow-emerald-500/25'
+                ? 'apple-pill-active'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -384,9 +384,9 @@ export const UniversityWorkspace: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('QUIZZES')}
-            className={`py-2 px-1.5 rounded-xl transition-all flex items-center justify-center gap-1 pressable cursor-pointer ${
+            className={`py-2 px-1.5 rounded-2xl transition-all flex items-center justify-center gap-1.5 pressable cursor-pointer ${
               activeTab === 'QUIZZES'
-                ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-slate-950 font-black shadow-md shadow-amber-500/25'
+                ? 'apple-pill-active'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -397,9 +397,9 @@ export const UniversityWorkspace: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('TIMETABLE')}
-            className={`py-2 px-1.5 rounded-xl transition-all flex items-center justify-center gap-1 pressable cursor-pointer ${
+            className={`py-2 px-1.5 rounded-2xl transition-all flex items-center justify-center gap-1.5 pressable cursor-pointer ${
               activeTab === 'TIMETABLE'
-                ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-black shadow-md shadow-blue-500/25'
+                ? 'apple-pill-active'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -410,9 +410,9 @@ export const UniversityWorkspace: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('ACTIVITIES')}
-            className={`py-2 px-1.5 rounded-xl transition-all flex items-center justify-center gap-1 pressable cursor-pointer ${
+            className={`py-2 px-1.5 rounded-2xl transition-all flex items-center justify-center gap-1.5 pressable cursor-pointer ${
               activeTab === 'ACTIVITIES'
-                ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-black shadow-md shadow-purple-500/25'
+                ? 'apple-pill-active'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -423,9 +423,9 @@ export const UniversityWorkspace: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('SKILLS')}
-            className={`py-2 px-1.5 rounded-xl transition-all flex items-center justify-center gap-1 pressable cursor-pointer ${
+            className={`py-2 px-1.5 rounded-2xl transition-all flex items-center justify-center gap-1.5 pressable cursor-pointer ${
               activeTab === 'SKILLS'
-                ? 'bg-gradient-to-r from-fuchsia-500 to-pink-600 text-white font-black shadow-md shadow-fuchsia-500/25'
+                ? 'apple-pill-active'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >

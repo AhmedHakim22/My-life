@@ -180,9 +180,9 @@ export const JournalWorkspace: React.FC = () => {
       <div className="absolute top-0 right-10 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
 
       {/* Header */}
-      <header className="glass-panel rounded-3xl p-4.5 flex items-center justify-between border border-white/10 shadow-xl shadow-black/40">
+      <header className="apple-card rounded-[28px] p-5 flex items-center justify-between shadow-xl">
         <div>
-          <span className="text-[11px] font-bold text-emerald-400 tracking-wider uppercase">
+          <span className="text-[11px] font-black text-emerald-400 tracking-wider uppercase">
             العقل الثاني • الملاحظات والتأمل الخاص
           </span>
           <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-2 mt-0.5">
@@ -190,24 +190,24 @@ export const JournalWorkspace: React.FC = () => {
           </h1>
         </div>
 
-        <div className="flex items-center gap-1.5 text-[10px] font-bold bg-emerald-950/80 text-emerald-300 px-3 py-1.5 rounded-full border border-emerald-700/50 shadow-inner">
+        <div className="flex items-center gap-1.5 text-[10px] font-black bg-emerald-950/80 text-emerald-300 px-3 py-1.5 rounded-full border border-emerald-500/40 shadow-sm">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
           <span>مشفرة محلياً 100%</span>
         </div>
       </header>
 
       {/* Word Book Export Action Banner */}
-      <div className="glass-panel rounded-2xl p-3.5 border border-emerald-500/25 bg-gradient-to-r from-emerald-950/40 via-slate-900/70 to-teal-950/40 flex items-center justify-between gap-3 shadow-lg">
+      <div className="apple-card rounded-3xl p-4 border border-emerald-400/40 bg-gradient-to-r from-emerald-950/40 via-slate-900/70 to-teal-950/40 flex items-center justify-between gap-3 shadow-xl">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-slate-950 shadow-md shrink-0">
-            <BookOpen className="w-5 h-5 stroke-[2.2]" />
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-slate-950 shadow-md shadow-emerald-500/30 shrink-0">
+            <BookOpen className="w-5 h-5 stroke-[2.5]" />
           </div>
           <div>
-            <div className="text-xs font-bold text-white flex items-center gap-1.5">
+            <div className="text-xs font-black text-white flex items-center gap-1.5">
               <span>تصدير كتاب المذكرات والخواطر</span>
-              <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-full font-mono font-bold">Word DOC</span>
+              <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-mono font-bold border border-emerald-500/30">Word DOC</span>
             </div>
-            <p className="text-[10px] text-slate-400 line-clamp-1">
+            <p className="text-[10px] text-slate-300 line-clamp-1 mt-0.5">
               حوّل تدويناتك واقتباساتك إلى كتاب وورد منسق ومجهز للطباعة ({journalEntries.length} تدوينات)
             </p>
           </div>
@@ -216,7 +216,7 @@ export const JournalWorkspace: React.FC = () => {
         <button
           type="button"
           onClick={() => setIsExportModalOpen(true)}
-          className="shrink-0 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs py-2 px-3.5 rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-500/20 pressable cursor-pointer"
+          className="shrink-0 bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-teal-400 text-slate-950 font-black text-xs py-2.5 px-4 rounded-2xl flex items-center gap-1.5 shadow-lg shadow-emerald-500/25 pressable cursor-pointer"
         >
           <FileDown className="w-4 h-4 stroke-[2.5]" />
           <span>تصدير كتاب</span>
@@ -224,13 +224,13 @@ export const JournalWorkspace: React.FC = () => {
       </div>
 
       {/* Mode Selector Segmented Control */}
-      <div className="grid grid-cols-2 p-1 rounded-2xl bg-slate-950/80 neo-sunken border border-slate-800 text-xs font-bold">
+      <div className="apple-segmented-container grid grid-cols-2 gap-1 text-xs font-bold">
         <button
           type="button"
           onClick={() => setMode('GUIDED_5_PROMPTS')}
-          className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2 pressable cursor-pointer ${
+          className={`py-2 px-3 rounded-2xl transition-all flex items-center justify-center gap-2 pressable cursor-pointer ${
             mode === 'GUIDED_5_PROMPTS'
-              ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-extrabold shadow-md shadow-emerald-500/25'
+              ? 'apple-pill-active'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -241,9 +241,9 @@ export const JournalWorkspace: React.FC = () => {
         <button
           type="button"
           onClick={() => setMode('FREE_WRITING')}
-          className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2 pressable cursor-pointer ${
+          className={`py-2 px-3 rounded-2xl transition-all flex items-center justify-center gap-2 pressable cursor-pointer ${
             mode === 'FREE_WRITING'
-              ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-extrabold shadow-md shadow-emerald-500/25'
+              ? 'apple-pill-active'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >

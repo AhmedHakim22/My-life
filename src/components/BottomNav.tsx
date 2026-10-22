@@ -33,7 +33,7 @@ export const BottomNav: React.FC = () => {
   return (
     <>
       {/* Apple iOS Floating Glass Dock */}
-      <nav className="fixed bottom-3 left-3 right-3 z-40 bg-slate-900/85 backdrop-blur-3xl border border-white/10 rounded-[28px] px-3 shadow-[0_12px_40px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.15)] sm:hidden">
+      <nav className="fixed bottom-3 left-3 right-3 z-40 bg-slate-950/80 backdrop-blur-3xl border border-sky-400/30 rounded-[30px] px-3.5 shadow-[0_16px_45px_rgba(0,0,0,0.75),inset_0_1px_1px_rgba(255,255,255,0.35),0_0_25px_rgba(56,189,248,0.18)] sm:hidden">
         <div className="max-w-md mx-auto flex items-center justify-between h-15 relative">
           {mainNavItems.map((item, index) => {
             const isActive = activeTab === item.id;
@@ -46,11 +46,11 @@ export const BottomNav: React.FC = () => {
                       type="button"
                       onClick={() => setQuickCaptureOpen(true)}
                       aria-label="تسجيل سريع"
-                      className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-sky-400 via-sky-500 to-sky-600 text-slate-950 flex items-center justify-center shadow-xl shadow-sky-500/40 border border-sky-200/50 active:scale-90 transition-transform cursor-pointer group"
+                      className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-sky-300 via-sky-400 to-sky-500 text-slate-950 flex items-center justify-center shadow-xl shadow-sky-400/50 border border-white/60 active:scale-90 transition-transform cursor-pointer group"
                     >
                       <Plus className="w-6 h-6 stroke-[3] group-hover:rotate-90 transition-transform duration-300" />
                     </button>
-                    <span className="text-[9px] font-extrabold text-sky-400/95 mt-0.5 tracking-wide">إضافة</span>
+                    <span className="text-[9px] font-black text-sky-300 mt-0.5 tracking-wide drop-shadow-[0_0_6px_rgba(56,189,248,0.6)]">إضافة</span>
                   </div>
                 )}
 
@@ -59,14 +59,14 @@ export const BottomNav: React.FC = () => {
                   onClick={() => handleNavClick(item.id)}
                   className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-2xl transition-all duration-200 pressable cursor-pointer ${
                     isActive 
-                      ? 'bg-sky-500/15 text-sky-300 border border-sky-400/30 shadow-[0_0_14px_rgba(14,165,233,0.25)]' 
+                      ? 'bg-sky-400/20 text-sky-200 border border-sky-300/40 shadow-[0_0_18px_rgba(56,189,248,0.45)]' 
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  <div className={`transition-all duration-200 ${isActive ? 'scale-110 drop-shadow-[0_0_8px_rgba(56,189,248,0.6)]' : ''}`}>
+                  <div className={`transition-all duration-200 ${isActive ? 'scale-110 drop-shadow-[0_0_10px_rgba(56,189,248,0.8)]' : ''}`}>
                     {item.icon}
                   </div>
-                  <span className={`text-[10px] mt-0.5 tracking-tight ${isActive ? 'font-black text-sky-300' : 'font-medium'}`}>
+                  <span className={`text-[10px] mt-0.5 tracking-tight ${isActive ? 'font-black text-sky-200' : 'font-medium'}`}>
                     {item.label}
                   </span>
                 </button>
