@@ -205,6 +205,7 @@ export interface StudySession {
   fsrsDifficulty: number;
   fsrsLastReview?: string;
   fsrsNextReview?: string;
+  updatedAt?: string;
 }
 
 export interface TimetableSlot {

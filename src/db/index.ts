@@ -527,3 +527,34 @@ export async function cleanupLegacyDemoArtifacts(): Promise<void> {
     }
   });
 }
+
+/**
+ * Automatically repairs existing lectures for any subject where lectures
+ * were saved with duplicate numbers (e.g. multiple "محاضرة 1") or missing lecture numbers.
+ * Assigns sequential 1, 2, 3... order based on creation/id.
+ */
+export async function repairDuplicateLectureNumbersIfNeeded(): Promise<void> {
+  const sessions = await db.studySessions.toArray();
+  if (sessions.length === 0) return;
+
+  const bySubject = new Map<string, typeof sessions>();
+  for (const s of sessions) {
+    if (!bySubject.has(s.subjectId)) bySubject.set(s.subjectId, []);
+    bySubject.get(s.subjectId)!.push(s);
+  }
+
+  for (const [_, list] of bySubject.entries()) {
+    const duplicateOrMissing = list.filter(s => !s.lectureNumber || s.lectureNumber === 1);
+    if (duplicateOrMissing.length > 1) {
+      list.sort((a, b) => a.id.localeCompare(b.id));
+      for (let i = 0; i < list.length; i++) {
+        const expectedNum = i + 1;
+        if (list[i].lectureNumber !== expectedNum) {
+          list[i].lectureNumber = expectedNum;
+          list[i].updatedAt = new Date().toISOString();
+          await db.studySessions.put(list[i]);
+        }
+      }
+    }
+  }
+}

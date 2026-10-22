@@ -20,7 +20,7 @@ import { NotificationSettingsModal } from './components/NotificationSettingsModa
 import { DynamicIslandWidget } from './components/DynamicIslandWidget';
 import { WifiOff, Loader2, BookMarked, GraduationCap, X } from 'lucide-react';
 import { getNotificationSettings, sendLocalNotification } from './lib/notifications';
-import { subscribeToRealtimeSync, registerRemoteChangeHandler, pullAllFromSupabase } from './lib/sync';
+import { subscribeToRealtimeSync, registerRemoteChangeHandler, pullAllFromSupabase, flushAutoPush } from './lib/sync';
 
 export const App: React.FC = () => {
   const { 
@@ -65,10 +65,20 @@ export const App: React.FC = () => {
       }
     };
 
+    // 4. Instantly flush any pending writes before app is backgrounded or tab closed
+    const handleFlushOnLeave = () => {
+      if (document.visibilityState === 'hidden') {
+        void flushAutoPush();
+      }
+    };
+
     window.addEventListener('focus', handleSyncOnResume);
     document.addEventListener('visibilitychange', handleSyncOnResume);
+    document.addEventListener('visibilitychange', handleFlushOnLeave);
+    window.addEventListener('pagehide', handleFlushOnLeave);
+    window.addEventListener('beforeunload', handleFlushOnLeave);
 
-    // 4. Periodic background sync every 60s
+    // 5. Periodic background sync every 60s
     const periodicSync = setInterval(async () => {
       if (navigator.onLine && document.visibilityState === 'visible') {
         const res = await pullAllFromSupabase();
@@ -90,6 +100,9 @@ export const App: React.FC = () => {
     return () => {
       window.removeEventListener('focus', handleSyncOnResume);
       document.removeEventListener('visibilitychange', handleSyncOnResume);
+      document.removeEventListener('visibilitychange', handleFlushOnLeave);
+      window.removeEventListener('pagehide', handleFlushOnLeave);
+      window.removeEventListener('beforeunload', handleFlushOnLeave);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       clearInterval(periodicSync);

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { db, seedInitialDataIfNeeded, seedAhmedStudyPlannerIfNeeded, cleanupLegacyDemoArtifacts, requestPersistentStorage } from '../db';
+import { db, seedInitialDataIfNeeded, seedAhmedStudyPlannerIfNeeded, cleanupLegacyDemoArtifacts, requestPersistentStorage, repairDuplicateLectureNumbersIfNeeded } from '../db';
 import type {
   LifeDomain,
   Goal,
@@ -228,6 +228,7 @@ interface AppState {
     priority?: 'High' | 'Normal';
     notes?: string;
   }) => Promise<string>;
+  updateStudySession: (sessionId: string, updates: Partial<StudySession>) => Promise<void>;
   deleteStudySession: (sessionId: string) => Promise<void>;
   updateSessionStatus: (sessionId: string, newStatus: StudySession['status']) => Promise<void>;
   recordStudyReview: (sessionId: string, grade: StudyGrade) => Promise<void>;
@@ -466,6 +467,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     await seedAhmedStudyPlannerIfNeeded();
     // Automatic cleanup of legacy v1 demo artifacts (e.g. Band Gap Engineering task)
     await cleanupLegacyDemoArtifacts();
+    // Repair any duplicate/missing lecture numbers across subjects
+    await repairDuplicateLectureNumbersIfNeeded();
 
     const [
       domains,
@@ -1372,12 +1375,13 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   addStudySession: async (session) => {
     const id = `session-${Date.now()}`;
+    const now = new Date().toISOString();
     await db.studySessions.add({
       id,
       subjectId: session.subjectId,
       title: session.title,
       type: session.type,
-      lectureNumber: session.lectureNumber,
+      lectureNumber: session.lectureNumber || 1,
       materialReady: session.materialReady ?? false,
       studyDone: session.studyDone ?? false,
       reviseDone: session.reviseDone ?? false,
@@ -1386,11 +1390,28 @@ export const useAppStore = create<AppState>((set, get) => ({
       notes: session.notes,
       status: session.status || 'STUDIED',
       fsrsStability: 0,
-      fsrsDifficulty: 0
+      fsrsDifficulty: 0,
+      updatedAt: now
     });
-    await get().loadAllData();
+    await get().loadAllData(true);
+    scheduleAutoPush(100);
     get().showToast(`تمت إضافة "${session.title}" بنجاح 📝`);
     return id;
+  },
+
+  updateStudySession: async (sessionId, updates) => {
+    const session = get().studySessions.find(s => s.id === sessionId);
+    if (!session) return;
+    const now = new Date().toISOString();
+    const updated = {
+      ...session,
+      ...updates,
+      updatedAt: now
+    };
+    await db.studySessions.put(updated);
+    await get().loadAllData(true);
+    scheduleAutoPush(100);
+    get().showToast('تم حفظ تعديلات المحاضرة بنجاح ✨');
   },
 
   deleteStudySession: async (sessionId) => {
@@ -1404,9 +1425,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     const now = new Date().toISOString();
     await db.studySessions.update(sessionId, {
       status: newStatus,
-      submittedDate: newStatus === 'SUBMITTED' ? now : undefined
+      submittedDate: newStatus === 'SUBMITTED' ? now : undefined,
+      updatedAt: now
     });
-    await get().loadAllData();
+    await get().loadAllData(true);
+    scheduleAutoPush(100);
     get().showToast(`تم تحديث حالة الجلسة إلى: ${newStatus}`);
   },
 
@@ -1422,7 +1445,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       fsrsStability: fsrsRes.stability,
       fsrsDifficulty: fsrsRes.difficulty,
       fsrsLastReview: now,
-      fsrsNextReview: fsrsRes.nextReviewDate.toISOString().split('T')[0]
+      fsrsNextReview: fsrsRes.nextReviewDate.toISOString().split('T')[0],
+      updatedAt: now
     });
 
     // Award review XP
@@ -1435,7 +1459,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       createdAt: now
     });
 
-    await get().loadAllData();
+    await get().loadAllData(true);
+    scheduleAutoPush(100);
     get().showToast(`تم تسجيل المراجعة! الميعاد القادم بعد ${fsrsRes.daysUntilNext} أيام (+30 XP) 📚`);
   },
 
@@ -1446,7 +1471,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const now = new Date().toISOString();
     const todayStr = now.split('T')[0];
-    const updates: Partial<StudySession> = {};
+    const updates: Partial<StudySession> = {
+      updatedAt: now
+    };
 
     if (step === 'material') {
       updates.materialReady = !session.materialReady;
@@ -1497,8 +1524,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     }
 
-    await db.studySessions.update(sessionId, updates);
-    await get().loadAllData();
+    const updated = { ...session, ...updates };
+    await db.studySessions.put(updated);
+    await get().loadAllData(true);
+    scheduleAutoPush(100);
   },
 
   addQuiz: async (quizData) => {

@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 import { db } from '../db';
+import type { StudySession } from '../types';
 
 /**
  * Transforms an object's keys from camelCase to snake_case for PostgreSQL.
@@ -195,6 +196,81 @@ export const SHADOW_SYNC_COLLECTIONS = [
 export const SHADOW_STATE_ROW_ID = 'sys-shadow-state-sync';
 
 /**
+ * Non-destructive reconciliation for StudySession records.
+ * Guarantees that completed checkmarks (materialReady, studyDone, etc.) and lectureNumber
+ * are NEVER wiped by remote pulls with missing columns, un-timestamped nulls, or stale snapshots.
+ */
+export function mergeStudySessionRecord(
+  existing: StudySession | undefined,
+  incoming: Partial<StudySession>
+): StudySession {
+  if (!existing) {
+    return {
+      id: incoming.id || `session-${Date.now()}`,
+      subjectId: incoming.subjectId || '',
+      type: incoming.type || 'LECTURE',
+      title: incoming.title || 'محاضرة بدون عنوان',
+      lectureNumber: incoming.lectureNumber && incoming.lectureNumber > 0 ? incoming.lectureNumber : 1,
+      status: incoming.status || 'STUDIED',
+      materialReady: incoming.materialReady === true,
+      studyDone: incoming.studyDone === true,
+      reviseDone: incoming.reviseDone === true,
+      solveDone: incoming.solveDone === true,
+      priority: incoming.priority || 'Normal',
+      notes: incoming.notes,
+      fsrsStability: incoming.fsrsStability || 0,
+      fsrsDifficulty: incoming.fsrsDifficulty || 0,
+      fsrsLastReview: incoming.fsrsLastReview,
+      fsrsNextReview: incoming.fsrsNextReview,
+      submittedDate: incoming.submittedDate,
+      updatedAt: incoming.updatedAt || new Date().toISOString()
+    };
+  }
+
+  const existingTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+  const incomingTime = incoming.updatedAt ? new Date(incoming.updatedAt).getTime() : 0;
+  const incomingIsStrictlyNewer = incomingTime > 0 && incomingTime > existingTime;
+
+  const mergeCheck = (
+    existingVal: boolean | undefined,
+    incomingVal: boolean | undefined | null
+  ): boolean => {
+    if (incomingIsStrictlyNewer && incomingVal !== undefined && incomingVal !== null) {
+      return Boolean(incomingVal);
+    }
+    // Truth preservation (OR-Set): if either local or incoming is true, keep true!
+    return Boolean(existingVal || incomingVal);
+  };
+
+  const merged: StudySession = {
+    ...existing,
+    ...incoming,
+    id: existing.id,
+    subjectId: incoming.subjectId || existing.subjectId,
+    type: incoming.type || existing.type,
+    title: incoming.title || existing.title,
+    lectureNumber: (existing.lectureNumber && existing.lectureNumber > 0)
+      ? existing.lectureNumber
+      : (incoming.lectureNumber && incoming.lectureNumber > 0 ? incoming.lectureNumber : 1),
+    materialReady: mergeCheck(existing.materialReady, incoming.materialReady),
+    studyDone: mergeCheck(existing.studyDone, incoming.studyDone),
+    reviseDone: mergeCheck(existing.reviseDone, incoming.reviseDone),
+    solveDone: mergeCheck(existing.solveDone, incoming.solveDone),
+    priority: incoming.priority || existing.priority || 'Normal',
+    notes: incoming.notes || existing.notes,
+    status: (incomingIsStrictlyNewer && incoming.status) ? incoming.status : (existing.status || incoming.status || 'STUDIED'),
+    fsrsStability: incoming.fsrsStability ?? existing.fsrsStability,
+    fsrsDifficulty: incoming.fsrsDifficulty ?? existing.fsrsDifficulty,
+    fsrsLastReview: incoming.fsrsLastReview || existing.fsrsLastReview,
+    fsrsNextReview: incoming.fsrsNextReview || existing.fsrsNextReview,
+    submittedDate: incoming.submittedDate || existing.submittedDate,
+    updatedAt: incomingIsStrictlyNewer ? incoming.updatedAt! : (existing.updatedAt || new Date().toISOString())
+  };
+
+  return merged;
+}
+
+/**
  * Deletes a record from remote Supabase table, records a local tombstone,
  * and queues deletion in Dexie syncQueue if offline.
  * Prevents zombie resurrection across devices permanently.
@@ -290,9 +366,13 @@ export async function unpackShadowState(rawPayload: string | Record<string, any>
             await table.bulkPut(records);
           }
         } else if (col === 'studySessions') {
-          // Put all full studySessions records preserving all checkmarks
+          // Merge full studySessions records preserving all checkmarks
           if (records.length > 0) {
-            await table.bulkPut(records);
+            for (const rec of records) {
+              const existing = await table.get(rec.id);
+              const merged = mergeStudySessionRecord(existing, rec);
+              await table.put(merged);
+            }
           }
         } else {
           await table.clear();
@@ -502,17 +582,8 @@ export async function pullAllFromSupabase(): Promise<SyncPullResult> {
             if (mapping.dexie === 'studySessions') {
               for (const remoteRec of localRecords) {
                 const existing = await table.get(remoteRec.id);
-                if (existing) {
-                  const merged = { ...remoteRec };
-                  for (const key of ['materialReady', 'studyDone', 'reviseDone', 'solveDone', 'lectureNumber', 'priority', 'notes']) {
-                    if (existing[key] !== undefined && remoteRec[key] === undefined) {
-                      merged[key] = existing[key];
-                    }
-                  }
-                  await table.put(merged);
-                } else {
-                  await table.put(remoteRec);
-                }
+                const merged = mergeStudySessionRecord(existing, remoteRec);
+                await table.put(merged);
               }
             } else {
               await table.bulkPut(localRecords);
@@ -631,17 +702,8 @@ export function subscribeToRealtimeSync(): void {
                 }
                 if (mapping.dexie === 'studySessions') {
                   const existing = await dexieTable.get(localRecord.id);
-                  if (existing) {
-                    const merged = { ...localRecord };
-                    for (const key of ['materialReady', 'studyDone', 'reviseDone', 'solveDone', 'lectureNumber', 'priority', 'notes']) {
-                      if (existing[key] !== undefined && localRecord[key] === undefined) {
-                        merged[key] = existing[key];
-                      }
-                    }
-                    await dexieTable.put(merged);
-                  } else {
-                    await dexieTable.put(localRecord);
-                  }
+                  const merged = mergeStudySessionRecord(existing, localRecord);
+                  await dexieTable.put(merged);
                 } else {
                   await dexieTable.put(localRecord);
                 }
@@ -682,10 +744,10 @@ export function subscribeToRealtimeSync(): void {
 }
 
 /**
- * Schedule a debounced background push whenever local data is edited.
+ * Schedule a fast background push whenever local data is edited.
  * Keeps Laptop and Phone synchronized automatically without manual clicking!
  */
-export function scheduleAutoPush(delayMs = 1500): void {
+export function scheduleAutoPush(delayMs = 400): void {
   if (!isSupabaseConfigured || !supabase || (typeof navigator !== 'undefined' && !navigator.onLine)) return;
 
   if (autoPushTimer) clearTimeout(autoPushTimer);
@@ -698,4 +760,23 @@ export function scheduleAutoPush(delayMs = 1500): void {
       console.debug('Background auto-push quiet error:', err);
     }
   }, delayMs);
+}
+
+/**
+ * Instantly flushes any pending auto-push without waiting for debounce timers.
+ * Triggered on mobile app blur, visibility change to hidden, or pagehide.
+ */
+export async function flushAutoPush(): Promise<void> {
+  if (autoPushTimer) {
+    clearTimeout(autoPushTimer);
+    autoPushTimer = null;
+  }
+  if (!isSupabaseConfigured || !supabase || (typeof navigator !== 'undefined' && !navigator.onLine)) return;
+
+  try {
+    await pushAllToSupabase();
+    await processSyncQueue();
+  } catch (err) {
+    console.debug('Flush auto-push quiet error:', err);
+  }
 }

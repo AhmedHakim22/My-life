@@ -42,6 +42,7 @@ export const UniversityWorkspace: React.FC = () => {
     updateUniversitySubject,
     deleteUniversitySubject,
     addStudySession,
+    updateStudySession,
     deleteStudySession,
     toggleLectureStep,
     addQuiz,
@@ -96,6 +97,13 @@ export const UniversityWorkspace: React.FC = () => {
   const [newLectureTitle, setNewLectureTitle] = useState('');
   const [newLectureNum, setNewLectureNum] = useState<number>(1);
   const [newLectureNotes, setNewLectureNotes] = useState('');
+
+  // Form State: Edit Lecture
+  const [editingLecture, setEditingLecture] = useState<StudySession | null>(null);
+  const [editLectureNum, setEditLectureNum] = useState<number>(1);
+  const [editLectureTitle, setEditLectureTitle] = useState<string>('');
+  const [editLectureNotes, setEditLectureNotes] = useState<string>('');
+  const [editLecturePriority, setEditLecturePriority] = useState<'High' | 'Normal'>('Normal');
 
   // Form State: Assignment
   const [asgnName, setAsgnName] = useState('');
@@ -234,6 +242,29 @@ export const UniversityWorkspace: React.FC = () => {
     setNewLectureTitle('');
     setNewLectureNotes('');
     setIsAddLectureOpen(false);
+    fireConfettiSuccess();
+  };
+
+  const openEditLectureModal = (session: StudySession) => {
+    setEditingLecture(session);
+    setEditLectureNum(session.lectureNumber || 1);
+    setEditLectureTitle(session.title);
+    setEditLectureNotes(session.notes || '');
+    setEditLecturePriority(session.priority || 'Normal');
+  };
+
+  const handleSaveEditLecture = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLecture || !editLectureTitle.trim()) return;
+
+    await updateStudySession(editingLecture.id, {
+      lectureNumber: Number(editLectureNum) || 1,
+      title: editLectureTitle.trim(),
+      notes: editLectureNotes.trim() || undefined,
+      priority: editLecturePriority
+    });
+
+    setEditingLecture(null);
     fireConfettiSuccess();
   };
 
@@ -628,6 +659,15 @@ export const UniversityWorkspace: React.FC = () => {
                       >
                         <RotateCw className="w-3.5 h-3.5 text-purple-400" />
                         <span>FSRS</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => openEditLectureModal(session)}
+                        className="p-1.5 text-slate-400 hover:text-sky-300 hover:bg-slate-800/80 rounded-lg transition pressable cursor-pointer"
+                        title="تعديل المحاضرة"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-sky-400" />
                       </button>
 
                       <button
@@ -1517,6 +1557,96 @@ export const UniversityWorkspace: React.FC = () => {
                   className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl shadow-md pressable cursor-pointer"
                 >
                   حفظ المحاضرة
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL: EDIT LECTURE                                      */}
+      {/* ======================================================== */}
+      {editingLecture && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-sky-500/40 rounded-3xl w-full max-w-sm p-5 space-y-4 shadow-2xl" dir="rtl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-sky-400" />
+                <h3 className="text-sm font-bold text-white">تعديل المحاضرة</h3>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setEditingLecture(null)}
+                className="text-slate-400 hover:text-slate-200 p-1 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditLecture} className="space-y-3">
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-1">
+                  <label className="text-[11px] text-slate-400 font-bold block mb-1">رقم المحاضرة:</label>
+                  <input
+                    type="number"
+                    value={editLectureNum}
+                    onChange={e => setEditLectureNum(Number(e.target.value))}
+                    min={1}
+                    required
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500 font-mono text-center"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-[11px] text-slate-400 font-bold block mb-1">عنوان المحاضرة:</label>
+                  <input
+                    type="text"
+                    value={editLectureTitle}
+                    onChange={e => setEditLectureTitle(e.target.value)}
+                    placeholder="مثال: Lecture 2 — Data Structures"
+                    required
+                    autoFocus
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] text-slate-400 font-bold block mb-1">الأولوية:</label>
+                <select
+                  value={editLecturePriority}
+                  onChange={e => setEditLecturePriority(e.target.value as 'High' | 'Normal')}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                >
+                  <option value="Normal">أولوية عادية (Normal)</option>
+                  <option value="High">أولوية قصوى (High Priority ⭐)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] text-slate-400 font-bold block mb-1">ملاحظات وروابط (اختياري):</label>
+                <textarea
+                  value={editLectureNotes}
+                  onChange={e => setEditLectureNotes(e.target.value)}
+                  placeholder="ملاحظات أو رابط سلايدات..."
+                  rows={2}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500 resize-none"
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingLecture(null)}
+                  className="text-xs text-slate-400 hover:text-slate-200 px-3 py-1.5 cursor-pointer"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl shadow-md pressable cursor-pointer"
+                >
+                  حفظ التعديلات
                 </button>
               </div>
             </form>
