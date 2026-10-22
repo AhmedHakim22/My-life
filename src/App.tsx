@@ -15,6 +15,7 @@ import { FitnessWorkspace } from './components/FitnessWorkspace';
 import { ChallengesWorkspace } from './components/ChallengesWorkspace';
 import { WeeklyScheduleWorkspace } from './components/WeeklyScheduleWorkspace';
 import { QuickCaptureModal } from './components/QuickCaptureModal';
+import { DynamicIslandWidget } from './components/DynamicIslandWidget';
 import { WifiOff, Loader2, BookMarked, GraduationCap } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -58,6 +59,9 @@ export const App: React.FC = () => {
 
       {/* Responsive Top Header Navigation (Tablet & Desktop) */}
       <HeaderNav />
+
+      {/* Apple Dynamic Island Live Activity Floating Widget */}
+      <DynamicIslandWidget />
 
       {/* Main Responsive Container */}
       <main className="flex-1 max-w-md sm:max-w-3xl lg:max-w-6xl w-full mx-auto px-3 sm:px-6">
