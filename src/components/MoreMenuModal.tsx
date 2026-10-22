@@ -68,8 +68,8 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({ isOpen, onClose })
         },
         {
           id: 'FALCON' as ActiveTab,
-          label: 'فالكون — الشريك المؤسس',
-          desc: 'مشاريع البراند، الحملات، والمهام الشخصية',
+          label: 'العمل والمشاريع',
+          desc: 'مشاريع العمل، الحملات، والمهام المهنية',
           icon: <Briefcase className="w-5 h-5 text-amber-400" />,
           color: 'from-amber-500/10 to-yellow-500/10 border-amber-500/20'
         },

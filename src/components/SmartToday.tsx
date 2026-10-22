@@ -441,7 +441,7 @@ export const SmartToday: React.FC = () => {
           </div>
           <h3 className="text-base font-bold text-white">يومك منظم ورايق ومفيش مهام متأخرة! ✨</h3>
           <p className="text-xs text-[#8e8e93] max-w-xs mx-auto">
-            تقدر تقرأ صفحتين في كتاب النانو، أو تسجل فكرة جديدة لفالكون، أو تضيف مهمة من علامة (+) بالأسفل.
+            تقدر تقرأ صفحتين في كتاب النانو، أو تسجل فكرة جديدة للعمل، أو تضيف مهمة من علامة (+) بالأسفل.
           </p>
         </section>
       )}

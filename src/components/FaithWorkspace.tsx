@@ -679,7 +679,7 @@ export const FaithWorkspace: React.FC = () => {
               <HeartHandshake className="w-10 h-10 text-emerald-400/50 mx-auto" />
               <h4 className="text-sm font-bold text-white">لم تقم بإضافة نيات خاصة بعد</h4>
               <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-                النية تحول العمل العادي إلى عبادة. يمكنك صياغة نياتك لدراسة النانوتكنولوجي، بر الوالدين، متجر فالكون، والتعلم وربطها بأهدافك.
+                النية تحول العمل العادي إلى عبادة. يمكنك صياغة نياتك لدراسة النانوتكنولوجي، بر الوالدين، مهام العمل، والتعلم وربطها بأهدافك.
               </p>
             </div>
           ) : (

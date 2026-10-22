@@ -586,7 +586,7 @@ export const GoalsWorkspace: React.FC = () => {
                   type="text"
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
-                  placeholder="مثال: التأهل لتدريب أشباه الموصلات، إطلاق أول تشكيلة فالكون..."
+                  placeholder="مثال: التأهل لتدريب أشباه الموصلات، إطلاق مشروع عمل جديد..."
                   required
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-400"
                 />

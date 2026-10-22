@@ -183,7 +183,7 @@ export async function seedInitialDataIfNeeded(): Promise<void> {
     },
     {
       id: 'dom-falcon',
-      name: 'فالكون — براند الكفرات والإكسسوارات',
+      name: 'العمل — المشاريع والريادة',
       icon: 'Briefcase',
       color: '#f59e0b',
       sortOrder: 2,

@@ -86,10 +86,10 @@ export function recommendBestNextAction(
           }
         }
       }
-    } else if (task.title.includes('فالكون') || task.title.includes('Falcon')) {
+    } else if (task.title.includes('عمل') || task.title.includes('العمل') || task.title.includes('فالكون') || task.title.includes('Falcon')) {
       category = 'BUSINESS';
       score += 15;
-      if (!rationale) rationale = 'مسؤولية ريادية لتطوير فالكون';
+      if (!rationale) rationale = 'مسؤولية مهنية لتطوير العمل ومشاريعك';
     }
 
     // 4. Due Date proximity

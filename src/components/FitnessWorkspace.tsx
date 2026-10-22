@@ -388,10 +388,10 @@ export const FitnessWorkspace: React.FC = () => {
           <div className="glass-panel border border-slate-800 rounded-3xl p-4.5 space-y-2">
             <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
               <Briefcase className="w-4 h-4" />
-              <span>ميزانية عمل فالكون الأسبوعية</span>
+              <span>ميزانية ساعات العمل الأسبوعية</span>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              يتم حجز كتل زمنية ثابتة لمتجر فالكون ومتابعة الموردين والطلبات لمنع تداخلها مع مذاكرة النانو أو فترات الامتحانات.
+              يتم حجز كتل زمنية ثابتة لمهام العمل ومتابعة المشاريع لمنع تداخلها مع مذاكرة النانو أو فترات الامتحانات.
             </p>
           </div>
         </div>

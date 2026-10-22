@@ -23,10 +23,14 @@ export const FalconWorkspace: React.FC = () => {
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [selectedTaskCategory, setSelectedTaskCategory] = useState<'ALL' | 'MARKETING' | 'PRODUCTION' | 'OPS'>('ALL');
 
-  // Filter tasks related to Falcon or business
+  // Filter tasks related to work, business, or projects
   const falconTasks = tasks.filter(t => 
     t.title.includes('فالكون') || 
     t.title.includes('Falcon') || 
+    t.title.includes('عمل') ||
+    t.title.includes('العمل') ||
+    t.title.includes('شغل') ||
+    t.title.includes('مشروع') ||
     t.title.includes('كفر') || 
     t.title.includes('تسويق') ||
     t.title.includes('تغليف') ||
@@ -38,10 +42,10 @@ export const FalconWorkspace: React.FC = () => {
   const handleAddFalconTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
-    await addTask(`فالكون: ${newTaskTitle}`, 'P2_IMPORTANT', 30);
+    await addTask(`عمل: ${newTaskTitle}`, 'P2_IMPORTANT', 30);
     setNewTaskTitle('');
     fireConfettiSuccess();
-    showToast(`تمت إضافة مهمة فالكون: "${newTaskTitle}" 🦅`);
+    showToast(`تمت إضافة مهمة العمل: "${newTaskTitle}" 💼`);
   };
 
   const handleCompleteFalconTask = async (taskId: string) => {
@@ -56,43 +60,37 @@ export const FalconWorkspace: React.FC = () => {
 
   return (
     <div className="space-y-4 pb-24 pt-3 relative">
-      {/* 3D Ambient Amber Glow (Trend 8) */}
-      <div className="absolute top-0 right-10 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
-
       {/* Header */}
       <header className="apple-card rounded-[28px] p-5 flex items-center justify-between shadow-xl">
         <div>
-          <span className="text-[11px] font-black text-amber-400 tracking-wider uppercase">
-            براند فالكون • كفرات وإكسسوارات الموبايل
+          <span className="text-[11px] font-bold text-amber-400 tracking-wider uppercase">
+            مساحة العمل والمشاريع • الإنتاجية والتطوير
           </span>
-          <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-2 mt-0.5">
-            مساحة رائد الأعمال 🦅
+          <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2 mt-0.5">
+            مساحة العمل 💼
           </h1>
         </div>
 
-        <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 font-black text-lg shadow-[0_0_14px_rgba(245,158,11,0.3)]">
-          F
+        <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-400/20 flex items-center justify-center text-amber-300 shadow-sm">
+          <Briefcase className="w-5 h-5" />
         </div>
       </header>
 
-      {/* Brand Dashboard & Sales Goal Card */}
-      <section className="apple-card rounded-[28px] p-5 space-y-4 border border-amber-500/35 shadow-2xl relative overflow-hidden">
-        {/* Subtle decorative glow */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400/70 to-transparent" />
-
+      {/* Brand & Work Dashboard Card */}
+      <section className="apple-card rounded-[28px] p-5 space-y-4 border border-white/[0.08] shadow-lg relative overflow-hidden">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-orange-500 text-slate-950 font-black text-xl flex items-center justify-center shadow-lg shadow-amber-500/30 shrink-0">
-              🦅
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-400/20 text-amber-300 font-bold text-xl flex items-center justify-center shrink-0">
+              💼
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-black text-white">Falcon Cases & Accs</h2>
-                <span className="text-[10px] bg-amber-950/80 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-500/40 font-mono font-bold">
+                <h2 className="text-base font-bold text-white">إدارة العمل والمشاريع</h2>
+                <span className="text-[10px] bg-amber-500/10 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-500/20 font-mono font-bold">
                   نشط 🚀
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">مسؤوليات الشريك المؤسس والتسويق</p>
+              <p className="text-xs text-[#8e8e93] mt-0.5">متابعة مشاريع العمل، التسويق، والإنتاجية</p>
             </div>
           </div>
         </div>
@@ -136,38 +134,38 @@ export const FalconWorkspace: React.FC = () => {
         </div>
       </section>
 
-      {/* Quick Add Falcon Task Input */}
-      <form onSubmit={handleAddFalconTask} className="apple-card p-2 rounded-2xl border border-sky-400/25 flex gap-2 shadow-lg">
+      {/* Quick Add Work Task Input */}
+      <form onSubmit={handleAddFalconTask} className="apple-card p-2 rounded-2xl border border-white/[0.08] flex gap-2 shadow-sm">
         <input
           type="text"
           value={newTaskTitle}
           onChange={e => setNewTaskTitle(e.target.value)}
-          placeholder="إضافة مهمة تصنيع، شحن، أو ريلز لفالكون..."
+          placeholder="إضافة مهمة عمل، مشروع، شحن، أو تسويق..."
           className="flex-1 bg-transparent px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none"
         />
         <button
           type="submit"
-          className="bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-md shadow-amber-900/30 pressable cursor-pointer shrink-0"
+          className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm pressable cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4 stroke-[3]" />
           <span>إضافة</span>
         </button>
       </form>
 
-      {/* Falcon Tasks List */}
+      {/* Work Tasks List */}
       <section className="space-y-2.5">
         <div className="flex items-center justify-between px-1">
-          <h3 className="text-xs font-extrabold text-slate-200 uppercase tracking-wider">
-            قائمة مهام البيزنس الحالية ({falconTasks.length})
+          <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+            قائمة مهام العمل الحالية ({falconTasks.length})
           </h3>
-          <span className="text-[10px] text-slate-500 font-mono">Falcon Pipeline</span>
+          <span className="text-[10px] text-[#8e8e93] font-mono">Work Pipeline</span>
         </div>
 
         <div className="space-y-2">
           {falconTasks.map(task => (
             <div
               key={task.id}
-              className="glass-panel hover:bg-slate-800/60 border border-slate-800/80 rounded-2xl p-3.5 flex items-center justify-between gap-3 transition-all"
+              className="apple-card border border-white/[0.08] hover:border-white/[0.16] rounded-2xl p-3.5 flex items-center justify-between gap-3 transition-all"
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <button
@@ -177,7 +175,7 @@ export const FalconWorkspace: React.FC = () => {
                   className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all pressable cursor-pointer ${
                     task.status === 'DONE'
                       ? 'bg-amber-500 border-amber-400 text-slate-950'
-                      : 'border-slate-600 hover:border-amber-400 hover:bg-amber-500/20'
+                      : 'border-white/20 hover:border-amber-400 hover:bg-amber-500/20'
                   }`}
                   title={task.status === 'DONE' ? 'اضغط لإلغاء الإنجاز وإعادة المهمة' : 'اضغط لإنجاز المهمة'}
                 >
@@ -191,14 +189,14 @@ export const FalconWorkspace: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1 bg-slate-950/60 px-2 py-0.5 rounded-md border border-slate-800">
-                  <Clock className="w-3 h-3 text-slate-500" />
+                <span className="text-[10px] text-[#8e8e93] font-mono flex items-center gap-1 bg-white/[0.04] px-2 py-0.5 rounded-md border border-white/[0.06]">
+                  <Clock className="w-3 h-3 text-[#8e8e93]" />
                   {task.estimatedMinutes}د
                 </span>
                 <button
                   type="button"
                   onClick={() => deleteTask(task.id)}
-                  className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg pressable cursor-pointer transition-colors"
+                  className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/15 rounded-lg pressable cursor-pointer transition-colors"
                   title="حذف المهمة"
                   aria-label="حذف المهمة"
                 >
@@ -209,10 +207,10 @@ export const FalconWorkspace: React.FC = () => {
           ))}
 
           {falconTasks.length === 0 && (
-            <div className="glass-panel p-6 rounded-2xl border border-dashed border-slate-800 text-center text-xs text-slate-400 space-y-1">
+            <div className="apple-card p-6 rounded-2xl border border-dashed border-white/10 text-center text-xs text-slate-400 space-y-1">
               <Package className="w-6 h-6 text-amber-400 mx-auto" />
-              <p className="font-bold">لا توجد مهام حالية لفالكون</p>
-              <p className="text-[11px] text-slate-500">أضف مهمتك الأولى بالأعلى لمتابعة شحنات وكفرات فالكون!</p>
+              <p className="font-bold text-white">لا توجد مهام حالية للعمل</p>
+              <p className="text-[11px] text-[#8e8e93]">أضف مهمتك الأولى بالأعلى لمتابعة مهام العمل ومشاريعك!</p>
             </div>
           )}
         </div>

@@ -258,7 +258,7 @@ export const JournalWorkspace: React.FC = () => {
           <div className="space-y-3">
             <div>
               <label className="text-[11px] font-bold text-emerald-400 block mb-1">
-                1. ماذا حدث اليوم في الجامعة أو فالكون؟
+                1. ماذا حدث اليوم في الجامعة أو العمل؟
               </label>
               <textarea
                 value={q1}
@@ -335,7 +335,7 @@ export const JournalWorkspace: React.FC = () => {
           <textarea
             value={freeText}
             onChange={e => setFreeText(e.target.value)}
-            placeholder="اكتب أفكارك بحرية تامة.. أفكار تسويق فالكون، مشاعرك، تجارب النانو، أو اقتباس أعجبك..."
+            placeholder="اكتب أفكارك بحرية تامة.. أفكار وتطوير العمل، مشاعرك، تجارب النانو، أو اقتباس أعجبك..."
             rows={6}
             required
             className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl p-3 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500 leading-relaxed"

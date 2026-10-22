@@ -163,7 +163,7 @@ export const QuickCaptureModal: React.FC = () => {
                 type="text"
                 value={taskTitle}
                 onChange={e => setTaskTitle(e.target.value)}
-                placeholder="عنوان المهمة (مثلاً: تجهيز بوست فالكون أو شيت النانو)..."
+                placeholder="عنوان المهمة (مثلاً: تجهيز مهمة عمل أو شيت النانو)..."
                 autoFocus
                 required
                 className="w-full bg-slate-950/70 border border-sky-400/25 rounded-2xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400/40"
@@ -302,7 +302,7 @@ export const QuickCaptureModal: React.FC = () => {
                 type="text"
                 value={noteTags}
                 onChange={e => setNoteTags(e.target.value)}
-                placeholder="وسوم مفصولة بمسافة (مثلاً: #فالكون #نانو #فكرة)..."
+                placeholder="وسوم مفصولة بمسافة (مثلاً: #العمل #نانو #فكرة)..."
                 className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-400 placeholder:text-slate-600 focus:outline-none focus:border-sky-500"
               />
             </>
