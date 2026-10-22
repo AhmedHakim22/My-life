@@ -305,4 +305,130 @@ describe('Sprint 1 — Universal Content Management & Deletion Tombstones', () =
     expect(tombstone?.entityType).toBe('JOURNAL');
     expect(tombstone?.entityId).toBe(entryId);
   });
+
+  it('toggleHabitToday toggles habit ON and reliably OFF (undo), reverting streak, date and XP', async () => {
+    const store = useAppStore.getState();
+
+    // Seed habit
+    await db.habits.add({
+      id: 'habit-test-undo',
+      title: 'رياضة الصباح',
+      targetType: 'BOOLEAN',
+      targetValue: 1,
+      streakCount: 3,
+      consecutiveMisses: 0,
+      restDays: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+    await store.loadAllData();
+
+    // Step 1: Toggle ON
+    await store.toggleHabitToday('habit-test-undo');
+    let habit = await db.habits.get('habit-test-undo');
+    expect(habit?.streakCount).toBe(4);
+    expect(habit?.lastCompletedDate).toBeDefined();
+    let logs = await db.habitLogs.where('habitId').equals('habit-test-undo').toArray();
+    expect(logs.length).toBe(1);
+    let xps = await db.xpTransactions.where('category').equals('HABIT').toArray();
+    expect(xps.length).toBe(1);
+
+    // Step 2: Toggle OFF (Undo)
+    await store.toggleHabitToday('habit-test-undo');
+    habit = await db.habits.get('habit-test-undo');
+    expect(habit?.streakCount).toBe(3);
+    expect(habit?.lastCompletedDate).toBeUndefined();
+    logs = await db.habitLogs.where('habitId').equals('habit-test-undo').toArray();
+    expect(logs.length).toBe(0);
+    xps = await db.xpTransactions.where('category').equals('HABIT').toArray();
+    expect(xps.length).toBe(0);
+  });
+
+  it('prayer worship toggle and delete removes record from worshipLogs', async () => {
+    const store = useAppStore.getState();
+
+    // Step 1: Log prayer
+    await store.logPrayerWorship('Fajr', 'COMPLETED', true);
+    let logs = await db.worshipLogs.toArray();
+    expect(logs.length).toBe(1);
+    expect(logs[0].prayerName).toBe('Fajr');
+    expect(logs[0].inMosque).toBe(true);
+
+    // Step 2: Clicking the SAME active button toggles it off
+    await store.logPrayerWorship('Fajr', 'COMPLETED', true);
+    logs = await db.worshipLogs.toArray();
+    expect(logs.length).toBe(0);
+
+    // Step 3: Log again and use explicit deletePrayerWorship
+    await store.logPrayerWorship('Dhuhr', 'COMPLETED', false);
+    logs = await db.worshipLogs.toArray();
+    expect(logs.length).toBe(1);
+    expect(logs[0].prayerName).toBe('Dhuhr');
+
+    await store.deletePrayerWorship('Dhuhr');
+    logs = await db.worshipLogs.toArray();
+    expect(logs.length).toBe(0);
+  });
+
+  it('deleteQuranLog removes reading session and reverts habit if today threshold is not met', async () => {
+    const store = useAppStore.getState();
+
+    // Seed habit-quran
+    await db.habits.add({
+      id: 'habit-quran',
+      title: 'الورد القرآني (3 صفحات يومياً)',
+      targetType: 'PAGES',
+      targetValue: 3,
+      streakCount: 5,
+      consecutiveMisses: 0,
+      restDays: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+    await store.loadAllData();
+
+    // Step 1: Log 5 pages of Quran (meets 3 pages)
+    await store.logQuranReading(5, 'سورة الكهف');
+    let qLogs = await db.quranLogs.toArray();
+    expect(qLogs.length).toBe(1);
+    let qHabit = await db.habits.get('habit-quran');
+    expect(qHabit?.streakCount).toBe(6);
+
+    // Step 2: Delete Quran reading log
+    await store.deleteQuranLog(qLogs[0].id);
+    qLogs = await db.quranLogs.toArray();
+    expect(qLogs.length).toBe(0);
+
+    // Quran habit must be reverted!
+    qHabit = await db.habits.get('habit-quran');
+    expect(qHabit?.streakCount).toBe(5);
+    expect(qHabit?.lastCompletedDate).toBeUndefined();
+  });
+
+  it('undoReadTwoPagesAction rolls back book current page, reading session, habit, and XP', async () => {
+    const store = useAppStore.getState();
+
+    // 1. Seed book
+    await store.addBook('Quantum Nanotechnology', 'Prof. Smith', 100);
+    const books = await db.learningResources.where('type').equals('BOOK').toArray();
+    const bookId = books[0].id;
+
+    // 2. Read 2 pages
+    await store.readTwoPagesAction(bookId);
+    let details = await db.bookDetails.get(bookId);
+    expect(details?.currentPage).toBe(2);
+    let sessions = await db.readingSessions.where('bookResourceId').equals(bookId).toArray();
+    expect(sessions.length).toBe(1);
+    let xps = await db.xpTransactions.where('category').equals('READING').toArray();
+    expect(xps.length).toBe(1);
+
+    // 3. Undo read 2 pages
+    await store.undoReadTwoPagesAction(bookId);
+    details = await db.bookDetails.get(bookId);
+    expect(details?.currentPage).toBe(0);
+    sessions = await db.readingSessions.where('bookResourceId').equals(bookId).toArray();
+    expect(sessions.length).toBe(0);
+    xps = await db.xpTransactions.where('category').equals('READING').toArray();
+    expect(xps.length).toBe(0);
+  });
 });

@@ -45,8 +45,10 @@ export const SmartToday: React.FC = () => {
     postponeTask, 
     deleteTask,
     readTwoPagesAction,
+    undoReadTwoPagesAction,
     bookDetails, 
     habits, 
+    habitLogs, 
     toggleHabitToday,
     rankProgress,
     setActiveTab,
@@ -55,6 +57,8 @@ export const SmartToday: React.FC = () => {
 
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [lastCompletedTaskId, setLastCompletedTaskId] = useState<string | null>(null);
+  const [lastCompletedHabitId, setLastCompletedHabitId] = useState<string | null>(null);
+  const [justReadBookId, setJustReadBookId] = useState<string | null>(null);
   const [showCompletedTasks, setShowCompletedTasks] = useState(false);
 
   const currentReadingBook = bookDetails.find(b => b.shelf === 'Reading') || bookDetails[0];
@@ -120,14 +124,21 @@ export const SmartToday: React.FC = () => {
 
   const handleReadTwoPages = async (resourceId: string) => {
     fireConfettiSuccess();
+    setJustReadBookId(resourceId);
     await readTwoPagesAction(resourceId);
   };
 
   const handleToggleHabit = async (habitId: string) => {
     const todayStr = getCairoDateString();
     const habit = habits.find(h => h.id === habitId);
-    if (habit && habit.lastCompletedDate !== todayStr) {
+    const isCurrentlyDone = habitLogs.some(l => l.habitId === habitId && l.date === todayStr && l.status === 'COMPLETED')
+      || (habit && habit.lastCompletedDate === todayStr);
+
+    if (!isCurrentlyDone) {
       fireConfettiSuccess();
+      setLastCompletedHabitId(habitId);
+    } else {
+      setLastCompletedHabitId(null);
     }
     await toggleHabitToday(habitId);
   };
@@ -531,6 +542,55 @@ export const SmartToday: React.FC = () => {
         );
       })()}
 
+      {/* 3.2 Undo Habit Completion Banner */}
+      {lastCompletedHabitId && (() => {
+        const h = habits.find(x => x.id === lastCompletedHabitId);
+        const todayStr = getCairoDateString();
+        const isDoneToday = habitLogs.some(l => l.habitId === lastCompletedHabitId && l.date === todayStr && l.status === 'COMPLETED')
+          || (h && h.lastCompletedDate === todayStr);
+        if (!h || !isDoneToday) return null;
+        return (
+          <div className="bg-emerald-950/80 border border-emerald-500/50 p-3 rounded-2xl flex items-center justify-between gap-2 shadow-lg animate-in slide-in-from-top duration-200">
+            <div className="flex items-center gap-2 text-xs text-emerald-200 min-w-0">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="truncate">تم تسجيل عادة: <strong>{h.title}</strong></span>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                await toggleHabitToday(h.id);
+                setLastCompletedHabitId(null);
+              }}
+              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-[11px] px-3 py-1.5 rounded-xl flex items-center gap-1 shrink-0 pressable cursor-pointer shadow"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>تراجع (إلغاء الإنجاز) ↩️</span>
+            </button>
+          </div>
+        );
+      })()}
+
+      {/* 3.3 Undo Read 2 Pages Banner */}
+      {justReadBookId && (
+        <div className="bg-teal-950/80 border border-teal-500/50 p-3 rounded-2xl flex items-center justify-between gap-2 shadow-lg animate-in slide-in-from-top duration-200">
+          <div className="flex items-center gap-2 text-xs text-teal-200 min-w-0">
+            <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
+            <span className="truncate">تم تسجيل قراءة صفحتين بنجاح (+15 XP)</span>
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              await undoReadTwoPagesAction(justReadBookId);
+              setJustReadBookId(null);
+            }}
+            className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold text-[11px] px-3 py-1.5 rounded-xl flex items-center gap-1 shrink-0 pressable cursor-pointer shadow"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>تراجع عن الصفحتين ↩️</span>
+          </button>
+        </div>
+      )}
+
       {/* 6. Top 3 Priorities Checklist */}
       <section className="space-y-2.5">
         <div className="flex items-center justify-between px-1">
@@ -671,16 +731,18 @@ export const SmartToday: React.FC = () => {
         <div className="grid grid-cols-2 gap-2.5">
           {habits.map(habit => {
             const todayStr = getCairoDateString();
-            const isCompleted = habit.lastCompletedDate === todayStr;
+            const isCompleted = habitLogs.some(l => l.habitId === habit.id && l.date === todayStr && l.status === 'COMPLETED')
+              || habit.lastCompletedDate === todayStr;
 
             return (
               <button
                 type="button"
                 key={habit.id}
                 onClick={() => handleToggleHabit(habit.id)}
-                className={`p-3.5 rounded-2xl border text-right transition-all flex flex-col justify-between h-24 pressable cursor-pointer ${
+                title={isCompleted ? 'اضغط لإلغاء الإنجاز والتراجع ↩️' : 'اضغط لتسجيل الإنجاز'}
+                className={`p-3.5 rounded-2xl border text-right transition-all flex flex-col justify-between h-24 pressable cursor-pointer relative group ${
                   isCompleted
-                    ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-100 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
+                    ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-100 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:border-emerald-400/60'
                     : 'glass-panel border-slate-800/80 text-slate-300 hover:border-slate-700'
                 }`}
               >
@@ -693,9 +755,18 @@ export const SmartToday: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-400 font-mono mt-2">
-                  <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <span>{habit.streakCount} أيام متواصلة</span>
+                <div className="flex items-center justify-between w-full mt-2">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-400 font-mono">
+                    <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                    <span>{habit.streakCount} أيام متواصلة</span>
+                  </div>
+
+                  {isCompleted && (
+                    <span className="text-[9px] text-amber-400/90 font-bold bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/40 flex items-center gap-0.5">
+                      <RotateCcw className="w-2.5 h-2.5" />
+                      <span>إلغاء</span>
+                    </span>
+                  )}
                 </div>
               </button>
             );

@@ -131,6 +131,7 @@ interface AppState {
   
   // 1. One-Tap Atomic Read 2 Pages Action
   readTwoPagesAction: (bookResourceId?: string) => Promise<void>;
+  undoReadTwoPagesAction: (bookResourceId?: string) => Promise<void>;
   
   // 2. Task Actions
   completeTask: (taskId: string) => Promise<void>;
@@ -177,7 +178,9 @@ interface AppState {
   linkIntentionToGoal: (goalId: string, intentionId: string) => Promise<void>;
   unlinkIntentionFromGoal: (goalId: string, intentionId: string) => Promise<void>;
   logPrayerWorship: (prayerName: WorshipLog['prayerName'], status: WorshipLog['status'], inMosque?: boolean) => Promise<void>;
+  deletePrayerWorship: (prayerName: WorshipLog['prayerName']) => Promise<void>;
   logQuranReading: (pagesRead: number, surahStart?: string, surahEnd?: string, notes?: string) => Promise<void>;
+  deleteQuranLog: (logId: string) => Promise<void>;
   logQiyamSession: (session: Omit<QiyamSession, 'id' | 'createdAt'>) => Promise<string>;
   deleteQiyamSession: (id: string) => Promise<void>;
 
@@ -610,6 +613,66 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     await get().loadAllData();
     get().showToast(`عاش! تم تسجيل ${pagesRead} صفحة في "${bookTitle}"، وعادة القراءة كملت (+15 XP) 🎉`);
+  },
+
+  undoReadTwoPagesAction: async (bookResourceId) => {
+    const todayStr = getCairoDateString();
+    let targetBook = get().bookDetails.find(b => b.shelf === 'Reading') || get().bookDetails[0];
+    if (bookResourceId) {
+      targetBook = get().bookDetails.find(b => b.resourceId === bookResourceId) || targetBook;
+    }
+    if (!targetBook) return;
+
+    // Find latest reading session for this book today
+    const sessions = await db.readingSessions
+      .where('bookResourceId').equals(targetBook.resourceId)
+      .filter(s => s.date === todayStr)
+      .reverse()
+      .sortBy('createdAt');
+
+    const latestSession = sessions[0];
+    const pagesToRevert = latestSession ? latestSession.pagesRead : 2;
+
+    await db.transaction('rw', [
+      db.bookDetails,
+      db.readingSessions,
+      db.habits,
+      db.habitLogs,
+      db.xpTransactions
+    ], async () => {
+      // Revert book page
+      const newPage = Math.max(0, targetBook.currentPage - pagesToRevert);
+      await db.bookDetails.update(targetBook.resourceId, {
+        currentPage: newPage,
+        shelf: 'Reading'
+      });
+
+      // Delete latest session
+      if (latestSession) {
+        await db.readingSessions.delete(latestSession.id);
+      }
+
+      // Revert reading habit if no more reading sessions today
+      const remainingTodaySessions = await db.readingSessions
+        .where('date').equals(todayStr)
+        .toArray();
+
+      const readingHabit = get().habits.find(h => h.id === 'habit-read-2-pages' || h.targetType === 'PAGES');
+      if (readingHabit && remainingTodaySessions.length === 0) {
+        await db.habitLogs.where({ habitId: readingHabit.id, date: todayStr }).delete();
+        await db.habits.update(readingHabit.id, {
+          streakCount: Math.max(0, readingHabit.streakCount - 1),
+          lastCompletedDate: undefined
+        });
+      }
+
+      // Rollback XP
+      const idempotencyKey = generateXPIdempotencyKey('READ_2_PAGES', targetBook.resourceId, todayStr);
+      await db.xpTransactions.where('idempotencyKey').equals(idempotencyKey).delete();
+    });
+
+    await get().loadAllData();
+    get().showToast('تم التراجع عن قراءة الصفحتين بنجاح ↩️');
   },
 
   // 2. Task Actions
@@ -1570,14 +1633,32 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const todayStr = getCairoDateString();
     const existingLog = get().habitLogs.find(l => l.habitId === habitId && l.date === todayStr);
+    const isCurrentlyCompleted = (existingLog && existingLog.status === 'COMPLETED') || habit.lastCompletedDate === todayStr;
 
-    if (existingLog && existingLog.status === 'COMPLETED') {
-      // Toggle off
-      await db.habitLogs.delete(existingLog.id);
+    if (isCurrentlyCompleted) {
+      // Toggle off / Undo
+      if (existingLog) {
+        await db.habitLogs.delete(existingLog.id);
+      }
+      await db.habitLogs.where({ habitId, date: todayStr }).delete();
+
+      // Find previous completed date prior to today
+      const previousLogs = await db.habitLogs
+        .where('habitId').equals(habitId)
+        .filter(l => l.status === 'COMPLETED' && l.date !== todayStr)
+        .sortBy('date');
+      const lastLog = previousLogs.length > 0 ? previousLogs[previousLogs.length - 1] : null;
+
       await db.habits.update(habitId, {
-        streakCount: Math.max(0, habit.streakCount - 1)
+        streakCount: Math.max(0, habit.streakCount - 1),
+        lastCompletedDate: lastLog ? lastLog.date : undefined
       });
-      get().showToast('تم إلغاء تسجيل العادة اليوم');
+
+      // Rollback XP transaction
+      const habitXpKey = generateXPIdempotencyKey('HABIT', habitId, todayStr);
+      await db.xpTransactions.where('idempotencyKey').equals(habitXpKey).delete();
+
+      get().showToast(`تم إلغاء تسجيل عادة "${habit.title}" بنجاح ↩️`);
     } else {
       // Toggle on
       const evalRes = evaluateHabitStreak(
@@ -1704,6 +1785,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     const todayStr = getCairoDateString();
     const now = new Date().toISOString();
     const id = `worship-${todayStr}-${prayerName}`;
+
+    const existing = await db.worshipLogs.get(id);
+
+    // If already logged with the SAME status and mosque flag, TOGGLE OFF (uncheck/undo)!
+    if (existing && existing.status === status && Boolean(existing.inMosque) === Boolean(inMosque)) {
+      await db.worshipLogs.delete(id);
+      await get().loadAllData();
+      get().showToast(`تم إلغاء تسجيل صلاة ${prayerName} ↩️`);
+      return;
+    }
+
     await db.worshipLogs.put({
       id,
       date: todayStr,
@@ -1713,7 +1805,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       createdAt: now
     });
     await get().loadAllData();
-    get().showToast(`تم تسجيل صلاة ${prayerName} 🕌`);
+    get().showToast(inMosque ? `تم تسجيل صلاة ${prayerName} في المسجد 🕌` : `تم تسجيل أداء صلاة ${prayerName} ✅`);
+  },
+
+  deletePrayerWorship: async (prayerName) => {
+    const todayStr = getCairoDateString();
+    const id = `worship-${todayStr}-${prayerName}`;
+    await db.worshipLogs.delete(id);
+    await get().loadAllData();
+    get().showToast(`تم إلغاء تسجيل صلاة ${prayerName} ↩️`);
   },
 
   logQuranReading: async (pagesRead, surahStart, surahEnd, notes) => {
@@ -1743,6 +1843,39 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     await get().loadAllData();
     get().showToast(`تم تسجيل قراءة ${pagesRead} صفحات من القرآن الكريم 📖✨`);
+  },
+
+  deleteQuranLog: async (logId: string) => {
+    const todayStr = getCairoDateString();
+    const targetLog = await db.quranLogs.get(logId);
+    if (!targetLog) return;
+
+    await db.quranLogs.delete(logId);
+
+    // Re-check today's total pages
+    const remainingTodayQuran = await db.quranLogs.where('date').equals(todayStr).toArray();
+    const totalPagesToday = remainingTodayQuran.reduce((sum, q) => sum + q.pagesRead, 0);
+
+    // If total pages dropped below 3, revert habit-quran if it was completed today
+    if (totalPagesToday < 3) {
+      const quranHabit = get().habits.find(h => h.id === 'habit-quran');
+      if (quranHabit && quranHabit.lastCompletedDate === todayStr) {
+        const previousLogs = await db.habitLogs
+          .where('habitId').equals('habit-quran')
+          .filter(l => l.status === 'COMPLETED' && l.date !== todayStr)
+          .sortBy('date');
+        const lastLog = previousLogs.length > 0 ? previousLogs[previousLogs.length - 1] : null;
+
+        await db.habitLogs.where({ habitId: 'habit-quran', date: todayStr }).delete();
+        await db.habits.update('habit-quran', {
+          streakCount: Math.max(0, (quranHabit.streakCount || 1) - 1),
+          lastCompletedDate: lastLog ? lastLog.date : undefined
+        });
+      }
+    }
+
+    await get().loadAllData();
+    get().showToast('تم حذف تسجيل القراءة بنجاح 🗑️');
   },
 
   logQiyamSession: async (session) => {

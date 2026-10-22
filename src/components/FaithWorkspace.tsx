@@ -16,6 +16,7 @@ import {
   Flame,
   Calendar,
   Layers,
+  RotateCcw,
   Link as LinkIcon
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
@@ -35,7 +36,9 @@ export const FaithWorkspace: React.FC = () => {
     goals,
     habits,
     logPrayerWorship,
+    deletePrayerWorship,
     logQuranReading,
+    deleteQuranLog,
     logQiyamSession,
     deleteQiyamSession,
     addIntention,
@@ -273,9 +276,20 @@ export const FaithWorkspace: React.FC = () => {
                           </span>
                         )}
                         {isCompleted && (
-                          <span className="text-[10px] bg-teal-950 text-teal-300 px-2 py-0.5 rounded-full font-bold border border-teal-700/40">
-                            {isInMosque ? 'في المسجد 🕌' : 'أُديت ✅'}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] bg-teal-950 text-teal-300 px-2 py-0.5 rounded-full font-bold border border-teal-700/40">
+                              {isInMosque ? 'في المسجد 🕌' : 'أُديت ✅'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => deletePrayerWorship(item.prayerName)}
+                              className="text-[10px] text-amber-400 hover:text-amber-300 bg-amber-950/70 hover:bg-amber-900/70 border border-amber-800/50 px-2 py-0.5 rounded-md flex items-center gap-1 transition-colors cursor-pointer"
+                              title="إلغاء تسجيل الصلاة والتراجع عنها"
+                            >
+                              <RotateCcw className="w-2.5 h-2.5" />
+                              <span>إلغاء</span>
+                            </button>
+                          </div>
                         )}
                       </div>
                       <p className="text-xs text-slate-400 font-mono mt-0.5">
@@ -294,7 +308,7 @@ export const FaithWorkspace: React.FC = () => {
                           ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
                           : 'bg-slate-800/80 hover:bg-emerald-900/50 text-slate-300 hover:text-emerald-300 border border-slate-700/60'
                       }`}
-                      title="صليت في المسجد"
+                      title={isInMosque ? 'اضغط لإلغاء التسجيل ↩️' : 'صليت في المسجد'}
                     >
                       المسجد 🕌
                     </button>
@@ -307,7 +321,7 @@ export const FaithWorkspace: React.FC = () => {
                           ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/20'
                           : 'bg-slate-800/80 hover:bg-teal-900/50 text-slate-300 hover:text-teal-300 border border-slate-700/60'
                       }`}
-                      title="صليت"
+                      title={isCompleted && !isInMosque ? 'اضغط لإلغاء التسجيل ↩️' : 'صليت'}
                     >
                       صليت ✅
                     </button>
@@ -422,14 +436,27 @@ export const FaithWorkspace: React.FC = () => {
             {quranLogs.length === 0 ? (
               <p className="text-xs text-slate-500 italic p-3 text-center">لا توجد تسجيلات بعد — ابدأ بورد اليوم 🌿</p>
             ) : (
-              quranLogs.slice(-5).reverse().map(log => (
-                <div key={log.id} className="bg-slate-900/60 border border-slate-800/80 p-3 rounded-2xl flex items-center justify-between text-xs">
-                  <div>
-                    <span className="font-bold text-white">{log.pagesRead} صفحات</span>
-                    {log.surahStart && <span className="text-slate-400 mr-2">({log.surahStart})</span>}
-                    {log.notes && <p className="text-[11px] text-slate-500 mt-0.5">{log.notes}</p>}
+              quranLogs.slice(-10).reverse().map(log => (
+                <div key={log.id} className="bg-slate-900/60 border border-slate-800/80 p-3 rounded-2xl flex items-center justify-between gap-3 text-xs">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-white">{log.pagesRead} صفحات</span>
+                      {log.surahStart && <span className="text-slate-400 text-[11px]">({log.surahStart})</span>}
+                    </div>
+                    {log.notes && <p className="text-[11px] text-slate-500 mt-0.5 truncate">{log.notes}</p>}
                   </div>
-                  <span className="text-[11px] font-mono text-slate-500">{log.date}</span>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[11px] font-mono text-slate-500">{log.date}</span>
+                    <button
+                      type="button"
+                      onClick={() => deleteQuranLog(log.id)}
+                      className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
+                      title="حذف هذا التسجيل والتراجع عنه"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               ))
             )}

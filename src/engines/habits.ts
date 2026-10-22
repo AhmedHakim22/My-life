@@ -22,7 +22,7 @@ export function evaluateHabitStreak(
   currentDate: Date = new Date()
 ): HabitEvaluationResult {
   const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 5 = Friday
-  const isTodayRestDay = habit.restDays.includes(dayOfWeek);
+  const isTodayRestDay = (habit.restDays || []).includes(dayOfWeek);
   const isTodayCompleted = todayLog?.status === 'COMPLETED';
 
   let updatedStreak = habit.streakCount;
