@@ -218,6 +218,7 @@ export interface TimetableSlot {
   format: 'Campus' | 'Online';
   hall: string;      // e.g. "مدرج 5", "مدرج ج"
   notes?: string | null;
+  updatedAt?: string;
 }
 
 export interface AcademicQuiz {

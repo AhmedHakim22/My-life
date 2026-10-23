@@ -27,7 +27,7 @@ import {
   Globe
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
-import type { StudySessionStatus, StudySession, Skill, UniversitySubject, AcademicQuiz, AcademicAssignment, StudentActivityTask } from '../types';
+import type { StudySessionStatus, StudySession, Skill, UniversitySubject, AcademicQuiz, AcademicAssignment, StudentActivityTask, TimetableSlot } from '../types';
 import { fireConfettiSuccess } from '../lib/confetti';
 
 export const UniversityWorkspace: React.FC = () => {
@@ -57,6 +57,9 @@ export const UniversityWorkspace: React.FC = () => {
     addStudentActivity,
     toggleStudentActivityDone,
     deleteStudentActivity,
+    addTimetableSlot,
+    updateTimetableSlot,
+    deleteTimetableSlot,
     recordStudyReview,
     skills,
     addSkill,
@@ -126,6 +129,30 @@ export const UniversityWorkspace: React.FC = () => {
   const [isAddingSkill, setIsAddingSkill] = useState(false);
   const [newSkillName, setNewSkillName] = useState('');
   const [newSkillCategory, setNewSkillCategory] = useState<Skill['category']>('علمي');
+
+  // Timetable State & CRUD
+  const [selectedTimetableDay, setSelectedTimetableDay] = useState<string>('ALL');
+  const [isAddSlotOpen, setIsAddSlotOpen] = useState(false);
+  const [slotDay, setSlotDay] = useState<TimetableSlot['day']>('السبت');
+  const [slotSubjectSelect, setSlotSubjectSelect] = useState<string>('custom');
+  const [slotSubjectName, setSlotSubjectName] = useState('');
+  const [slotSubjectCode, setSlotSubjectCode] = useState('');
+  const [slotStartTime, setSlotStartTime] = useState('08:00');
+  const [slotEndTime, setSlotEndTime] = useState('10:00');
+  const [slotHall, setSlotHall] = useState('مدرج 5');
+  const [slotFormat, setSlotFormat] = useState<'Campus' | 'Online'>('Campus');
+  const [slotNotes, setSlotNotes] = useState('');
+
+  // Editing Slot State
+  const [editingSlot, setEditingSlot] = useState<TimetableSlot | null>(null);
+  const [editSlotDay, setEditSlotDay] = useState<TimetableSlot['day']>('السبت');
+  const [editSlotSubjectName, setEditSlotSubjectName] = useState('');
+  const [editSlotSubjectCode, setEditSlotSubjectCode] = useState('');
+  const [editSlotStartTime, setEditSlotStartTime] = useState('08:00');
+  const [editSlotEndTime, setEditSlotEndTime] = useState('');
+  const [editSlotHall, setEditSlotHall] = useState('مدرج 5');
+  const [editSlotFormat, setEditSlotFormat] = useState<'Campus' | 'Online'>('Campus');
+  const [editSlotNotes, setEditSlotNotes] = useState('');
 
   // KPI Calculations from Ahmed's Sheet Logic
   const lecturesToStudyCount = studySessions.filter(s => s.materialReady && !s.studyDone).length;
@@ -345,6 +372,139 @@ export const UniversityWorkspace: React.FC = () => {
   };
 
   const filteredSkills = skills.filter(s => selectedSkillCategory === 'ALL' || s.category === selectedSkillCategory);
+
+  // Timetable Handlers
+  const TIMETABLE_DAYS: Array<TimetableSlot['day']> = [
+    'السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'
+  ];
+
+  const handleOpenAddSlotModal = (presetDay?: TimetableSlot['day']) => {
+    if (presetDay) {
+      setSlotDay(presetDay);
+    } else if (selectedTimetableDay !== 'ALL' && TIMETABLE_DAYS.includes(selectedTimetableDay as any)) {
+      setSlotDay(selectedTimetableDay as TimetableSlot['day']);
+    } else {
+      setSlotDay('السبت');
+    }
+
+    if (universitySubjects.length > 0) {
+      setSlotSubjectSelect(universitySubjects[0].id);
+      setSlotSubjectName(universitySubjects[0].name);
+      setSlotSubjectCode(universitySubjects[0].code);
+      if (universitySubjects[0].hall) setSlotHall(universitySubjects[0].hall);
+    } else {
+      setSlotSubjectSelect('custom');
+      setSlotSubjectName('');
+      setSlotSubjectCode('');
+      setSlotHall('مدرج 5');
+    }
+    setSlotStartTime('08:00');
+    setSlotEndTime('10:00');
+    setSlotFormat('Campus');
+    setSlotNotes('');
+    setIsAddSlotOpen(true);
+  };
+
+  const handleSubjectSelectChange = (val: string) => {
+    setSlotSubjectSelect(val);
+    if (val === 'custom') {
+      setSlotSubjectName('');
+      setSlotSubjectCode('');
+    } else {
+      const found = universitySubjects.find(s => s.id === val);
+      if (found) {
+        setSlotSubjectName(found.name);
+        setSlotSubjectCode(found.code);
+        if (found.hall) setSlotHall(found.hall);
+      }
+    }
+  };
+
+  const handleCreateSlot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!slotSubjectName.trim()) {
+      showToast('يرجى كتابة اسم المادة أو اختيارها من القائمة');
+      return;
+    }
+    if (!slotStartTime.trim()) {
+      showToast('يرجى تحديد وقت بداية الحصة');
+      return;
+    }
+
+    try {
+      await addTimetableSlot({
+        day: slotDay,
+        startTime: slotStartTime.trim(),
+        endTime: slotEndTime.trim() ? slotEndTime.trim() : null,
+        subjectName: slotSubjectName.trim(),
+        subjectCode: slotSubjectCode.trim() || 'NAC',
+        format: slotFormat,
+        hall: slotHall.trim() || 'قاعة / مدرج',
+        notes: slotNotes.trim() ? slotNotes.trim() : null
+      });
+      setIsAddSlotOpen(false);
+      showToast('تمت إضافة الحصة إلى الجدول بنجاح 📅');
+      fireConfettiSuccess();
+    } catch (err) {
+      console.error('Error creating timetable slot:', err);
+      showToast('حدث خطأ أثناء إضافة الحصة للجدول');
+    }
+  };
+
+  const openEditSlotModal = (slot: TimetableSlot) => {
+    setEditingSlot(slot);
+    setEditSlotDay(slot.day);
+    setEditSlotSubjectName(slot.subjectName);
+    setEditSlotSubjectCode(slot.subjectCode);
+    setEditSlotStartTime(slot.startTime);
+    setEditSlotEndTime(slot.endTime || '');
+    setEditSlotHall(slot.hall || '');
+    setEditSlotFormat(slot.format || 'Campus');
+    setEditSlotNotes(slot.notes || '');
+  };
+
+  const handleSaveEditSlot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSlot) return;
+    if (!editSlotSubjectName.trim()) {
+      showToast('يرجى كتابة اسم المادة');
+      return;
+    }
+    if (!editSlotStartTime.trim()) {
+      showToast('يرجى تحديد وقت البداية');
+      return;
+    }
+
+    try {
+      await updateTimetableSlot(editingSlot.id, {
+        day: editSlotDay,
+        startTime: editSlotStartTime.trim(),
+        endTime: editSlotEndTime.trim() ? editSlotEndTime.trim() : null,
+        subjectName: editSlotSubjectName.trim(),
+        subjectCode: editSlotSubjectCode.trim() || 'NAC',
+        format: editSlotFormat,
+        hall: editSlotHall.trim() || 'قاعة / مدرج',
+        notes: editSlotNotes.trim() ? editSlotNotes.trim() : null
+      });
+      setEditingSlot(null);
+      showToast('تم تحديث بيانات الحصة بنجاح ✏️');
+    } catch (err) {
+      console.error('Error updating timetable slot:', err);
+      showToast('حدث خطأ أثناء تعديل الحصة');
+    }
+  };
+
+  const handleDeleteSlot = async (slot: TimetableSlot) => {
+    if (confirm(`هل أنت متأكد من حذف حصة "${slot.subjectName}" يوم ${slot.day}؟`)) {
+      try {
+        await deleteTimetableSlot(slot.id);
+        showToast('تم حذف الحصة من الجدول 🗑️');
+      } catch (err) {
+        console.error('Error deleting timetable slot:', err);
+        showToast('حدث خطأ أثناء حذف الحصة');
+      }
+    }
+  };
 
   return (
     <div className="space-y-4 pb-24 pt-3 relative">
@@ -992,51 +1152,180 @@ export const UniversityWorkspace: React.FC = () => {
       {/* ======================================================== */}
       {activeTab === 'TIMETABLE' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between px-1">
+          {/* Header with Title and Add Button */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
             <div>
-              <h3 className="text-xs font-extrabold text-slate-200 uppercase tracking-wider">
-                جدول المحاضرات الجامعية الأسبوعي 🏫
+              <h3 className="text-sm font-extrabold text-slate-100 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-sky-400" />
+                <span>جدول المحاضرات والسكاشن الأسبوعي 🏫</span>
               </h3>
-              <p className="text-[11px] text-slate-400">
-                يوم الكلية: 2 ساعة مذاكرة صافية كقاعدة بسيطة.
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                تنظيم وتعديل حصص الأسبوع ومواعيدها مع مزامنة فورية على كل أجهزتك
               </p>
             </div>
+
+            <button
+              type="button"
+              onClick={() => handleOpenAddSlotModal()}
+              className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-2xl flex items-center justify-center gap-1.5 pressable cursor-pointer shadow-lg shadow-sky-500/20 self-start sm:self-auto transition-transform"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>إضافة حصة جديدة</span>
+            </button>
           </div>
 
-          <div className="space-y-3">
-            {['السبت', 'الأحد', 'الاثنين', 'الثلاثاء'].map(day => {
-              const daySlots = timetableSlots.filter(s => s.day === day);
-              if (daySlots.length === 0) return null;
+          {/* Days Filter Bar */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+            <button
+              type="button"
+              onClick={() => setSelectedTimetableDay('ALL')}
+              className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all pressable cursor-pointer ${
+                selectedTimetableDay === 'ALL'
+                  ? 'bg-sky-500 text-slate-950 shadow-md shadow-sky-500/20'
+                  : 'bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800'
+              }`}
+            >
+              الكل ({timetableSlots.length})
+            </button>
+            {TIMETABLE_DAYS.map(day => {
+              const count = timetableSlots.filter(s => s.day === day).length;
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => setSelectedTimetableDay(day)}
+                  className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all pressable cursor-pointer flex items-center gap-1.5 ${
+                    selectedTimetableDay === day
+                      ? 'bg-sky-500 text-slate-950 shadow-md shadow-sky-500/20'
+                      : 'bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  <span>{day}</span>
+                  {count > 0 && (
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                      selectedTimetableDay === day ? 'bg-slate-950/20 text-slate-950' : 'bg-slate-800 text-sky-400'
+                    }`}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Slots Content Grouped by Day */}
+          <div className="space-y-4">
+            {(selectedTimetableDay === 'ALL' ? TIMETABLE_DAYS : [selectedTimetableDay as TimetableSlot['day']]).map(day => {
+              const daySlots = timetableSlots
+                .filter(s => s.day === day)
+                .sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+              if (daySlots.length === 0) {
+                // If specific day selected and empty, show prompt
+                if (selectedTimetableDay !== 'ALL') {
+                  return (
+                    <div key={day} className="glass-panel border border-dashed border-slate-800 rounded-3xl p-8 text-center space-y-3">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-800/60 border border-slate-700/50 flex items-center justify-center mx-auto text-slate-400">
+                        <Calendar className="w-6 h-6" />
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-white">لا توجد حصص مسجلة يوم {day}</h4>
+                        <p className="text-xs text-slate-400">يمكنك إضافة محاضرة أو سكشن لهذا اليوم بضغطة واحدة</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenAddSlotModal(day)}
+                        className="bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 font-bold text-xs px-4 py-2 rounded-xl inline-flex items-center gap-1.5 pressable cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>إضافة حصة ليوم {day}</span>
+                      </button>
+                    </div>
+                  );
+                }
+                return null;
+              }
 
               return (
-                <div key={day} className="glass-panel border border-slate-800 rounded-2xl p-4 space-y-2.5">
-                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                    <span className="text-sm font-black text-sky-400">{day}</span>
-                    <span className="text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
-                      يوم كلية • 2 ساعة مذاكرة مقترحة
-                    </span>
+                <div key={day} className="glass-panel border border-slate-800/90 rounded-3xl p-4 sm:p-5 space-y-3 shadow-lg">
+                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base font-black text-sky-400">{day}</span>
+                      <span className="text-[10px] text-slate-400 bg-slate-900/90 px-2 py-0.5 rounded-full border border-slate-800 font-bold">
+                        {daySlots.length} {daySlots.length === 1 ? 'حصة' : 'حصص'}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOpenAddSlotModal(day)}
+                      className="text-xs text-sky-400 hover:text-sky-300 font-bold flex items-center gap-1 p-1 rounded-lg hover:bg-slate-800/60 transition pressable cursor-pointer"
+                      title={`إضافة حصة جديدة ليوم ${day}`}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span className="text-[11px]">إضافة</span>
+                    </button>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     {daySlots.map(slot => (
                       <div
                         key={slot.id}
-                        className="bg-slate-900/70 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between gap-2"
+                        className="bg-slate-900/80 hover:bg-slate-900/95 transition-colors p-3.5 rounded-2xl border border-slate-800/80 flex items-start justify-between gap-3 shadow-md"
                       >
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] bg-slate-800 text-slate-300 font-mono px-1.5 py-0.5 rounded">
+                        <div className="space-y-1.5 min-w-0 flex-1">
+                          <div className="flex items-center flex-wrap gap-2">
+                            <span className="text-[10px] bg-slate-800 text-sky-300 font-mono font-bold px-2 py-0.5 rounded-md border border-slate-700/50">
                               {slot.subjectCode}
                             </span>
-                            <span className="text-xs font-bold text-white">{slot.subjectName}</span>
+                            <span className="text-xs sm:text-sm font-bold text-white truncate">
+                              {slot.subjectName}
+                            </span>
+                            <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold border ${
+                              slot.format === 'Online'
+                                ? 'bg-purple-950/70 border-purple-700/50 text-purple-300'
+                                : 'bg-emerald-950/70 border-emerald-700/50 text-emerald-300'
+                            }`}>
+                              {slot.format === 'Online' ? '💻 أونلاين' : '🏛️ حضوري'}
+                            </span>
                           </div>
-                          <div className="text-[11px] text-slate-400 font-mono flex items-center gap-2">
-                            <span>{slot.startTime} – {slot.endTime ?? 'وقت الانتهاء غير محدد'}</span>
-                            <span>•</span>
-                            <span className="text-emerald-400">{slot.hall}</span>
-                            <span>•</span>
-                            <span className="text-slate-500">{slot.format}</span>
+
+                          <div className="text-[11px] text-slate-400 flex items-center flex-wrap gap-x-3 gap-y-1 font-medium">
+                            <span className="inline-flex items-center gap-1 text-slate-300 font-mono">
+                              <Clock className="w-3 h-3 text-sky-400" />
+                              <span>{slot.startTime} {slot.endTime ? `– ${slot.endTime}` : '(غير محدد النهاية)'}</span>
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-emerald-400">
+                              <MapPin className="w-3 h-3" />
+                              <span>{slot.hall}</span>
+                            </span>
                           </div>
+
+                          {slot.notes && (
+                            <p className="text-[11px] text-slate-400 bg-slate-950/40 px-2 py-1 rounded-lg border border-slate-800/60 inline-block mt-0.5">
+                              {slot.notes}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Actions: Edit & Delete */}
+                        <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => openEditSlotModal(slot)}
+                            className="p-1.5 text-slate-400 hover:text-sky-300 hover:bg-slate-800 rounded-xl transition pressable cursor-pointer"
+                            title="تعديل الحصة"
+                          >
+                            <Edit3 className="w-4 h-4 text-sky-400" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSlot(slot)}
+                            className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-slate-800 rounded-xl transition pressable cursor-pointer"
+                            title="حذف الحصة"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -1044,6 +1333,27 @@ export const UniversityWorkspace: React.FC = () => {
                 </div>
               );
             })}
+
+            {/* Empty State when ALL selected and no slots at all */}
+            {timetableSlots.length === 0 && (
+              <div className="glass-panel border border-dashed border-slate-800 rounded-3xl p-8 text-center space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-slate-800/60 border border-slate-700/50 flex items-center justify-center mx-auto text-slate-400">
+                  <Calendar className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-white">الجدول الدراسي فارغ حالياً</h4>
+                  <p className="text-xs text-slate-400">أضف محاضراتك وسكاشنك لتنظيم أسبوعك الجامعي</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleOpenAddSlotModal()}
+                  className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl inline-flex items-center gap-1.5 pressable cursor-pointer shadow-lg shadow-sky-500/20"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>إضافة أول حصة في الجدول</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1892,6 +2202,316 @@ export const UniversityWorkspace: React.FC = () => {
                 >
                   حفظ النشاط
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* Modal: Add Timetable Slot                                */}
+      {/* ======================================================== */}
+      {isAddSlotOpen && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-sky-500/40 rounded-3xl w-full max-w-md p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-sky-400" />
+                <h3 className="text-sm font-bold text-white">إضافة حصة جديدة للجدول</h3>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setIsAddSlotOpen(false)}
+                className="text-slate-400 hover:text-slate-200 p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateSlot} className="space-y-3.5">
+              {/* Day selection */}
+              <div>
+                <label className="text-[11px] text-slate-300 font-bold block mb-1">اليوم:</label>
+                <select
+                  value={slotDay}
+                  onChange={e => setSlotDay(e.target.value as TimetableSlot['day'])}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                >
+                  {TIMETABLE_DAYS.map(day => (
+                    <option key={day} value={day}>{day}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Subject selector or custom */}
+              {universitySubjects.length > 0 && (
+                <div>
+                  <label className="text-[11px] text-slate-300 font-bold block mb-1">اختيار المادة من المقررات:</label>
+                  <select
+                    value={slotSubjectSelect}
+                    onChange={e => handleSubjectSelectChange(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                  >
+                    {universitySubjects.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.code})
+                      </option>
+                    ))}
+                    <option value="custom">-- كتابة مادة / سكشن مخصص --</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Subject Name */}
+              <div>
+                <label className="text-[11px] text-slate-300 font-bold block mb-1">اسم المادة / الحصة:</label>
+                <input
+                  type="text"
+                  value={slotSubjectName}
+                  onChange={e => setSlotSubjectName(e.target.value)}
+                  placeholder="مثال: Thermodynamics and Phase"
+                  required
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                />
+              </div>
+
+              {/* Subject Code */}
+              <div>
+                <label className="text-[11px] text-slate-300 font-bold block mb-1">كود المادة (اختياري):</label>
+                <input
+                  type="text"
+                  value={slotSubjectCode}
+                  onChange={e => setSlotSubjectCode(e.target.value)}
+                  placeholder="مثال: NAC 3510"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500 font-mono"
+                />
+              </div>
+
+              {/* Timing: Start and End time */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] text-slate-300 font-bold block mb-1">وقت البداية:</label>
+                  <input
+                    type="time"
+                    value={slotStartTime}
+                    onChange={e => setSlotStartTime(e.target.value)}
+                    required
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-slate-300 font-bold block mb-1">وقت الانتهاء (اختياري):</label>
+                  <input
+                    type="time"
+                    value={slotEndTime}
+                    onChange={e => setSlotEndTime(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Format & Hall */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] text-slate-300 font-bold block mb-1">نوع الحضور:</label>
+                  <select
+                    value={slotFormat}
+                    onChange={e => setSlotFormat(e.target.value as 'Campus' | 'Online')}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                  >
+                    <option value="Campus">🏛️ حضوري (Campus)</option>
+                    <option value="Online">💻 أونلاين (Online)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] text-slate-300 font-bold block mb-1">المكان / القاعة:</label>
+                  <input
+                    type="text"
+                    value={slotHall}
+                    onChange={e => setSlotHall(e.target.value)}
+                    placeholder="مثال: مدرج 5 أو زووم"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="text-[11px] text-slate-300 font-bold block mb-1">ملاحظات إضافية (اختياري):</label>
+                <input
+                  type="text"
+                  value={slotNotes}
+                  onChange={e => setSlotNotes(e.target.value)}
+                  placeholder="مثال: سكشن تمارين مع المعيد"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsAddSlotOpen(false)}
+                  className="text-xs text-slate-400 hover:text-slate-200 px-3 py-1.5"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl shadow-md pressable cursor-pointer"
+                >
+                  إضافة الحصة للجدول
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* Modal: Edit Timetable Slot                               */}
+      {/* ======================================================== */}
+      {editingSlot && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-sky-500/40 rounded-3xl w-full max-w-md p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-sky-400" />
+                <h3 className="text-sm font-bold text-white">تعديل بيانات الحصة الدراسية</h3>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setEditingSlot(null)}
+                className="text-slate-400 hover:text-slate-200 p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditSlot} className="space-y-3.5">
+              {/* Day */}
+              <div>
+                <label className="text-[11px] text-slate-300 font-bold block mb-1">اليوم:</label>
+                <select
+                  value={editSlotDay}
+                  onChange={e => setEditSlotDay(e.target.value as TimetableSlot['day'])}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                >
+                  {TIMETABLE_DAYS.map(day => (
+                    <option key={day} value={day}>{day}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Subject Name */}
+              <div>
+                <label className="text-[11px] text-slate-300 font-bold block mb-1">اسم المادة:</label>
+                <input
+                  type="text"
+                  value={editSlotSubjectName}
+                  onChange={e => setEditSlotSubjectName(e.target.value)}
+                  required
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                />
+              </div>
+
+              {/* Subject Code */}
+              <div>
+                <label className="text-[11px] text-slate-300 font-bold block mb-1">كود المادة:</label>
+                <input
+                  type="text"
+                  value={editSlotSubjectCode}
+                  onChange={e => setEditSlotSubjectCode(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500 font-mono"
+                />
+              </div>
+
+              {/* Timing */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] text-slate-300 font-bold block mb-1">وقت البداية:</label>
+                  <input
+                    type="time"
+                    value={editSlotStartTime}
+                    onChange={e => setEditSlotStartTime(e.target.value)}
+                    required
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-slate-300 font-bold block mb-1">وقت الانتهاء (اختياري):</label>
+                  <input
+                    type="time"
+                    value={editSlotEndTime}
+                    onChange={e => setEditSlotEndTime(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Format & Hall */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] text-slate-300 font-bold block mb-1">نوع الحضور:</label>
+                  <select
+                    value={editSlotFormat}
+                    onChange={e => setEditSlotFormat(e.target.value as 'Campus' | 'Online')}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                  >
+                    <option value="Campus">🏛️ حضوري (Campus)</option>
+                    <option value="Online">💻 أونلاين (Online)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] text-slate-300 font-bold block mb-1">المكان / القاعة:</label>
+                  <input
+                    type="text"
+                    value={editSlotHall}
+                    onChange={e => setEditSlotHall(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="text-[11px] text-slate-300 font-bold block mb-1">ملاحظات إضافية:</label>
+                <input
+                  type="text"
+                  value={editSlotNotes}
+                  onChange={e => setEditSlotNotes(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const toDelete = editingSlot;
+                    setEditingSlot(null);
+                    handleDeleteSlot(toDelete);
+                  }}
+                  className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 font-bold p-1.5 rounded-lg hover:bg-red-950/40"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>حذف الحصة</span>
+                </button>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingSlot(null)}
+                    className="text-xs text-slate-400 hover:text-slate-200 px-3 py-1.5"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl shadow-md pressable cursor-pointer"
+                  >
+                    حفظ التعديلات
+                  </button>
+                </div>
               </div>
             </form>
           </div>

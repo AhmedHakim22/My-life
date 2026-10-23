@@ -250,6 +250,11 @@ interface AppState {
   toggleStudentActivityDone: (id: string) => Promise<void>;
   deleteStudentActivity: (id: string) => Promise<void>;
 
+  // Timetable Actions
+  addTimetableSlot: (slot: Omit<TimetableSlot, 'id'>) => Promise<string>;
+  updateTimetableSlot: (id: string, updates: Partial<Omit<TimetableSlot, 'id'>>) => Promise<void>;
+  deleteTimetableSlot: (id: string) => Promise<void>;
+
   toggleLectureStep: (sessionId: string, step: 'study' | 'revise' | 'solve' | 'material') => Promise<void>;
 
   // 4. Book Actions
@@ -1731,6 +1736,45 @@ export const useAppStore = create<AppState>((set, get) => ({
     await deleteRemoteEntity('studentActivities', id);
     await get().loadAllData();
     get().showToast('تم حذف مهمة النشاط 🗑️');
+  },
+
+  // Timetable Slot Actions
+  addTimetableSlot: async (slotData) => {
+    const id = `slot-${Date.now()}`;
+    const now = new Date().toISOString();
+    const newSlot: TimetableSlot = {
+      ...slotData,
+      id,
+      updatedAt: now
+    };
+    await db.timetableSlots.add(newSlot);
+    await get().loadAllData(true);
+    scheduleAutoPush(100);
+    get().showToast(`تمت إضافة حصة "${slotData.subjectName}" إلى الجدول الأسبوعي 🏫`);
+    return id;
+  },
+
+  updateTimetableSlot: async (id, updates) => {
+    const slot = get().timetableSlots.find(s => s.id === id);
+    if (!slot) return;
+    const now = new Date().toISOString();
+    const updated = {
+      ...slot,
+      ...updates,
+      updatedAt: now
+    };
+    await db.timetableSlots.put(updated);
+    await get().loadAllData(true);
+    scheduleAutoPush(100);
+    get().showToast('تم تحديث الحصة في الجدول بنجاح ✨');
+  },
+
+  deleteTimetableSlot: async (id) => {
+    await db.timetableSlots.delete(id);
+    await deleteRemoteEntity('timetableSlots', id);
+    await get().loadAllData(true);
+    scheduleAutoPush(100);
+    get().showToast('تم حذف الحصة من الجدول 🗑️');
   },
 
   // 4. Book Actions
