@@ -98,4 +98,135 @@ describe('Goal Center & Progress Engine', () => {
     goal = await db.goals.get(goalId);
     expect(goal?.isArchived).toBe(false);
   });
+
+  it('updates goal details and reflects changes accurately', async () => {
+    const store = useAppStore.getState();
+
+    const goalId = await store.createGoal({
+      title: 'هدف قبل التعديل',
+      whyItMatters: 'سبب قديم',
+      horizon: 'MONTHLY',
+      status: 'IN_PROGRESS',
+      isArchived: false
+    });
+
+    await store.updateGoal(goalId, {
+      title: 'هدف بعد التعديل والتصحيح',
+      whyItMatters: 'سبب جديد ومحدث',
+      horizon: 'QUARTERLY',
+      status: 'PAUSED'
+    });
+
+    const updated = await db.goals.get(goalId);
+    expect(updated?.title).toBe('هدف بعد التعديل والتصحيح');
+    expect(updated?.whyItMatters).toBe('سبب جديد ومحدث');
+    expect(updated?.horizon).toBe('QUARTERLY');
+    expect(updated?.status).toBe('PAUSED');
+  });
+
+  it('updates milestone weight and recalculates progress immediately', async () => {
+    const store = useAppStore.getState();
+
+    const goalId = await store.createGoal({
+      title: 'هدف لاختبار تعديل المعالم',
+      whyItMatters: 'اختبار دقة قياس الأوزان',
+      horizon: 'QUARTERLY',
+      status: 'IN_PROGRESS',
+      isArchived: false
+    });
+
+    const msA = await store.addGoalMilestone({
+      goalId,
+      title: 'المعلم الأول',
+      status: 'COMPLETED',
+      sortOrder: 1,
+      weight: 20
+    });
+
+    const msB = await store.addGoalMilestone({
+      goalId,
+      title: 'المعلم الثاني',
+      status: 'PENDING',
+      sortOrder: 2,
+      weight: 80
+    });
+
+    let goal = await db.goals.get(goalId);
+    expect(goal?.progressPercentage).toBe(20);
+
+    // User measured wrong and adjusts weights: msA becomes 50%, msB becomes 50%
+    await store.updateMilestone(msA, { weight: 50 });
+    await store.updateMilestone(msB, { weight: 50 });
+
+    goal = await db.goals.get(goalId);
+    // 50 / (50 + 50) = 50%
+    expect(goal?.progressPercentage).toBe(50);
+  });
+
+  it('deletes a goal cleanly: removes milestones, junctions, unlinks tasks, and records tombstones', async () => {
+    const store = useAppStore.getState();
+
+    const parentGoalId = await store.createGoal({
+      title: 'الهدف الأب المراد حذفه',
+      whyItMatters: 'فحص الحذف النظيف',
+      horizon: 'ANNUAL',
+      status: 'IN_PROGRESS',
+      isArchived: false
+    });
+
+    const childGoalId = await store.createGoal({
+      title: 'هدف فرعي',
+      whyItMatters: 'فحص فك الارتباط',
+      horizon: 'QUARTERLY',
+      parentGoalId,
+      status: 'IN_PROGRESS',
+      isArchived: false
+    });
+
+    const msId = await store.addGoalMilestone({
+      goalId: parentGoalId,
+      title: 'معلم الهدف الأب',
+      status: 'PENDING',
+      sortOrder: 1,
+      weight: 100
+    });
+
+    await store.addTask(
+      'مهمة مرتبطة بالهدف الأب',
+      'P2_IMPORTANT',
+      30,
+      '2026-10-23',
+      parentGoalId
+    );
+
+    let tasks = await db.tasks.where('goalId').equals(parentGoalId).toArray();
+    expect(tasks.length).toBe(1);
+
+    // Delete the parent goal
+    await store.deleteGoal(parentGoalId);
+
+    // Goal is deleted from DB
+    const deletedGoal = await db.goals.get(parentGoalId);
+    expect(deletedGoal).toBeUndefined();
+
+    // Milestone is deleted from DB
+    const deletedMs = await db.goalMilestones.get(msId);
+    expect(deletedMs).toBeUndefined();
+
+    // Task is unlinked (not deleted, goalId set to undefined)
+    const task = await db.tasks.get(tasks[0].id);
+    expect(task).toBeDefined();
+    expect(task?.goalId).toBeUndefined();
+
+    // Child goal has parentGoalId unlinked
+    const childGoal = await db.goals.get(childGoalId);
+    expect(childGoal).toBeDefined();
+    expect(childGoal?.parentGoalId).toBeUndefined();
+
+    // Tombstones recorded for goal and milestone
+    const goalTomb = await db.tombstones.where('entityId').equals(parentGoalId).first();
+    expect(goalTomb).toBeDefined();
+    const msTomb = await db.tombstones.where('entityId').equals(msId).first();
+    expect(msTomb).toBeDefined();
+  });
 });

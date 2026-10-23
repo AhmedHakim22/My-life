@@ -18,7 +18,8 @@ import {
   AlertCircle,
   Eye,
   Check,
-  X
+  X,
+  Edit3
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import type { Goal, Horizon, GoalMilestone, Task } from '../types';
@@ -39,6 +40,7 @@ export const GoalsWorkspace: React.FC = () => {
     archiveGoal, 
     deleteGoal,
     addGoalMilestone,
+    updateMilestone,
     toggleMilestone,
     deleteMilestone,
     completeTask,
@@ -76,6 +78,24 @@ export const GoalsWorkspace: React.FC = () => {
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskPriority, setNewTaskPriority] = useState<Task['priority']>('P2_IMPORTANT');
   const [newTaskMinutes, setNewTaskMinutes] = useState(30);
+
+  // Edit Goal Form State
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editWhyItMatters, setEditWhyItMatters] = useState('');
+  const [editHorizon, setEditHorizon] = useState<Horizon>('ANNUAL');
+  const [editDomainId, setEditDomainId] = useState<string>('');
+  const [editTargetDate, setEditTargetDate] = useState('');
+  const [editParentGoalId, setEditParentGoalId] = useState<string>('');
+  const [editSelectedIntentionId, setEditSelectedIntentionId] = useState<string>('');
+  const [editStatus, setEditStatus] = useState<Goal['status']>('IN_PROGRESS');
+
+  // Edit Milestone Form State
+  const [editingMilestone, setEditingMilestone] = useState<GoalMilestone | null>(null);
+  const [editMilestoneTitle, setEditMilestoneTitle] = useState('');
+  const [editMilestoneWeight, setEditMilestoneWeight] = useState(25);
+  const [editMilestoneDate, setEditMilestoneDate] = useState('');
+  const [editMilestoneStatus, setEditMilestoneStatus] = useState<GoalMilestone['status']>('PENDING');
 
   // Filtered Goals
   const filteredGoals = goals.filter(g => {
@@ -150,6 +170,83 @@ export const GoalsWorkspace: React.FC = () => {
     fireConfettiSuccess();
     setNewTaskTitle('');
     setSelectedGoalForTask(null);
+  };
+
+  const openEditGoalModal = (goal: Goal) => {
+    setEditingGoal(goal);
+    setEditTitle(goal.title);
+    setEditWhyItMatters(goal.whyItMatters || '');
+    setEditHorizon(goal.horizon);
+    setEditDomainId(goal.domainId || '');
+    setEditTargetDate(goal.targetDate || '');
+    setEditParentGoalId(goal.parentGoalId || '');
+    setEditStatus(goal.status);
+
+    const linkedIntention = goalIntentions.find(gi => gi.goalId === goal.id);
+    setEditSelectedIntentionId(linkedIntention?.intentionId || '');
+  };
+
+  const handleSaveEditGoal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingGoal || !editTitle.trim()) return;
+
+    await updateGoal(editingGoal.id, {
+      title: editTitle.trim(),
+      whyItMatters: editWhyItMatters.trim(),
+      horizon: editHorizon,
+      domainId: editDomainId || undefined,
+      targetDate: editTargetDate || undefined,
+      parentGoalId: editParentGoalId || undefined,
+      status: editStatus
+    });
+
+    const currentIntentionLink = goalIntentions.find(gi => gi.goalId === editingGoal.id);
+    if (currentIntentionLink && currentIntentionLink.intentionId !== editSelectedIntentionId) {
+      await unlinkIntentionFromGoal(editingGoal.id, currentIntentionLink.intentionId);
+    }
+    if (editSelectedIntentionId && (!currentIntentionLink || currentIntentionLink.intentionId !== editSelectedIntentionId)) {
+      await linkIntentionToGoal(editingGoal.id, editSelectedIntentionId);
+    }
+
+    setEditingGoal(null);
+    fireConfettiSuccess();
+  };
+
+  const handleDeleteGoal = async (goal: Goal) => {
+    const isConfirmed = window.confirm(`هل أنت متأكد من حذف الهدف "${goal.title}" وجميع معالمه المرتبطة نهائياً؟`);
+    if (isConfirmed) {
+      await deleteGoal(goal.id);
+    }
+  };
+
+  const openEditMilestoneModal = (ms: GoalMilestone) => {
+    setEditingMilestone(ms);
+    setEditMilestoneTitle(ms.title);
+    setEditMilestoneWeight(ms.weight || 25);
+    setEditMilestoneDate(ms.targetDate || '');
+    setEditMilestoneStatus(ms.status);
+  };
+
+  const handleSaveEditMilestone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMilestone || !editMilestoneTitle.trim()) return;
+
+    await updateMilestone(editingMilestone.id, {
+      title: editMilestoneTitle.trim(),
+      weight: Number(editMilestoneWeight) || 25,
+      targetDate: editMilestoneDate || undefined,
+      status: editMilestoneStatus
+    });
+
+    setEditingMilestone(null);
+    fireConfettiSuccess();
+  };
+
+  const handleDeleteMilestone = async (ms: GoalMilestone) => {
+    const isConfirmed = window.confirm(`هل أنت متأكد من حذف المعلم "${ms.title}"؟`);
+    if (isConfirmed) {
+      await deleteMilestone(ms.id);
+    }
   };
 
   const getHorizonBadge = (h: Horizon) => {
@@ -408,13 +505,39 @@ export const GoalsWorkspace: React.FC = () => {
                         <span>مهمة</span>
                       </button>
 
+                      {/* Edit Goal */}
+                      <button
+                        type="button"
+                        onClick={() => openEditGoalModal(goal)}
+                        aria-label="تعديل الهدف"
+                        className="p-1 text-slate-400 hover:text-sky-300 hover:bg-slate-800/80 rounded-lg transition pressable cursor-pointer"
+                        title="تعديل الهدف"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+
+                      {/* Archive / Restore Goal */}
                       <button
                         type="button"
                         onClick={() => archiveGoal(goal.id)}
-                        aria-label="أرشفة الهدف"
-                        className="p-1 text-slate-500 hover:text-amber-400 pressable cursor-pointer"
+                        aria-label={goal.isArchived ? "استرجاع الهدف" : "أرشفة الهدف"}
+                        className={`p-1 rounded-lg transition pressable cursor-pointer ${
+                          goal.isArchived ? "text-amber-400 hover:bg-amber-950/40" : "text-slate-400 hover:text-amber-400 hover:bg-slate-800/80"
+                        }`}
+                        title={goal.isArchived ? "استرجاع من الأرشيف" : "أرشفة الهدف"}
                       >
                         <Archive className="w-3.5 h-3.5" />
+                      </button>
+
+                      {/* Delete Goal */}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteGoal(goal)}
+                        aria-label="حذف الهدف"
+                        className="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition pressable cursor-pointer"
+                        title="حذف الهدف نهائياً"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -465,21 +588,30 @@ export const GoalsWorkspace: React.FC = () => {
                                   </span>
                                 </button>
 
-                                <div className="flex items-center gap-2 shrink-0">
+                                <div className="flex items-center gap-1.5 shrink-0">
                                   <span className="text-[10px] font-mono font-bold text-sky-400 bg-sky-950/60 px-1.5 py-0.5 rounded">
                                     وزن {ms.weight}%
                                   </span>
                                   {ms.targetDate && (
-                                    <span className="text-[10px] text-slate-500">
+                                    <span className="text-[10px] text-slate-400 font-mono">
                                       {ms.targetDate}
                                     </span>
                                   )}
                                   <button
                                     type="button"
-                                    onClick={() => deleteMilestone(ms.id)}
-                                    className="text-slate-600 hover:text-rose-400 p-0.5 pressable cursor-pointer"
+                                    onClick={() => openEditMilestoneModal(ms)}
+                                    className="p-1 text-slate-400 hover:text-sky-300 hover:bg-slate-800 rounded transition pressable cursor-pointer"
+                                    title="تعديل المعلم والوزن"
                                   >
-                                    <Trash2 className="w-3 h-3" />
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteMilestone(ms)}
+                                    className="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 rounded transition pressable cursor-pointer"
+                                    title="حذف المعلم"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               </div>
@@ -866,6 +998,303 @@ export const GoalsWorkspace: React.FC = () => {
                 >
                   إضافة المهمة للهدف
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 8. Edit Goal Modal */}
+      {editingGoal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-sky-500/40 rounded-3xl p-5 w-full max-w-lg space-y-4 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto" dir="rtl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-sky-400" />
+                <h3 className="text-base font-extrabold text-white">تعديل الهدف الاستراتيجي</h3>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setEditingGoal(null)}
+                className="text-slate-400 hover:text-white p-1 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditGoal} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  عنوان الهدف *
+                </label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={e => setEditTitle(e.target.value)}
+                  placeholder="مثال: إتقان الفيزياء الرياضية، إطلاق تطبيق مسار..."
+                  required
+                  autoFocus
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  الدافع والأثر (لماذا هذا الهدف مهم؟)
+                </label>
+                <textarea
+                  value={editWhyItMatters}
+                  onChange={e => setEditWhyItMatters(e.target.value)}
+                  placeholder="ما الذي سيتغير في مستقبلك أو شخصيتك إذا حققته؟"
+                  rows={2}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-400"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    الأفق الزمني
+                  </label>
+                  <select
+                    value={editHorizon}
+                    onChange={e => setEditHorizon(e.target.value as Horizon)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-400"
+                  >
+                    <option value="ANNUAL">هدف سنوي (12 شهر)</option>
+                    <option value="QUARTERLY">هدف ربع سنوي (3 أشهر)</option>
+                    <option value="MONTHLY">هدف شهري</option>
+                    <option value="LONG_TERM">رؤية كبرى (3-5 سنوات)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    مجال الحياة
+                  </label>
+                  <select
+                    value={editDomainId}
+                    onChange={e => setEditDomainId(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-400"
+                  >
+                    <option value="">عام / شخصي</option>
+                    {domains.map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    التاريخ المستهدف للإنجاز
+                  </label>
+                  <input
+                    type="date"
+                    value={editTargetDate}
+                    onChange={e => setEditTargetDate(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-400 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    حالة الهدف
+                  </label>
+                  <select
+                    value={editStatus}
+                    onChange={e => setEditStatus(e.target.value as Goal['status'])}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-400"
+                  >
+                    <option value="IN_PROGRESS">قيد التنفيذ 🎯</option>
+                    <option value="ACHIEVED">مكتمل / محقق 🏆</option>
+                    <option value="PAUSED">متوقف مؤقتاً ⏸️</option>
+                    <option value="NOT_STARTED">لم يبدأ بعد ⏳</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    تابع لهدف أكبر (هرمية الأهداف)
+                  </label>
+                  <select
+                    value={editParentGoalId}
+                    onChange={e => setEditParentGoalId(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-400"
+                  >
+                    <option value="">بدون (هدف رئيسي مستقل)</option>
+                    {goals.filter(g => !g.isArchived && g.id !== editingGoal.id).map(g => (
+                      <option key={g.id} value={g.id}>{g.title}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    ربط بنية مباركة
+                  </label>
+                  <select
+                    value={editSelectedIntentionId}
+                    onChange={e => setEditSelectedIntentionId(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400"
+                  >
+                    <option value="">-- بدون نية --</option>
+                    {intentions.map(i => (
+                      <option key={i.id} value={i.id}>🤲 {i.title}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleDeleteGoal(editingGoal);
+                    setEditingGoal(null);
+                  }}
+                  className="px-3 py-2 text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>حذف الهدف</span>
+                </button>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingGoal(null)}
+                    className="px-4 py-2 text-xs text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-gradient-to-r from-sky-500 to-blue-600 text-slate-950 font-extrabold text-xs px-5 py-2 rounded-xl shadow-lg shadow-sky-500/25 pressable cursor-pointer"
+                  >
+                    حفظ التعديلات
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 9. Edit Milestone Modal */}
+      {editingMilestone && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-sky-500/40 rounded-3xl p-5 w-full max-w-md space-y-4 shadow-2xl animate-in zoom-in-95 duration-200" dir="rtl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-sky-400" />
+                <h3 className="text-base font-extrabold text-white">تعديل المعلم المرحلي (Milestone)</h3>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setEditingMilestone(null)}
+                className="text-slate-400 hover:text-white p-1 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditMilestone} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  عنوان المعلم *
+                </label>
+                <input
+                  type="text"
+                  value={editMilestoneTitle}
+                  onChange={e => setEditMilestoneTitle(e.target.value)}
+                  placeholder="مثال: إنهاء كورس أشباه الموصلات، تسليم مسودة البحث..."
+                  required
+                  autoFocus
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-400"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-300">
+                      الوزن النسبي (%) *
+                    </label>
+                    <span className="text-[10px] text-sky-400 font-mono font-bold">
+                      {editMilestoneWeight}%
+                    </span>
+                  </div>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={editMilestoneWeight}
+                    onChange={e => setEditMilestoneWeight(Number(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-400 font-mono text-center"
+                  />
+                  <span className="text-[9px] text-slate-400 block mt-1 leading-tight">
+                    تعديل الوزن يعيد حساب نسبة إنجاز الهدف تلقائياً
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    تاريخ الاستحقاق
+                  </label>
+                  <input
+                    type="date"
+                    value={editMilestoneDate}
+                    onChange={e => setEditMilestoneDate(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-400 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  حالة المعلم
+                </label>
+                <select
+                  value={editMilestoneStatus}
+                  onChange={e => setEditMilestoneStatus(e.target.value as GoalMilestone['status'])}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-400"
+                >
+                  <option value="PENDING">قيد الإنجاز (لم يكتمل)</option>
+                  <option value="COMPLETED">مكتمل بنجاح ☑</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleDeleteMilestone(editingMilestone);
+                    setEditingMilestone(null);
+                  }}
+                  className="px-3 py-2 text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>حذف المعلم</span>
+                </button>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingMilestone(null)}
+                    className="px-4 py-2 text-xs text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-sky-500 text-slate-950 font-extrabold text-xs px-5 py-2 rounded-xl shadow-lg shadow-sky-500/25 pressable cursor-pointer"
+                  >
+                    حفظ التعديل
+                  </button>
+                </div>
               </div>
             </form>
           </div>

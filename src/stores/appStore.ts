@@ -161,6 +161,7 @@ interface AppState {
   archiveGoal: (id: string) => Promise<void>;
   deleteGoal: (id: string) => Promise<void>;
   addGoalMilestone: (milestone: Omit<GoalMilestone, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
+  updateMilestone: (id: string, updates: Partial<Omit<GoalMilestone, 'id' | 'createdAt'>>) => Promise<void>;
   toggleMilestone: (id: string) => Promise<void>;
   deleteMilestone: (id: string) => Promise<void>;
   recalculateGoalProgress: (goalId: string) => Promise<void>;
@@ -988,8 +989,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   updateGoal: async (id, updates) => {
     const now = new Date().toISOString();
     await db.goals.update(id, { ...updates, updatedAt: now });
-    await get().loadAllData();
-    get().showToast('تم تحديث الهدف بنجاح');
+    await get().recalculateGoalProgress(id);
+    await get().loadAllData(true);
+    scheduleAutoPush(100);
+    get().showToast('تم تحديث الهدف بنجاح ✨');
   },
 
   archiveGoal: async (id) => {
@@ -1002,12 +1005,35 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   deleteGoal: async (id) => {
-    await db.goals.delete(id);
+    // 1. Remove associated milestones and record tombstones
+    const milestones = await db.goalMilestones.where('goalId').equals(id).toArray();
+    for (const ms of milestones) {
+      await deleteRemoteEntity('goalMilestones', ms.id);
+    }
     await db.goalMilestones.where('goalId').equals(id).delete();
+
+    // 2. Remove junction links and intention links
     await db.goalLinks.where('goalId').equals(id).delete();
+    await db.goalIntentions.where('goalId').equals(id).delete();
+
+    // 3. Unlink any tasks attached to this goal so they don't dangle
+    const linkedTasks = await db.tasks.where('goalId').equals(id).toArray();
+    for (const t of linkedTasks) {
+      await db.tasks.update(t.id, { goalId: undefined });
+    }
+
+    // 4. Unlink child goals that were parented to this goal
+    const childGoals = await db.goals.where('parentGoalId').equals(id).toArray();
+    for (const cg of childGoals) {
+      await db.goals.update(cg.id, { parentGoalId: undefined });
+    }
+
+    // 5. Delete goal locally and remotely with tombstone
+    await db.goals.delete(id);
     await deleteRemoteEntity('goals', id);
-    await get().loadAllData();
-    get().showToast('تم حذف الهدف ومعالمه المرتبطة');
+    await get().loadAllData(true);
+    scheduleAutoPush(100);
+    get().showToast('تم حذف الهدف ومعالمه بنجاح 🗑️');
   },
 
   addGoalMilestone: async (ms) => {
@@ -1023,6 +1049,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     await get().loadAllData();
     get().showToast(`تمت إضافة المعلم: ${ms.title}`);
     return id;
+  },
+
+  updateMilestone: async (id, updates) => {
+    const ms = get().goalMilestones.find(m => m.id === id);
+    if (!ms) return;
+    const now = new Date().toISOString();
+    await db.goalMilestones.update(id, { ...updates, updatedAt: now });
+    await get().recalculateGoalProgress(ms.goalId);
+    await get().loadAllData(true);
+    scheduleAutoPush(100);
+    get().showToast('تم تعديل المعلم المرحلي بنجاح ✨');
   },
 
   toggleMilestone: async (id) => {
@@ -1077,9 +1114,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       finalPercentage = taskProgress;
     }
 
+    const currentGoal = await db.goals.get(goalId);
+    let computedStatus = currentGoal?.status || 'IN_PROGRESS';
+    if (computedStatus !== 'PAUSED') {
+      computedStatus = finalPercentage === 100 ? 'ACHIEVED' : finalPercentage > 0 ? 'IN_PROGRESS' : computedStatus;
+    }
+
     await db.goals.update(goalId, {
       progressPercentage: finalPercentage,
-      status: finalPercentage === 100 ? 'ACHIEVED' : finalPercentage > 0 ? 'IN_PROGRESS' : 'NOT_STARTED',
+      status: computedStatus,
       updatedAt: new Date().toISOString()
     });
   },
