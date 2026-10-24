@@ -579,7 +579,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     const now = new Date();
     const currentDst = get().prayerDstMode || 'AUTO';
     const prayers = getCairoPrayerTimes(now, currentDst);
-    const bestNextAction = recommendBestNextAction(tasks, prayers, universitySubjects, studySessions, new Date(), goals);
+    const bestNextAction = recommendBestNextAction(
+      tasks, 
+      prayers, 
+      universitySubjects, 
+      studySessions, 
+      new Date(), 
+      goals,
+      academicQuizzes,
+      academicAssignments
+    );
     const rankProgress = calculateUserRank(xpTransactions);
 
     set({

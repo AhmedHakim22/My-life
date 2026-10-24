@@ -61,7 +61,23 @@ export const DynamicIslandWidget: React.FC = () => {
 
   const handleCompleteCurrentTask = async (taskId: string) => {
     fireConfettiSuccess();
-    await completeTask(taskId);
+    if (taskId.startsWith('synth-study-')) {
+      const sessionId = taskId.replace('synth-study-', '');
+      const store = useAppStore.getState();
+      const session = store.studySessions.find(s => s.id === sessionId);
+      if (session) {
+        const step = (session.studyDone && !session.reviseDone) ? 'revise' : (!session.studyDone ? 'study' : 'solve');
+        await store.toggleLectureStep(sessionId, step);
+      }
+    } else if (taskId.startsWith('synth-quiz-')) {
+      const quizId = taskId.replace('synth-quiz-', '');
+      await useAppStore.getState().toggleQuizPrepared(quizId);
+    } else if (taskId.startsWith('synth-assign-')) {
+      const assignId = taskId.replace('synth-assign-', '');
+      await useAppStore.getState().toggleAssignmentCompleted(assignId);
+    } else {
+      await completeTask(taskId);
+    }
     showToast('رائع يا بطل! تم إنجاز المهمة بنجاح (+25 XP) 🎉');
   };
 

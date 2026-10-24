@@ -248,4 +248,78 @@ describe('5. Deterministic Best Next Action Recommender', () => {
     expect(recommendation?.isPostponementIntervention).toBe(true);
     expect(recommendation?.interventionProposal).toContain('المهمة دي اتأجلت 3 مرات');
   });
+
+  it('should automatically synthesize recommendation when tasks list is empty but lectures need revision', () => {
+    const subjects: UniversitySubject[] = [
+      { id: 'subj-thermo', name: 'Thermodynamics', code: 'NAC 3510', academicYear: 3, semester: 1, difficulty: 'MEDIUM', createdAt: '', updatedAt: '' }
+    ];
+    const sessions: StudySession[] = [
+      { 
+        id: 'sess-thermo-1', 
+        subjectId: 'subj-thermo', 
+        type: 'LECTURE', 
+        title: 'محاضرة 1: الديناميكا الحرارية', 
+        status: 'STUDIED', 
+        studyDone: true, 
+        reviseDone: false, // Needs revision!
+        fsrsStability: 0, 
+        fsrsDifficulty: 0 
+      }
+    ];
+
+    const recommendation = recommendBestNextAction(
+      [], // Empty tasks list!
+      prayers,
+      subjects,
+      sessions,
+      new Date('2026-10-21T10:00:00Z')
+    );
+
+    expect(recommendation).not.toBeNull();
+    expect(recommendation?.category).toBe('STUDY');
+    expect(recommendation?.task.title).toContain('مراجعة: محاضرة 1: الديناميكا الحرارية');
+    expect(recommendation?.rationaleArabic).toContain('مراجعة وتثبيت قبل النسيان');
+  });
+
+  it('should prioritize urgent approaching exams when proposing study actions', () => {
+    const subjects: UniversitySubject[] = [
+      { 
+        id: 'subj-spectro', 
+        name: 'Molecular Spectroscopy', 
+        code: 'NAC 3503', 
+        academicYear: 3, 
+        semester: 1, 
+        examDate: '2026-10-25', // Exam in 4 days!
+        difficulty: 'HARD',
+        createdAt: '',
+        updatedAt: ''
+      }
+    ];
+    const sessions: StudySession[] = [
+      { 
+        id: 'sess-spectro-2', 
+        subjectId: 'subj-spectro', 
+        type: 'LECTURE', 
+        title: 'محاضرة 2: الأطياف الجزيئية', 
+        status: 'STUDIED', 
+        studyDone: true, 
+        reviseDone: false, 
+        fsrsStability: 0, 
+        fsrsDifficulty: 0 
+      }
+    ];
+
+    const recommendation = recommendBestNextAction(
+      [],
+      prayers,
+      subjects,
+      sessions,
+      new Date('2026-10-21T10:00:00Z')
+    );
+
+    expect(recommendation).not.toBeNull();
+    expect(recommendation?.rationaleArabic).toContain('امتحان Molecular Spectroscopy بعد 4 أيام فقط');
+    expect(recommendation?.task.priority).toBe('P1_URGENT_IMPORTANT');
+    expect(recommendation?.score).toBeGreaterThanOrEqual(100);
+  });
 });

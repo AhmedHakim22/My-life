@@ -1,4 +1,4 @@
-import type { Task, UniversitySubject, StudySession, Goal } from '../types';
+import type { Task, UniversitySubject, StudySession, Goal, AcademicQuiz, AcademicAssignment } from '../types';
 import type { DayPrayersResult } from './prayer';
 import { getCairoDateString } from '../lib/dateUtils';
 
@@ -19,13 +19,14 @@ export function recommendBestNextAction(
   subjects: UniversitySubject[] = [],
   sessions: StudySession[] = [],
   currentDate: Date = new Date(),
-  goals: Goal[] = []
+  goals: Goal[] = [],
+  quizzes: AcademicQuiz[] = [],
+  assignments: AcademicAssignment[] = []
 ): NextActionRecommendation | null {
   const pendingTasks = tasks.filter(t => t.status === 'TODO' || t.status === 'IN_PROGRESS');
-  if (pendingTasks.length === 0) return null;
-
   const freeWindow = prayers.freeWindowMinutes; // minutes to next prayer
   const todayStr = getCairoDateString(currentDate);
+  const nowIso = currentDate.toISOString();
 
   // Map subjects for easy exam date lookup
   const subjectMap = new Map<string, UniversitySubject>();
@@ -45,12 +46,27 @@ export function recommendBestNextAction(
     goalMap.set(g.id, g);
   }
 
-  const scoredTasks = pendingTasks.map(task => {
+  interface ScoredCandidate {
+    task: Task;
+    score: number;
+    rationaleArabic: string;
+    category: 'STUDY' | 'BUSINESS' | 'HABIT' | 'GENERAL';
+    freeWindowFit: boolean;
+    isPostponementIntervention: boolean;
+    interventionProposal?: string;
+  }
+
+  const scoredCandidates: ScoredCandidate[] = [];
+
+  // -------------------------------------------------------------------------
+  // 1. Score explicitly recorded pending tasks
+  // -------------------------------------------------------------------------
+  for (const task of pendingTasks) {
     let score = 50; // base score
     let rationale = '';
     let category: 'STUDY' | 'BUSINESS' | 'HABIT' | 'GENERAL' = 'GENERAL';
 
-    // 1. Goal impact weighting (High strategic alignment)
+    // A. Goal impact weighting (High strategic alignment)
     if (task.goalId) {
       const linkedGoal = goalMap.get(task.goalId);
       if (linkedGoal && !linkedGoal.isArchived) {
@@ -59,7 +75,7 @@ export function recommendBestNextAction(
       }
     }
 
-    // 2. Priority weighting
+    // B. Priority weighting
     if (task.priority === 'P1_URGENT_IMPORTANT') {
       score += 35;
       rationale = rationale ? `${rationale} (أولوية قصوى P1)` : 'مهمة ذات أولوية قصوى وأثر مباشر';
@@ -68,7 +84,7 @@ export function recommendBestNextAction(
       if (!rationale) rationale = 'مهمة استراتيجية هامة P2';
     }
 
-    // 3. Proximity to Exam or Hard Deadline
+    // C. Proximity to Exam or Hard Deadline
     if (task.studySessionId) {
       category = 'STUDY';
       const session = sessionMap.get(task.studySessionId);
@@ -92,7 +108,7 @@ export function recommendBestNextAction(
       if (!rationale) rationale = 'مسؤولية مهنية لتطوير العمل ومشاريعك';
     }
 
-    // 4. Due Date proximity
+    // D. Due Date proximity
     if (task.dueDate) {
       if (task.dueDate <= todayStr) {
         score += 25;
@@ -100,7 +116,7 @@ export function recommendBestNextAction(
       }
     }
 
-    // 5. Prayer Time Window Fit
+    // E. Prayer Time Window Fit
     const fitsTimeWindow = task.estimatedMinutes <= freeWindow;
     if (fitsTimeWindow) {
       score += 15;
@@ -109,16 +125,16 @@ export function recommendBestNextAction(
       score -= 10;
     }
 
-    // 6. Postponement Check (3-miss threshold)
+    // F. Postponement Check (3-miss threshold)
     const isPostponementIntervention = task.postponementCount >= 3;
     let interventionProposal: string | undefined;
 
     if (isPostponementIntervention) {
-      score += 10; // keep it visible for resolution
+      score += 10;
       interventionProposal = `المهمة دي اتأجلت ${task.postponementCount} مرات.. نقترح تقسيمها لخطوتين أصغر أو تقليل نطاقها.`;
     }
 
-    return {
+    scoredCandidates.push({
       task,
       score,
       rationaleArabic: rationale || 'خطوة جيدة لتثبيت الاستمرارية اليوم',
@@ -126,14 +142,204 @@ export function recommendBestNextAction(
       freeWindowFit: fitsTimeWindow,
       isPostponementIntervention,
       interventionProposal
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // 2. Synthesize candidates from Academic & Study Reality
+  // (Unreviewed/Unstudied Lectures, Approaching Exams, Quizzes, Assignments)
+  // -------------------------------------------------------------------------
+  const coveredSessionIds = new Set(
+    pendingTasks.filter(t => Boolean(t.studySessionId)).map(t => t.studySessionId!)
+  );
+
+  // A. Unreviewed / Unstudied Lectures
+  for (const session of sessions) {
+    if (coveredSessionIds.has(session.id)) continue;
+
+    // Check if session needs review, initial study, or problem solving
+    const isUnreviewed = session.studyDone && !session.reviseDone;
+    const isMaterialReadyUnstudied = !session.studyDone && Boolean(session.materialReady);
+    const isUnstudied = !session.studyDone;
+    const isUnsolved = session.reviseDone && !session.solveDone;
+
+    if (!isUnreviewed && !isMaterialReadyUnstudied && !isUnstudied && !isUnsolved) {
+      continue; // Session is fully completed
+    }
+
+    const subject = subjectMap.get(session.subjectId);
+    const subjectName = subject?.name || 'الجامعة';
+
+    let daysToExam: number | null = null;
+    if (subject?.examDate) {
+      const examMs = new Date(subject.examDate).getTime();
+      daysToExam = Math.max(0, Math.round((examMs - currentDate.getTime()) / (1000 * 60 * 60 * 24)));
+    } else if (subject?.midExamDate) {
+      const examMs = new Date(subject.midExamDate).getTime();
+      daysToExam = Math.max(0, Math.round((examMs - currentDate.getTime()) / (1000 * 60 * 60 * 24)));
+    }
+
+    let synthTitle = '';
+    let synthRationale = '';
+    let synthScore = 55;
+    let estimatedMinutes = 40;
+
+    if (isUnreviewed) {
+      synthTitle = `مراجعة: ${session.title} — ${subjectName}`;
+      synthRationale = `محاضرة تم إنهاء مذاكرتها وبحاجة لمراجعة وتثبيت قبل النسيان 🧠`;
+      synthScore = 68;
+      estimatedMinutes = 35;
+    } else if (isMaterialReadyUnstudied) {
+      synthTitle = `مذاكرة: ${session.title} — ${subjectName}`;
+      synthRationale = `الماتريال جاهزة ومتاحة للمذاكرة الآن 📖`;
+      synthScore = 64;
+      estimatedMinutes = 45;
+    } else if (isUnsolved) {
+      synthTitle = `حل تمارين: ${session.title} — ${subjectName}`;
+      synthRationale = `تمت المراجعة وبحاجة لحل تمارين وتطبيقات ✍️`;
+      synthScore = 58;
+      estimatedMinutes = 40;
+    } else {
+      synthTitle = `مذاكرة: ${session.title} — ${subjectName}`;
+      synthRationale = `محاضرة ضمن منهج ${subjectName} بانتظار المذاكرة`;
+      synthScore = 52;
+      estimatedMinutes = 45;
+    }
+
+    // Proximity to Exam boost
+    if (daysToExam !== null) {
+      if (daysToExam <= 7) {
+        synthScore += 45;
+        synthRationale = `امتحان ${subjectName} بعد ${daysToExam} أيام فقط! ${synthRationale}`;
+      } else if (daysToExam <= 14) {
+        synthScore += 30;
+        synthRationale = `امتحان ${subjectName} يقترب (بعد ${daysToExam} يوماً). ${synthRationale}`;
+      } else if (daysToExam <= 30) {
+        synthScore += 18;
+        synthRationale = `استعداداً لامتحان ${subjectName} (بعد ${daysToExam} يوماً). ${synthRationale}`;
+      }
+    }
+
+    if (subject?.focus === 'High') {
+      synthScore += 10;
+    }
+
+    const fitsTimeWindow = estimatedMinutes <= freeWindow;
+    if (fitsTimeWindow) {
+      synthScore += 10;
+      synthRationale += ` (وقتها ${estimatedMinutes} دقيقة مناسب قبل الصلاة)`;
+    }
+
+    const synthTask: Task = {
+      id: `synth-study-${session.id}`,
+      title: synthTitle,
+      priority: daysToExam !== null && daysToExam <= 14 ? 'P1_URGENT_IMPORTANT' : 'P2_IMPORTANT',
+      status: 'TODO',
+      estimatedMinutes,
+      isLocked: false,
+      dueDate: todayStr,
+      postponementCount: 0,
+      studySessionId: session.id,
+      createdAt: nowIso,
+      updatedAt: nowIso
     };
-  });
+
+    scoredCandidates.push({
+      task: synthTask,
+      score: synthScore,
+      rationaleArabic: synthRationale,
+      category: 'STUDY',
+      freeWindowFit: fitsTimeWindow,
+      isPostponementIntervention: false
+    });
+  }
+
+  // B. Approaching Academic Quizzes
+  for (const quiz of quizzes) {
+    if (quiz.prepared && quiz.attended) continue;
+
+    let daysToQuiz = 7;
+    if (quiz.quizDate) {
+      const qMs = new Date(quiz.quizDate).getTime();
+      daysToQuiz = Math.max(0, Math.round((qMs - currentDate.getTime()) / (1000 * 60 * 60 * 24)));
+    }
+
+    if (daysToQuiz <= 14) {
+      const quizScore = 75 + Math.max(0, 14 - daysToQuiz);
+      const estMin = 35;
+      const fits = estMin <= freeWindow;
+
+      const synthQuizTask: Task = {
+        id: `synth-quiz-${quiz.id}`,
+        title: `التحضير لكويز: ${quiz.topic} — ${quiz.subjectName}`,
+        priority: daysToQuiz <= 3 ? 'P1_URGENT_IMPORTANT' : 'P2_IMPORTANT',
+        status: 'TODO',
+        estimatedMinutes: estMin,
+        isLocked: false,
+        dueDate: quiz.quizDate || todayStr,
+        postponementCount: 0,
+        createdAt: nowIso,
+        updatedAt: nowIso
+      };
+
+      scoredCandidates.push({
+        task: synthQuizTask,
+        score: quizScore,
+        rationaleArabic: `كويز ${quiz.topic} مقرر بعد ${daysToQuiz} أيام في مادة ${quiz.subjectName} 📝`,
+        category: 'STUDY',
+        freeWindowFit: fits,
+        isPostponementIntervention: false
+      });
+    }
+  }
+
+  // C. Approaching Academic Assignments
+  for (const assign of assignments) {
+    if (assign.completed && assign.submitted) continue;
+
+    let daysToDue = 5;
+    if (assign.deadline) {
+      const dMs = new Date(assign.deadline).getTime();
+      daysToDue = Math.max(0, Math.round((dMs - currentDate.getTime()) / (1000 * 60 * 60 * 24)));
+    }
+
+    if (daysToDue <= 10) {
+      const assignScore = 70 + Math.max(0, 10 - daysToDue);
+      const estMin = 45;
+      const fits = estMin <= freeWindow;
+
+      const synthAssignTask: Task = {
+        id: `synth-assign-${assign.id}`,
+        title: `إنجاز تكليف: ${assign.taskName} — ${assign.subjectName}`,
+        priority: daysToDue <= 2 ? 'P1_URGENT_IMPORTANT' : 'P2_IMPORTANT',
+        status: 'TODO',
+        estimatedMinutes: estMin,
+        isLocked: false,
+        dueDate: assign.deadline || todayStr,
+        postponementCount: 0,
+        createdAt: nowIso,
+        updatedAt: nowIso
+      };
+
+      scoredCandidates.push({
+        task: synthAssignTask,
+        score: assignScore,
+        rationaleArabic: `موعد تسليم التكليف بعد ${daysToDue} أيام 📋`,
+        category: 'STUDY',
+        freeWindowFit: fits,
+        isPostponementIntervention: false
+      });
+    }
+  }
+
+  // If no tasks and no academic candidates exist
+  if (scoredCandidates.length === 0) return null;
 
   // Sort descending by score
-  scoredTasks.sort((a, b) => b.score - a.score);
+  scoredCandidates.sort((a, b) => b.score - a.score);
 
-  const top = scoredTasks[0];
-  const alternatives = scoredTasks.slice(1, 4).map(s => s.task);
+  const top = scoredCandidates[0];
+  const alternatives = scoredCandidates.slice(1, 4).map(s => s.task);
 
   return {
     task: top.task,

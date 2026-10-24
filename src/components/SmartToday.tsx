@@ -22,7 +22,9 @@ import {
   AlertTriangle,
   School,
   Trash2,
-  Trophy
+  Trophy,
+  Plus,
+  Check
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { CloudSyncModal } from './CloudSyncModal';
@@ -45,6 +47,7 @@ export const SmartToday: React.FC = () => {
     toggleTaskStatus,
     postponeTask, 
     deleteTask,
+    addTask,
     readTwoPagesAction,
     undoReadTwoPagesAction,
     bookDetails, 
@@ -56,7 +59,15 @@ export const SmartToday: React.FC = () => {
     syncStatus,
     challenges,
     challengeLogs,
-    toggleChallengeTaskToday
+    toggleChallengeTaskToday,
+    universitySubjects,
+    studySessions,
+    academicQuizzes,
+    academicAssignments,
+    toggleLectureStep,
+    toggleQuizPrepared,
+    toggleAssignmentCompleted,
+    showToast
   } = useAppStore();
 
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
@@ -124,7 +135,26 @@ export const SmartToday: React.FC = () => {
   const handleCompleteTask = async (taskId: string) => {
     fireConfettiSuccess();
     setLastCompletedTaskId(taskId);
-    await completeTask(taskId);
+
+    if (taskId.startsWith('synth-study-')) {
+      const sessionId = taskId.replace('synth-study-', '');
+      const session = studySessions.find(s => s.id === sessionId);
+      if (session) {
+        const step = (session.studyDone && !session.reviseDone) ? 'revise' : (!session.studyDone ? 'study' : 'solve');
+        await toggleLectureStep(sessionId, step);
+        showToast('ممتاز! تم تسجيل إنجاز المحاضرة بنجاح 🎓');
+      }
+    } else if (taskId.startsWith('synth-quiz-')) {
+      const quizId = taskId.replace('synth-quiz-', '');
+      await toggleQuizPrepared(quizId);
+      showToast('تم تسجيل التحضير للكويز بنجاح 📝');
+    } else if (taskId.startsWith('synth-assign-')) {
+      const assignId = taskId.replace('synth-assign-', '');
+      await toggleAssignmentCompleted(assignId);
+      showToast('تم تسجيل إنجاز التكليف بنجاح 📋');
+    } else {
+      await completeTask(taskId);
+    }
   };
 
   const handleReadTwoPages = async (resourceId: string) => {
@@ -414,7 +444,13 @@ export const SmartToday: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => postponeTask(bestNextAction.task.id)}
+                onClick={() => {
+                  if (bestNextAction.task.id.startsWith('synth-')) {
+                    showToast('تم تأجيل هذا المقترح الأكاديمي مؤقتاً ⏳');
+                  } else {
+                    postponeTask(bestNextAction.task.id);
+                  }
+                }}
                 className="min-h-[48px] bg-white/[0.06] hover:bg-white/[0.1] text-white font-bold text-xs py-3 px-4 rounded-2xl flex items-center justify-center gap-1.5 border border-white/[0.08] pressable cursor-pointer"
                 title="تأجيل المهمة لوقت لاحق"
               >
@@ -424,7 +460,13 @@ export const SmartToday: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => deleteTask(bestNextAction.task.id)}
+                onClick={() => {
+                  if (bestNextAction.task.id.startsWith('synth-')) {
+                    showToast('تم استبعاد هذا المقترح لليوم ✕');
+                  } else {
+                    deleteTask(bestNextAction.task.id);
+                  }
+                }}
                 className="min-h-[48px] bg-white/[0.06] hover:bg-rose-500/20 hover:text-rose-300 text-slate-400 font-bold text-xs py-3 px-3.5 rounded-2xl flex items-center justify-center border border-white/[0.08] pressable cursor-pointer transition-colors"
                 title="حذف المهمة نهائياً"
                 aria-label="حذف المهمة"
@@ -574,6 +616,183 @@ export const SmartToday: React.FC = () => {
           </button>
         </div>
       )}
+
+      {/* 5.5 Smart Academic & Study Proposals (Unreviewed Lectures & Approaching Exams) */}
+      {(() => {
+        // Find upcoming exams within 60 days
+        const upcomingExams = universitySubjects
+          .filter(s => s.examDate || s.midExamDate)
+          .map(s => {
+            const dateStr = s.examDate || s.midExamDate!;
+            const daysLeft = Math.max(0, Math.round((new Date(dateStr).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+            return { subject: s, dateStr, daysLeft };
+          })
+          .filter(e => e.daysLeft <= 60)
+          .sort((a, b) => a.daysLeft - b.daysLeft);
+
+        // Find lectures waiting for action
+        const waitingLectures = studySessions
+          .filter(s => {
+            const isUnreviewed = s.studyDone && !s.reviseDone;
+            const isMaterialReady = !s.studyDone && s.materialReady;
+            const isUnstudied = !s.studyDone;
+            const isUnsolved = s.reviseDone && !s.solveDone;
+            return isUnreviewed || isMaterialReady || isUnstudied || isUnsolved;
+          })
+          .map(session => {
+            const subj = universitySubjects.find(sub => sub.id === session.subjectId);
+            let state: 'WAITING_REVISION' | 'MATERIAL_READY' | 'NEEDS_SOLVE' | 'UNSTUDIED' = 'UNSTUDIED';
+            let label = 'لم تبدأ بعد ⏳';
+            let badgeBg = 'bg-slate-800 text-slate-300 border-slate-700';
+
+            if (session.studyDone && !session.reviseDone) {
+              state = 'WAITING_REVISION';
+              label = 'بانتظار المراجعة 🧠';
+              badgeBg = 'bg-amber-500/15 text-amber-300 border-amber-500/30';
+            } else if (!session.studyDone && session.materialReady) {
+              state = 'MATERIAL_READY';
+              label = 'الماتريال جاهزة للمذاكرة 📖';
+              badgeBg = 'bg-sky-500/15 text-sky-300 border-sky-500/30';
+            } else if (session.reviseDone && !session.solveDone) {
+              state = 'NEEDS_SOLVE';
+              label = 'تحتاج حل تمارين ✍️';
+              badgeBg = 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
+            }
+
+            return { session, subjectName: subj?.name || 'الجامعة', state, label, badgeBg };
+          })
+          // Prioritize: Waiting Revision > Material Ready > Needs Solve > Unstudied
+          .sort((a, b) => {
+            const order = { WAITING_REVISION: 1, MATERIAL_READY: 2, NEEDS_SOLVE: 3, UNSTUDIED: 4 };
+            return order[a.state] - order[b.state];
+          })
+          .slice(0, 4);
+
+        if (upcomingExams.length === 0 && waitingLectures.length === 0) {
+          return null;
+        }
+
+        return (
+          <section className="space-y-2.5">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+                  <GraduationCap className="w-3.5 h-3.5" />
+                </span>
+                <h2 className="text-xs font-bold text-white uppercase tracking-wider">
+                  مقترحات المذاكرة والمراجعات الذكية
+                </h2>
+              </div>
+              <span className="text-[10px] text-emerald-300 font-mono font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                بناءً على جدولك ومحاضراتك
+              </span>
+            </div>
+
+            {/* Upcoming Exams Cards */}
+            {upcomingExams.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                {upcomingExams.map(ex => (
+                  <div
+                    key={ex.subject.id}
+                    className="p-3 rounded-2xl bg-gradient-to-r from-rose-950/40 to-slate-900 border border-rose-500/30 min-w-[240px] flex-1 shrink-0 space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-rose-300 bg-rose-500/20 px-2 py-0.5 rounded-full border border-rose-500/30">
+                        🚨 امتحان يقترب
+                      </span>
+                      <span className="text-xs font-mono font-black text-rose-400">
+                        بعد {ex.daysLeft} يوم
+                      </span>
+                    </div>
+                    <h4 className="text-xs font-black text-white truncate">{ex.subject.name}</h4>
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[10px] text-slate-400 font-mono">{ex.dateStr}</span>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await addTask(
+                            `مراجعة وحل نماذج لامتحان: ${ex.subject.name}`,
+                            'P1_URGENT_IMPORTANT',
+                            60,
+                            todayStr
+                          );
+                          fireConfettiSuccess();
+                          showToast(`تمت إضافة مهمة الاستعداد لامتحان ${ex.subject.name} إلى أولويات اليوم 🎯`);
+                        }}
+                        className="text-[10px] font-bold bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40 px-2.5 py-1 rounded-lg flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>إضافة كمهمة</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Waiting Lectures Cards */}
+            {waitingLectures.length > 0 && (
+              <div className="apple-card rounded-[24px] p-0 overflow-hidden divide-y divide-white/[0.06] border border-white/[0.08] shadow-lg">
+                {waitingLectures.map(({ session, subjectName, state, label, badgeBg }) => (
+                  <div
+                    key={session.id}
+                    className="p-3 sm:p-3.5 flex items-center justify-between gap-2.5 hover:bg-white/[0.02] transition-colors"
+                  >
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${badgeBg}`}>
+                          {label}
+                        </span>
+                        <span className="text-[10px] text-slate-400 truncate">{subjectName}</span>
+                      </div>
+                      <h4 className="text-xs font-bold text-white truncate">{session.title}</h4>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const actionText = state === 'WAITING_REVISION' ? 'مراجعة' : (state === 'NEEDS_SOLVE' ? 'حل تمارين' : 'مذاكرة');
+                          await addTask(
+                            `${actionText}: ${session.title} (${subjectName})`,
+                            state === 'WAITING_REVISION' ? 'P1_URGENT_IMPORTANT' : 'P2_IMPORTANT',
+                            40,
+                            todayStr,
+                            undefined,
+                            undefined,
+                            session.id
+                          );
+                          fireConfettiSuccess();
+                          showToast(`تمت إضافة "${actionText} ${session.title}" إلى مهامك اليوم بنجاح 📝`);
+                        }}
+                        className="text-[11px] font-bold bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-400/30 px-2.5 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer transition-colors"
+                        title="إضافة هذه المحاضرة كأولوية في قائمة مهام اليوم"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>مهمة اليوم</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const step = state === 'WAITING_REVISION' ? 'revise' : (state === 'NEEDS_SOLVE' ? 'solve' : 'study');
+                          await toggleLectureStep(session.id, step);
+                          fireConfettiSuccess();
+                        }}
+                        className="text-[11px] font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 px-2.5 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer transition-colors"
+                        title="تمت المذاكرة/المراجعة الآن"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>تمت الآن</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        );
+      })()}
 
       {/* 6. Top 3 Priorities Checklist (Apple Reminders Inset Grouped Card) */}
       <section className="space-y-2.5">
