@@ -30,6 +30,15 @@ export interface Goal {
   isArchived: boolean;
   createdAt: string;
   updatedAt: string;
+  // Plan & Hierarchy Metadata (Ahmed 2027 Goals Architecture)
+  planId?: string;
+  refId?: string;
+  previousGoalId?: string;
+  lifeArea?: string;
+  blessedIntentionSuggestion?: string;
+  successCriteria?: string;
+  actionTemplates?: string[];
+  metadata?: Record<string, any>;
 }
 
 export interface GoalMilestone {

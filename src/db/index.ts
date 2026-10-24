@@ -44,7 +44,7 @@ import type {
 } from '../types';
 
 export class MasaarDatabase extends Dexie {
-  appMeta!: Table<{ id: string; appliedAt: string }, string>;
+  appMeta!: Table<{ id: string; appliedAt: string; [key: string]: any }, string>;
   domains!: Table<LifeDomain, string>;
   goals!: Table<Goal, string>;
   skills!: Table<Skill, string>;
@@ -151,6 +151,10 @@ export class MasaarDatabase extends Dexie {
     this.version(5).stores({
       challenges: 'id, status, currentDay, startDate',
       challengeLogs: 'id, challengeId, date, [challengeId+date], status'
+    });
+
+    this.version(6).stores({
+      goals: 'id, domainId, parentGoalId, horizon, status, isArchived, planId, refId'
     });
   }
 }
@@ -281,6 +285,7 @@ export async function requestPersistentStorage(): Promise<boolean> {
  */
 export async function takePreMigrationSnapshot(): Promise<void> {
   try {
+    if (typeof localStorage === 'undefined') return;
     const backup: Record<string, any[]> = {};
     const tableNames = db.tables.map(t => t.name);
     for (const name of tableNames) {
@@ -558,3 +563,5 @@ export async function repairDuplicateLectureNumbersIfNeeded(): Promise<void> {
     }
   }
 }
+
+export { seedAhmed2027GoalsIfNeeded, importAhmed2027GoalsPlan } from '../engines/ahmedGoalsImporter';
