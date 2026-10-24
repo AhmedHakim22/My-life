@@ -377,7 +377,10 @@ export async function unpackShadowState(rawPayload: string | Record<string, any>
             }
           }
         } else {
-          await table.clear();
+          // SAFE NON-DESTRUCTIVE RECONCILIATION:
+          // NEVER clear the local table during shadow unpack! Remote shadow state may be
+          // empty, uninitialized, or created from a device that hasn't synced that collection yet.
+          // Legitimate user deletions are strictly and safely handled via tombstones below.
           if (records.length > 0) {
             await table.bulkPut(records);
           }

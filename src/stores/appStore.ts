@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { db, seedInitialDataIfNeeded, seedAhmedStudyPlannerIfNeeded, cleanupLegacyDemoArtifacts, requestPersistentStorage, repairDuplicateLectureNumbersIfNeeded, seedAhmed2027GoalsIfNeeded, seedAhmed2026BridgeGoalsIfNeeded, seedAhmedBooks181IfNeeded } from '../db';
+import { db, seedInitialDataIfNeeded, seedAhmedStudyPlannerIfNeeded, cleanupLegacyDemoArtifacts, requestPersistentStorage, repairDuplicateLectureNumbersIfNeeded, seedAhmedAcademicQuizzesAndAssignmentsIfNeeded, seedAhmed2027GoalsIfNeeded, seedAhmed2026BridgeGoalsIfNeeded, seedAhmedBooks181IfNeeded } from '../db';
 import type {
   LifeDomain,
   Goal,
@@ -252,6 +252,8 @@ interface AppState {
   toggleAssignmentCompleted: (id: string) => Promise<void>;
   toggleAssignmentSubmitted: (id: string) => Promise<void>;
   deleteAssignment: (id: string) => Promise<void>;
+  restoreCurriculumQuizzes: () => Promise<void>;
+  restoreCurriculumAssignments: () => Promise<void>;
 
   addStudentActivity: (act: Omit<StudentActivityTask, 'id'>) => Promise<string>;
   toggleStudentActivityDone: (id: string) => Promise<void>;
@@ -491,6 +493,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     await cleanupLegacyDemoArtifacts();
     // Repair any duplicate/missing lecture numbers across subjects
     await repairDuplicateLectureNumbersIfNeeded();
+    // Restore or seed curriculum quizzes and assignments if tables are empty
+    await seedAhmedAcademicQuizzesAndAssignmentsIfNeeded();
     // Automatic seed of Ahmed's 2027 Goals Architecture, 2026 Nov/Dec Bridge & 181 Books (idempotent, preserves user data, runs in browser)
     if (typeof process === 'undefined' || !process.env?.VITEST) {
       await seedAhmed2027GoalsIfNeeded();
@@ -1740,6 +1744,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       ...assignmentData,
       id
     });
+    scheduleAutoPush(100);
     await get().loadAllData();
     get().showToast(`تمت إضافة التكليف: ${assignmentData.taskName} 📤`);
     return id;
@@ -1762,6 +1767,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       }).catch(() => {});
       get().showToast('خلصت حل الواجب! فاضل تسليمه للدكتور (+25 XP) ✅');
     }
+    scheduleAutoPush(100);
     await get().loadAllData();
   },
 
@@ -1782,14 +1788,46 @@ export const useAppStore = create<AppState>((set, get) => ({
       }).catch(() => {});
       get().showToast('تم التسليم الفعلي للواجب بنجاح! (+35 XP) 🚀');
     }
+    scheduleAutoPush(100);
     await get().loadAllData();
   },
 
   deleteAssignment: async (id) => {
     await db.academicAssignments.delete(id);
     await deleteRemoteEntity('academicAssignments', id);
+    scheduleAutoPush(100);
     await get().loadAllData();
     get().showToast('تم حذف التكليف 🗑️');
+  },
+
+  restoreCurriculumQuizzes: async () => {
+    const { AHMED_DEFAULT_QUIZZES } = await import('../db/ahmedCurriculum');
+    for (let i = 0; i < AHMED_DEFAULT_QUIZZES.length; i++) {
+      const q = AHMED_DEFAULT_QUIZZES[i];
+      const id = `quiz-ahmed-seed-${i + 1}`;
+      await db.academicQuizzes.put({
+        ...q,
+        id
+      });
+    }
+    scheduleAutoPush(100);
+    await get().loadAllData();
+    get().showToast('تمت استعادة كويزات الفصل الدراسي بنجاح 🧠');
+  },
+
+  restoreCurriculumAssignments: async () => {
+    const { AHMED_DEFAULT_ASSIGNMENTS } = await import('../db/ahmedCurriculum');
+    for (let i = 0; i < AHMED_DEFAULT_ASSIGNMENTS.length; i++) {
+      const a = AHMED_DEFAULT_ASSIGNMENTS[i];
+      const id = `asgn-ahmed-seed-${i + 1}`;
+      await db.academicAssignments.put({
+        ...a,
+        id
+      });
+    }
+    scheduleAutoPush(100);
+    await get().loadAllData();
+    get().showToast('تمت استعادة تكليفات الفصل الدراسي بنجاح 📝');
   },
 
   addStudentActivity: async (actData) => {

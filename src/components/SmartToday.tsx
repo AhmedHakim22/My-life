@@ -25,6 +25,7 @@ import {
   Trophy,
   Plus,
   Check,
+  CheckSquare,
   X
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
@@ -120,6 +121,13 @@ export const SmartToday: React.FC = () => {
     const diff = getCalendarDaysDiff(q.quizDate, now);
     return diff >= 0 && diff <= 3;
   }).sort((a, b) => getCalendarDaysDiff(a.quizDate, now) - getCalendarDaysDiff(b.quizDate, now));
+
+  // Approaching assignments within 3 days for alert banner
+  const imminentAssignments = academicAssignments.filter(a => {
+    if (a.submitted) return false;
+    const diff = getCalendarDaysDiff(a.deadline, now);
+    return diff >= 0 && diff <= 3;
+  }).sort((a, b) => getCalendarDaysDiff(a.deadline, now) - getCalendarDaysDiff(b.deadline, now));
 
   const arabicDays: ('الأحد' | 'الاثنين' | 'الثلاثاء' | 'الأربعاء' | 'الخميس' | 'الجمعة' | 'السبت')[] = [
     'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'
@@ -307,7 +315,7 @@ export const SmartToday: React.FC = () => {
               <div className="text-xs font-bold text-white flex items-center gap-1">
                 <span>الجامعة • {todayArabicDay}</span>
               </div>
-              <div className="text-[11px] text-[#8e8e93] truncate mt-0.5 font-medium">
+              <div className="text-[11px] text-[#8e8e93] mt-0.5 font-medium leading-snug">
                 {nextClass ? (
                   <>
                     <strong className="text-purple-300">{nextClass.subjectName}</strong> ({nextClass.startTime})
@@ -536,7 +544,7 @@ export const SmartToday: React.FC = () => {
                 key={quiz.id}
                 className="apple-card rounded-[24px] p-4 border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-transparent space-y-2.5 relative overflow-hidden shadow-xl"
               >
-                <div className="flex items-start justify-between gap-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div className="space-y-1.5 flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[10px] bg-amber-500/25 text-amber-300 border border-amber-500/40 font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
@@ -548,7 +556,7 @@ export const SmartToday: React.FC = () => {
                       </span>
                     </div>
 
-                    <h3 className="text-sm sm:text-base font-black text-white leading-snug">
+                    <h3 className="text-sm sm:text-base font-black text-white leading-snug break-words">
                       {quiz.topic}
                     </h3>
 
@@ -576,7 +584,7 @@ export const SmartToday: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="flex flex-col gap-1.5 shrink-0 items-end">
+                  <div className="flex items-center sm:flex-col gap-2 shrink-0 self-end sm:self-start">
                     <button
                       type="button"
                       onClick={() => {
@@ -599,6 +607,74 @@ export const SmartToday: React.FC = () => {
                       className="text-[10px] text-slate-400 hover:text-white underline px-1 py-0.5"
                     >
                       عرض في الجامعة
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </section>
+      )}
+
+      {/* Urgent Approaching Assignments Banner (Today, Tomorrow, or <= 3 days) */}
+      {imminentAssignments.length > 0 && (
+        <section className="space-y-2.5">
+          {imminentAssignments.map(asgn => {
+            const diff = getCalendarDaysDiff(asgn.deadline, now);
+            return (
+              <div 
+                key={asgn.id}
+                className="apple-card rounded-[24px] p-4 border border-teal-500/40 bg-gradient-to-r from-teal-500/15 via-emerald-500/10 to-transparent space-y-2.5 relative overflow-hidden shadow-xl"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] bg-teal-500/25 text-teal-300 border border-teal-500/40 font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <CheckSquare className="w-3 h-3 text-teal-400" />
+                        {diff === 0 ? 'تسليم تكليف اليوم! 🚨' : diff === 1 ? 'تسليم تكليف غداً! ⚡' : `تسليم تكليف بعد ${diff} أيام 📅`}
+                      </span>
+                      <span className="text-[10px] text-slate-300 bg-white/[0.08] px-2 py-0.5 rounded-md font-mono">
+                        {asgn.subjectName}
+                      </span>
+                    </div>
+
+                    <h3 className="text-sm sm:text-base font-black text-white leading-snug break-words">
+                      {asgn.taskName}
+                    </h3>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await addTask(
+                          `إنجاز تسليم: ${asgn.taskName} (${asgn.subjectName})`,
+                          'P1_URGENT_IMPORTANT',
+                          45,
+                          todayStr
+                        );
+                        fireConfettiSuccess();
+                        showToast(`تمت إضافة التكليف إلى أولويات اليوم بنجاح 📝`);
+                      }}
+                      className="text-[11px] font-bold bg-teal-500/20 hover:bg-teal-500/30 text-teal-200 border border-teal-500/40 px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer transition-colors active:scale-95"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ مهمة اليوم</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await toggleAssignmentCompleted(asgn.id);
+                        fireConfettiSuccess();
+                      }}
+                      className={`text-[11px] font-bold px-3 py-1.5 rounded-xl border flex items-center gap-1.5 cursor-pointer transition-colors active:scale-95 ${
+                        asgn.completed
+                          ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-black'
+                          : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30'
+                      }`}
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>{asgn.completed ? 'أُنجز ✓' : 'تم الحل'}</span>
                     </button>
                   </div>
                 </div>
@@ -835,7 +911,7 @@ export const SmartToday: React.FC = () => {
                         بعد {ex.daysLeft} يوم
                       </span>
                     </div>
-                    <h4 className="text-xs font-black text-white truncate">{ex.subject.name}</h4>
+                    <h4 className="text-xs sm:text-sm font-black text-white break-words leading-tight">{ex.subject.name}</h4>
                     <div className="flex items-center justify-between pt-1">
                       <span className="text-[10px] text-slate-400 font-mono">{ex.dateStr}</span>
                       <button
@@ -867,19 +943,21 @@ export const SmartToday: React.FC = () => {
                 {waitingLectures.map(({ session, subjectName, state, label, badgeBg }) => (
                   <div
                     key={session.id}
-                    className="p-3 sm:p-3.5 flex items-center justify-between gap-2.5 hover:bg-white/[0.02] transition-colors"
+                    className="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 hover:bg-white/[0.02] transition-colors"
                   >
-                    <div className="min-w-0 flex-1 space-y-0.5">
-                      <div className="flex items-center gap-1.5">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-bold text-sky-200 bg-sky-950/70 px-2 py-0.5 rounded-md border border-sky-600/30">
+                          {subjectName}
+                        </span>
                         <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${badgeBg}`}>
                           {label}
                         </span>
-                        <span className="text-[10px] text-slate-400 truncate">{subjectName}</span>
                       </div>
-                      <h4 className="text-xs font-bold text-white truncate">{session.title}</h4>
+                      <h4 className="text-xs sm:text-sm font-bold text-white leading-snug break-words">{session.title}</h4>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0 pt-0.5 sm:pt-0">
                       <button
                         type="button"
                         onClick={async () => {
@@ -896,7 +974,7 @@ export const SmartToday: React.FC = () => {
                           fireConfettiSuccess();
                           showToast(`تمت إضافة "${actionText} ${session.title}" إلى مهامك اليوم بنجاح 📝`);
                         }}
-                        className="text-[11px] font-bold bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-400/30 px-2.5 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer transition-colors"
+                        className="text-[11px] font-bold bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-400/30 px-3 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer transition-colors active:scale-95"
                         title="إضافة هذه المحاضرة كأولوية في قائمة مهام اليوم"
                       >
                         <Plus className="w-3.5 h-3.5" />
@@ -910,7 +988,7 @@ export const SmartToday: React.FC = () => {
                           await toggleLectureStep(session.id, step);
                           fireConfettiSuccess();
                         }}
-                        className="text-[11px] font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 px-2.5 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer transition-colors"
+                        className="text-[11px] font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer transition-colors active:scale-95"
                         title="تمت المذاكرة/المراجعة الآن"
                       >
                         <Check className="w-3.5 h-3.5" />
@@ -966,14 +1044,14 @@ export const SmartToday: React.FC = () => {
                   </button>
 
                   <div className="flex flex-col min-w-0 flex-1">
-                    <span className="text-xs sm:text-sm font-semibold text-white truncate">{task.title}</span>
+                    <span className="text-xs sm:text-sm font-semibold text-white leading-snug break-words">{task.title}</span>
                     {task.goalId && (() => {
                       const linkedGoal = goals.find(g => g.id === task.goalId);
                       if (!linkedGoal) return null;
                       return (
-                        <span className="text-[10px] text-sky-300 font-medium truncate flex items-center gap-1 mt-0.5">
+                        <span className="text-[10px] text-sky-300 font-medium flex items-center gap-1 mt-0.5 break-words">
                           <Target className="w-2.5 h-2.5 shrink-0 text-sky-400" />
-                          <span className="truncate">{linkedGoal.title}</span>
+                          <span className="line-clamp-1 leading-snug">{linkedGoal.title}</span>
                         </span>
                       );
                     })()}
@@ -1042,7 +1120,7 @@ export const SmartToday: React.FC = () => {
                       <div className="w-6 h-6 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0 group-hover:bg-amber-500/20 group-hover:border-amber-400 group-hover:text-amber-300 transition-all">
                         <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" />
                       </div>
-                      <span className="text-xs line-through text-[#8e8e93] group-hover:text-white truncate">{task.title}</span>
+                      <span className="text-xs line-through text-[#8e8e93] group-hover:text-white break-words leading-snug">{task.title}</span>
                     </button>
 
                     <div className="flex items-center gap-1.5 shrink-0">

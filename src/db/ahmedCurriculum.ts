@@ -1,4 +1,4 @@
-import type { TimetableSlot } from '../types';
+import type { TimetableSlot, AcademicQuiz, AcademicAssignment } from '../types';
 
 /** 
  * Verified from SUBJECTS!A6:D14 and WEEK!A6:G14 of Ahmed_Study_Planner_Simple_Smart_v4.xlsx.
@@ -162,3 +162,70 @@ export const AHMED_CURRICULUM = {
     }
   ] as TimetableSlot[]
 };
+
+export const AHMED_DEFAULT_QUIZZES: Omit<AcademicQuiz, 'id'>[] = [
+  {
+    topic: 'كويز 1: الدوال الموجية ومعادلة شرودنجر',
+    subjectId: 'subj-quantum',
+    subjectName: 'Quantum Phenomena I',
+    quizDate: '2026-10-25',
+    syllabusScope: 'المحاضرة الأولى والثانية',
+    lectureIds: ['session-1792675925480', 'session-1792675929470'],
+    prepared: false,
+    attended: false
+  },
+  {
+    topic: 'كويز 1: قوانين الديناميكا الحرارية والاتزان',
+    subjectId: 'subj-thermo',
+    subjectName: 'Thermodynamics and Phase',
+    quizDate: '2026-10-26',
+    syllabusScope: 'المحاضرة 1 و 2',
+    lectureIds: ['session-1792676060401', 'session-1792676161846'],
+    prepared: false,
+    attended: false
+  },
+  {
+    topic: 'كويز 1: الجدوى الاقتصادية وإدارة المشروعات',
+    subjectId: 'subj-mgmt',
+    subjectName: 'Management and Economics',
+    quizDate: '2026-10-28',
+    syllabusScope: 'المحاضرة الأولى والثانية',
+    lectureIds: ['session-1792675899623', 'session-1792675906083'],
+    prepared: false,
+    attended: false
+  }
+];
+
+export const AHMED_DEFAULT_ASSIGNMENTS: Omit<AcademicAssignment, 'id'>[] = [
+  {
+    taskName: 'شيت 1: الدوال والتحويلات العددية في C++',
+    subjectId: 'subj-cs',
+    subjectName: 'Computer Science',
+    deadline: '2026-10-26',
+    lecture: 'Itro to c++',
+    completed: false,
+    submitted: false,
+    blocked: false
+  },
+  {
+    taskName: 'حل مسائل بنك الأسئلة وتلخيص أوراق البحث',
+    subjectId: 'subj-water',
+    subjectName: 'Application of Nanomaterials for Water Treatment',
+    deadline: '2026-10-27',
+    lecture: 'بنك الأسئلة',
+    completed: false,
+    submitted: false,
+    blocked: false
+  },
+  {
+    taskName: 'تكليف 1: الحسابات البلورية وتركيب المواد الصلبة',
+    subjectId: 'subj-solid',
+    subjectName: 'Solid State',
+    deadline: '2026-10-29',
+    lecture: 'الأولى',
+    completed: false,
+    submitted: false,
+    blocked: false
+  }
+];
+

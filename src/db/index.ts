@@ -572,6 +572,52 @@ export async function repairDuplicateLectureNumbersIfNeeded(): Promise<void> {
   }
 }
 
+/**
+ * Restores or seeds curriculum quizzes and assignments if Dexie tables are empty
+ * (e.g. after sync-clear bug or first run). Tombstone-guarded to prevent resurrection
+ * of intentionally deleted items.
+ */
+export async function seedAhmedAcademicQuizzesAndAssignmentsIfNeeded(): Promise<void> {
+  const quizzesCount = await db.academicQuizzes.count();
+  const assignmentsCount = await db.academicAssignments.count();
+  if (quizzesCount > 0 && assignmentsCount > 0) return;
+
+  const tombstones = await db.tombstones.toArray();
+  const tombstoneEntityIds = new Set(tombstones.map(t => t.entityId));
+
+  const { AHMED_DEFAULT_QUIZZES, AHMED_DEFAULT_ASSIGNMENTS } = await import('./ahmedCurriculum');
+
+  await db.transaction('rw', [db.academicQuizzes, db.academicAssignments], async () => {
+    // 1. Quizzes: If table is empty, seed defaults
+    if (quizzesCount === 0) {
+      for (let i = 0; i < AHMED_DEFAULT_QUIZZES.length; i++) {
+        const q = AHMED_DEFAULT_QUIZZES[i];
+        const id = `quiz-ahmed-seed-${i + 1}`;
+        if (!tombstoneEntityIds.has(id)) {
+          await db.academicQuizzes.put({
+            ...q,
+            id
+          });
+        }
+      }
+    }
+
+    // 2. Assignments: If table is empty, seed defaults
+    if (assignmentsCount === 0) {
+      for (let i = 0; i < AHMED_DEFAULT_ASSIGNMENTS.length; i++) {
+        const a = AHMED_DEFAULT_ASSIGNMENTS[i];
+        const id = `asgn-ahmed-seed-${i + 1}`;
+        if (!tombstoneEntityIds.has(id)) {
+          await db.academicAssignments.put({
+            ...a,
+            id
+          });
+        }
+      }
+    }
+  });
+}
+
 export { seedAhmed2027GoalsIfNeeded, importAhmed2027GoalsPlan } from '../engines/ahmedGoalsImporter';
 export { seedAhmed2026BridgeGoalsIfNeeded, importAhmed2026BridgeGoalsPlan } from '../engines/ahmedGoals2026BridgeImporter';
 export { seedAhmedBooks181IfNeeded, importAhmedBooks181 } from '../engines/ahmedBooks181Importer';

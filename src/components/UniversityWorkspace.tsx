@@ -58,6 +58,8 @@ export const UniversityWorkspace: React.FC = () => {
     toggleAssignmentCompleted,
     toggleAssignmentSubmitted,
     deleteAssignment,
+    restoreCurriculumQuizzes,
+    restoreCurriculumAssignments,
     addStudentActivity,
     toggleStudentActivityDone,
     deleteStudentActivity,
@@ -1134,17 +1136,27 @@ export const UniversityWorkspace: React.FC = () => {
             ))}
 
             {academicAssignments.length === 0 && (
-              <div className="glass-panel p-6 rounded-2xl border border-dashed border-slate-800 text-center text-xs text-slate-400 space-y-2">
+              <div className="glass-panel p-6 rounded-2xl border border-dashed border-slate-800 text-center text-xs text-slate-400 space-y-3">
                 <CheckSquare className="w-6 h-6 text-emerald-400 mx-auto" />
                 <p className="font-bold">لا توجد تكليفات أو واجبات مسجلة حالياً</p>
-                <button
-                  type="button"
-                  onClick={() => setIsAddAssignmentOpen(true)}
-                  className="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-bold text-xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  إضافة تكليف جديد
-                </button>
+                <div className="flex items-center justify-center gap-3 flex-wrap pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddAssignmentOpen(true)}
+                    className="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-bold text-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    إضافة تكليف جديد
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => restoreCurriculumAssignments()}
+                    className="inline-flex items-center gap-1.5 text-teal-400 hover:text-teal-300 font-bold text-xs bg-teal-500/10 px-3 py-1.5 rounded-xl border border-teal-500/20 pressable cursor-pointer"
+                  >
+                    <RotateCw className="w-3.5 h-3.5" />
+                    استعادة تكليفات الفصل الدراسي
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -1303,17 +1315,27 @@ export const UniversityWorkspace: React.FC = () => {
             ))}
 
             {academicQuizzes.length === 0 && (
-              <div className="glass-panel p-6 rounded-2xl border border-dashed border-slate-800 text-center text-xs text-slate-400 space-y-2">
+              <div className="glass-panel p-6 rounded-2xl border border-dashed border-slate-800 text-center text-xs text-slate-400 space-y-3">
                 <Brain className="w-6 h-6 text-amber-400 mx-auto" />
                 <p className="font-bold">لا توجد كويزات مسجلة حالياً</p>
-                <button
-                  type="button"
-                  onClick={() => setIsAddQuizOpen(true)}
-                  className="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 font-bold text-xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  إضافة موعد كويز قادم
-                </button>
+                <div className="flex items-center justify-center gap-3 flex-wrap pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddQuizOpen(true)}
+                    className="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 font-bold text-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    إضافة موعد كويز قادم
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => restoreCurriculumQuizzes()}
+                    className="inline-flex items-center gap-1.5 text-amber-400 hover:text-amber-300 font-bold text-xs bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20 pressable cursor-pointer"
+                  >
+                    <RotateCw className="w-3.5 h-3.5" />
+                    استعادة كويزات الفصل الدراسي
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -1451,7 +1473,7 @@ export const UniversityWorkspace: React.FC = () => {
                             <span className="text-[10px] bg-slate-800 text-sky-300 font-mono font-bold px-2 py-0.5 rounded-md border border-slate-700/50">
                               {slot.subjectCode}
                             </span>
-                            <span className="text-xs sm:text-sm font-bold text-white truncate">
+                            <span className="text-xs sm:text-sm font-bold text-white break-words leading-snug">
                               {slot.subjectName}
                             </span>
                             <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold border ${
