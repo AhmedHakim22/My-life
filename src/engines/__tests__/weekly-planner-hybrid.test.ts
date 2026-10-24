@@ -363,5 +363,148 @@ describe('LifeOS Hybrid Weekly Planner Specification Acceptance Suite', () => {
       expect(stillExistingTask).toBeDefined();
       expect(stillExistingTask?.id).toBe('task-test-store');
     });
+
+    it('persists a moved uncommitted proposal block into database as pinned block and commits plan', async () => {
+      const store = useAppStore.getState();
+      await db.scheduleBlocks.clear();
+      await db.schedulePlans.clear();
+
+      const proposalBlock: ScheduleBlock = {
+        id: 'sched-task-2026-10-24-uncommitted',
+        planId: 'plan-week-2026-10-24',
+        date: '2026-10-24',
+        day: 'السبت',
+        title: 'محاضرة فيزياء نانوية',
+        startTime: '09:00',
+        endTime: '10:30',
+        durationMinutes: 90,
+        type: 'TASK',
+        isLocked: false,
+        isUserPinned: false,
+        origin: 'AUTO'
+      };
+
+      // Moving block without prior commit must use blockFallback to materialize and save
+      await store.moveBlockToDay(
+        proposalBlock.id,
+        'الاثنين',
+        '2026-10-26',
+        '11:00',
+        proposalBlock
+      );
+
+      const savedBlock = await db.scheduleBlocks.get(proposalBlock.id);
+      expect(savedBlock).toBeDefined();
+      expect(savedBlock?.day).toBe('الاثنين');
+      expect(savedBlock?.date).toBe('2026-10-26');
+      expect(savedBlock?.startTime).toBe('11:00');
+      expect(savedBlock?.endTime).toBe('12:30');
+      expect(savedBlock?.isUserPinned).toBe(true);
+      expect(savedBlock?.origin).toBe('MANUAL');
+
+      // Plan should be saved as COMMITTED
+      const savedPlan = await db.schedulePlans.get('plan-week-2026-10-24');
+      expect(savedPlan).toBeDefined();
+      expect(savedPlan?.status).toBe('COMMITTED');
+    });
+  });
+
+  describe('7. Time-Aware Horizon Filtering (October vs November/December/2027)', () => {
+    it('strictly excludes future November, December, and 2027 tasks from current October week to prevent false overload', () => {
+      const mixedDateTasks: Task[] = [
+        // 1. Current October task
+        {
+          id: 'task-oct-1',
+          title: 'واجب مقرر النانو - أكتوبر',
+          status: 'TODO',
+          priority: 'P1_URGENT_IMPORTANT',
+          estimatedMinutes: 60,
+          isLocked: false,
+          postponementCount: 0,
+          dueDate: '2026-10-28', // Due in current week (2026-10-24 to 2026-10-30)
+          createdAt: '2026-10-24T00:00:00Z',
+          updatedAt: '2026-10-24T00:00:00Z'
+        },
+        // 2. Future November tasks (Nov 15, Nov 30)
+        {
+          id: 'task-nov-1',
+          title: 'تسليم بروجكت الميدتيرم نوفمبر',
+          status: 'TODO',
+          priority: 'P1_URGENT_IMPORTANT',
+          estimatedMinutes: 120,
+          isLocked: false,
+          postponementCount: 0,
+          dueDate: '2026-11-15', // Due in November!
+          createdAt: '2026-10-24T00:00:00Z',
+          updatedAt: '2026-10-24T00:00:00Z'
+        },
+        // 3. Future November monthly goal task
+        {
+          id: 'task-nov-goal',
+          goalId: 'B26-M11-FAMILY',
+          title: 'كورس الزواج نوفمبر',
+          status: 'TODO',
+          priority: 'P2_IMPORTANT',
+          estimatedMinutes: 60,
+          isLocked: false,
+          postponementCount: 0,
+          dueDate: '2026-11-20',
+          createdAt: '2026-10-24T00:00:00Z',
+          updatedAt: '2026-10-24T00:00:00Z'
+        },
+        // 4. Future December task
+        {
+          id: 'task-dec-1',
+          title: 'تقفيل ميزانية فلكون ديسمبر',
+          status: 'TODO',
+          priority: 'P1_URGENT_IMPORTANT',
+          estimatedMinutes: 180,
+          isLocked: false,
+          postponementCount: 0,
+          dueDate: '2026-12-25', // Due in December!
+          createdAt: '2026-10-24T00:00:00Z',
+          updatedAt: '2026-10-24T00:00:00Z'
+        },
+        // 5. Future 2027 goal task
+        {
+          id: 'task-2027-1',
+          goalId: 'G27-TECH-1',
+          title: 'معمارية منصة 2027 الكبرى',
+          status: 'TODO',
+          priority: 'P1_URGENT_IMPORTANT',
+          estimatedMinutes: 300,
+          isLocked: false,
+          postponementCount: 0,
+          dueDate: '2027-03-15', // Year 2027!
+          createdAt: '2026-10-24T00:00:00Z',
+          updatedAt: '2026-10-24T00:00:00Z'
+        }
+      ];
+
+      // Planning current week: 2026-10-24 to 2026-10-30 (October)
+      const result = generateWeeklySchedulePlan({
+        tasks: mixedDateTasks,
+        timetableSlots: [],
+        availabilityRules: [],
+        goals: [],
+        weekStartDate: '2026-10-24'
+      });
+
+      // October task MUST be scheduled
+      expect(result.scheduleBlocks.some(b => b.taskId === 'task-oct-1')).toBe(true);
+
+      // Future November, December, and 2027 tasks MUST NOT be scheduled in October!
+      expect(result.scheduleBlocks.some(b => b.taskId === 'task-nov-1')).toBe(false);
+      expect(result.scheduleBlocks.some(b => b.taskId === 'task-nov-goal')).toBe(false);
+      expect(result.scheduleBlocks.some(b => b.taskId === 'task-dec-1')).toBe(false);
+      expect(result.scheduleBlocks.some(b => b.taskId === 'task-2027-1')).toBe(false);
+
+      // Total required flexible minutes must reflect ONLY current relevant tasks (60 mins), NOT all future tasks!
+      expect(result.plan.requiredFlexibleMinutes).toBe(60);
+
+      // No false overload alert for October!
+      expect(result.plan.isOverloaded).toBe(false);
+      expect(result.plan.unscheduledMinutes).toBe(0);
+    });
   });
 });

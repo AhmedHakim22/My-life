@@ -264,9 +264,9 @@ interface AppState {
 
   // Weekly Hybrid Planner Actions
   saveWeeklyPlan: (plan: WeeklySchedulePlan, blocks: ScheduleBlock[], items?: WeeklyItem[]) => Promise<void>;
-  togglePinBlock: (blockId: string) => Promise<void>;
-  moveBlockToDay: (blockId: string, targetDay: ArabicDay, targetDate: string, newStartTime?: string) => Promise<void>;
-  splitScheduleBlock: (blockId: string, splitMinutes?: number) => Promise<void>;
+  togglePinBlock: (blockId: string, blockFallback?: ScheduleBlock) => Promise<void>;
+  moveBlockToDay: (blockId: string, targetDay: ArabicDay, targetDate: string, newStartTime?: string, blockFallback?: ScheduleBlock) => Promise<void>;
+  splitScheduleBlock: (blockId: string, splitMinutes?: number, blockFallback?: ScheduleBlock) => Promise<void>;
   removeBlockFromWeek: (blockId: string) => Promise<void>;
   replanWeek: (weekStartDate: string, mode?: WeekMode) => Promise<{ plan: WeeklySchedulePlan; scheduleBlocks: ScheduleBlock[]; weeklyItems: WeeklyItem[]; unplacedItems: WeeklyItem[] }>;
 
@@ -1890,11 +1890,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().showToast('تم اعتماد وحفظ خطة الأسبوع بنجاح 💾');
   },
 
-  togglePinBlock: async (blockId) => {
-    const block = await db.scheduleBlocks.get(blockId);
+  togglePinBlock: async (blockId, blockFallback) => {
+    let block = await db.scheduleBlocks.get(blockId);
+    if (!block && blockFallback) block = blockFallback;
+    if (!block) block = get().scheduleBlocks.find(b => b.id === blockId);
     if (!block) return;
     const newPinned = !block.isUserPinned;
-    await db.scheduleBlocks.update(blockId, {
+    await db.scheduleBlocks.put({
+      ...block,
       isUserPinned: newPinned,
       origin: newPinned ? 'MANUAL' : block.origin,
       updatedAt: new Date().toISOString()
@@ -1904,12 +1907,19 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().showToast(newPinned ? 'تم تثبيت موعد الجلسة في الجدول 📌' : 'تم إلغاء التثبيت — أصبحت الجلسة مرنة 🔓');
   },
 
-  moveBlockToDay: async (blockId, targetDay, targetDate, newStartTime) => {
-    const block = await db.scheduleBlocks.get(blockId);
+  moveBlockToDay: async (blockId, targetDay, targetDate, newStartTime, blockFallback) => {
+    let block = await db.scheduleBlocks.get(blockId);
+    if (!block && blockFallback) {
+      block = blockFallback;
+    }
+    if (!block) {
+      block = get().scheduleBlocks.find(b => b.id === blockId);
+    }
     if (!block) return;
     const start = newStartTime || block.startTime;
     const end = minutesToTimeString(timeStringToMinutes(start) + block.durationMinutes);
-    await db.scheduleBlocks.update(blockId, {
+    await db.scheduleBlocks.put({
+      ...block,
       day: targetDay,
       date: targetDate,
       startTime: start,
@@ -1918,13 +1928,39 @@ export const useAppStore = create<AppState>((set, get) => ({
       isUserPinned: true,
       updatedAt: new Date().toISOString()
     });
+
+    // Ensure plan is recorded as COMMITTED
+    const weekStart = getCairoSaturdayWeekStart(new Date(`${targetDate}T12:00:00Z`));
+    const planId = `plan-week-${weekStart}`;
+    const plan = await db.schedulePlans.get(planId);
+    if (!plan) {
+      await db.schedulePlans.put({
+        id: planId,
+        weekStartDate: weekStart,
+        status: 'COMMITTED',
+        totalWakefulMinutes: 0,
+        fixedCommitmentMinutes: 0,
+        prayerBufferMinutes: 0,
+        travelAndMealsMinutes: 0,
+        safetyBufferMinutes: 0,
+        availableFlexibleMinutes: 0,
+        requiredFlexibleMinutes: 0,
+        unscheduledMinutes: 0,
+        isOverloaded: false,
+        generatedAt: new Date().toISOString(),
+        lastEditedAt: new Date().toISOString()
+      });
+    }
+
     scheduleAutoPush(100);
     await get().loadAllData();
-    get().showToast(`تم نقل الجلسة إلى يوم ${targetDay} بنجاح 📅`);
+    get().showToast(`تم نقل الجلسة إلى يوم ${targetDay} (${start}) بنجاح وحفظها 📅`);
   },
 
-  splitScheduleBlock: async (blockId, splitMinutes = 60) => {
-    const block = await db.scheduleBlocks.get(blockId);
+  splitScheduleBlock: async (blockId, splitMinutes = 60, blockFallback) => {
+    let block = await db.scheduleBlocks.get(blockId);
+    if (!block && blockFallback) block = blockFallback;
+    if (!block) block = get().scheduleBlocks.find(b => b.id === blockId);
     if (!block) return;
     if (block.durationMinutes <= 45) {
       get().showToast('مدة الجلسة قصيرة بالفعل ولا تحتمل التقسيم ⚠️');
@@ -1935,7 +1971,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     const nowIso = new Date().toISOString();
 
     // Update first part
-    await db.scheduleBlocks.update(blockId, {
+    await db.scheduleBlocks.put({
+      ...block,
       durationMinutes: part1Duration,
       endTime: minutesToTimeString(timeStringToMinutes(block.startTime) + part1Duration),
       partIndex: 1,

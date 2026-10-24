@@ -216,7 +216,17 @@ export const WeeklyScheduleWorkspace: React.FC = () => {
     if (!movingBlock) return;
     const targetObj = weekDays.find(d => d.arabicDay === targetMoveDay);
     const targetDate = targetObj ? targetObj.dateStr : currentWeekStart;
-    await moveBlockToDay(movingBlock.id, targetMoveDay, targetDate, targetMoveStartTime);
+
+    // Automatically commit/save the full plan if not already saved, so all blocks persist in DB
+    if (!isCommitted) {
+      await saveWeeklyPlan(
+        { ...proposal.plan, status: 'COMMITTED' },
+        proposal.scheduleBlocks,
+        [...proposal.weeklyItems, ...proposal.unplacedItems]
+      );
+    }
+
+    await moveBlockToDay(movingBlock.id, targetMoveDay, targetDate, targetMoveStartTime, movingBlock);
     setMovingBlock(null);
   };
 
@@ -476,12 +486,31 @@ export const WeeklyScheduleWorkspace: React.FC = () => {
 
                   {/* Micro actions per block */}
                   <div className="flex items-center gap-1 shrink-0">
+                    {/* Move to another day (allowed for all block types) */}
+                    <button
+                      type="button"
+                      onClick={() => handleOpenMoveModal(block)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors pressable cursor-pointer"
+                      title="نقل الجلسة ليوم آخر"
+                    >
+                      <ArrowUpDown className="w-3.5 h-3.5" />
+                    </button>
+
                     {block.type === 'TASK' && (
                       <>
                         {/* Pin / Unpin Button */}
                         <button
                           type="button"
-                          onClick={() => togglePinBlock(block.id)}
+                          onClick={async () => {
+                            if (!isCommitted) {
+                              await saveWeeklyPlan(
+                                { ...proposal.plan, status: 'COMMITTED' },
+                                proposal.scheduleBlocks,
+                                [...proposal.weeklyItems, ...proposal.unplacedItems]
+                              );
+                            }
+                            await togglePinBlock(block.id, block);
+                          }}
                           className={`p-1.5 rounded-lg transition-colors pressable cursor-pointer ${
                             block.isUserPinned
                               ? 'text-amber-300 hover:bg-amber-500/20'
@@ -492,21 +521,20 @@ export const WeeklyScheduleWorkspace: React.FC = () => {
                           {block.isUserPinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
                         </button>
 
-                        {/* Move to another day */}
-                        <button
-                          type="button"
-                          onClick={() => handleOpenMoveModal(block)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors pressable cursor-pointer"
-                          title="نقل الجلسة ليوم آخر"
-                        >
-                          <ArrowUpDown className="w-3.5 h-3.5" />
-                        </button>
-
                         {/* Split session if >= 90 mins */}
                         {block.durationMinutes >= 90 && (
                           <button
                             type="button"
-                            onClick={() => splitScheduleBlock(block.id)}
+                            onClick={async () => {
+                              if (!isCommitted) {
+                                await saveWeeklyPlan(
+                                  { ...proposal.plan, status: 'COMMITTED' },
+                                  proposal.scheduleBlocks,
+                                  [...proposal.weeklyItems, ...proposal.unplacedItems]
+                                );
+                              }
+                              await splitScheduleBlock(block.id, 60, block);
+                            }}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors pressable cursor-pointer"
                             title="تقسيم الجلسة إلى فترتين"
                           >
@@ -517,7 +545,16 @@ export const WeeklyScheduleWorkspace: React.FC = () => {
                         {/* Remove from this week (Task preserved safely!) */}
                         <button
                           type="button"
-                          onClick={() => removeBlockFromWeek(block.id)}
+                          onClick={async () => {
+                            if (!isCommitted) {
+                              await saveWeeklyPlan(
+                                { ...proposal.plan, status: 'COMMITTED' },
+                                proposal.scheduleBlocks,
+                                [...proposal.weeklyItems, ...proposal.unplacedItems]
+                              );
+                            }
+                            await removeBlockFromWeek(block.id);
+                          }}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors pressable cursor-pointer"
                           title="إزالة من جدول الأسبوع (المهمة الأصلية محفوظة بأمان)"
                         >
@@ -576,18 +613,36 @@ export const WeeklyScheduleWorkspace: React.FC = () => {
                       {item.taskId && (
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={async () => {
                             // Quick manual placement on today
                             const targetObj = weekDays.find(d => d.arabicDay === selectedDay);
                             const targetDate = targetObj ? targetObj.dateStr : currentWeekStart;
-                            moveBlockToDay(
-                              `sched-manual-${item.taskId}-${Date.now()}`,
-                              selectedDay,
-                              targetDate,
-                              '16:00'
-                            );
+                            if (!isCommitted) {
+                              await saveWeeklyPlan(
+                                { ...proposal.plan, status: 'COMMITTED' },
+                                proposal.scheduleBlocks,
+                                [...proposal.weeklyItems, ...proposal.unplacedItems]
+                              );
+                            }
+                            const blockFallback: ScheduleBlock = {
+                              id: `sched-manual-${item.taskId}-${Date.now()}`,
+                              planId: `plan-week-${currentWeekStart}`,
+                              date: targetDate,
+                              day: selectedDay,
+                              title: item.labelSnapshot,
+                              startTime: '16:00',
+                              endTime: minutesToTimeString(timeStringToMinutes('16:00') + (item.plannedMinutes || 45)),
+                              durationMinutes: item.plannedMinutes || 45,
+                              type: 'TASK',
+                              origin: 'MANUAL',
+                              taskId: item.taskId,
+                              goalId: item.goalId,
+                              isUserPinned: true,
+                              isLocked: false
+                            };
+                            await moveBlockToDay(blockFallback.id, selectedDay, targetDate, '16:00', blockFallback);
                           }}
-                          className="text-[10px] text-sky-400 hover:text-sky-300 font-bold underline px-1"
+                          className="text-[10px] text-sky-400 hover:text-sky-300 font-bold underline px-1 cursor-pointer"
                         >
                           جدولها اليوم
                         </button>

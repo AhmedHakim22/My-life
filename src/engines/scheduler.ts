@@ -349,13 +349,58 @@ export function generateWeeklySchedulePlan(
   // Track task IDs already locked in pinned blocks
   const pinnedTaskIds = new Set(pinnedBlocks.map(b => b.taskId).filter(Boolean));
 
+  const weekEndDate = weekDays[6].dateStr; // e.g. "2026-10-30"
+
   // 2. Filter & Prepare Candidate Tasks
   // Exclude DONE, CANCELLED, and already pinned tasks
-  const candidateTasks = tasks.filter(t => 
-    t.status !== 'DONE' && 
-    (t as any).status !== 'CANCELLED' && 
-    !pinnedTaskIds.has(t.id)
-  );
+  // Strictly filter out tasks whose deadlines or goals belong to future periods (e.g. Nov/Dec 2026 or 2027 when still in October)
+  const candidateTasks = tasks.filter(t => {
+    if (t.status === 'DONE' || (t as any).status === 'CANCELLED' || pinnedTaskIds.has(t.id)) {
+      return false;
+    }
+
+    // Explicitly assigned to this week's plan
+    if (t.planId === planId) {
+      return true;
+    }
+
+    // If assigned to a DIFFERENT week plan, exclude from this week
+    if (t.planId && t.planId.startsWith('plan-week-') && t.planId !== planId) {
+      return false;
+    }
+
+    // If task has a deadline (dueDate):
+    if (t.dueDate) {
+      // If deadline is after this week's end (e.g. in a future week/month), do NOT schedule it into this week!
+      if (t.dueDate > weekEndDate) {
+        return false;
+      }
+      // Task is due in or before this week -> definitely include
+      return true;
+    }
+
+    // If task has NO deadline:
+    // Check if it belongs to a goal that is explicitly in the future
+    if (t.goalId) {
+      const g = goals.find(goal => goal.id === t.goalId);
+      if (g) {
+        // November monthly goals (M11) while weekEndDate is in October (< 2026-11-01)
+        if ((t.goalId.includes('M11') || t.goalId.includes('NOV') || (g.targetDate && g.targetDate.startsWith('2026-11'))) && weekEndDate < '2026-11-01') {
+          return false;
+        }
+        // December monthly goals (M12) while weekEndDate is before December (< 2026-12-01)
+        if ((t.goalId.includes('M12') || t.goalId.includes('DEC') || (g.targetDate && g.targetDate.startsWith('2026-12'))) && weekEndDate < '2026-12-01') {
+          return false;
+        }
+        // 2027 goals while still in 2026 (< 2027-01-01)
+        if ((t.goalId.startsWith('G27') || t.goalId.includes('2027') || (g.targetDate && g.targetDate.startsWith('2027'))) && weekEndDate < '2027-01-01') {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  });
 
   interface SchedulableItem {
     id: string;
