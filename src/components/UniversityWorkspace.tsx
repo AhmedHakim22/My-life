@@ -52,6 +52,8 @@ export const UniversityWorkspace: React.FC = () => {
     toggleQuizAttended,
     recordQuizScore,
     deleteQuiz,
+    toggleLectureQuizLink,
+    linkLectureToQuizzes,
     addAssignment,
     toggleAssignmentCompleted,
     toggleAssignmentSubmitted,
@@ -102,6 +104,7 @@ export const UniversityWorkspace: React.FC = () => {
   const [newLectureTitle, setNewLectureTitle] = useState('');
   const [newLectureNum, setNewLectureNum] = useState<number>(1);
   const [newLectureNotes, setNewLectureNotes] = useState('');
+  const [newLectureQuizIds, setNewLectureQuizIds] = useState<string[]>([]);
 
   // Form State: Edit Lecture
   const [editingLecture, setEditingLecture] = useState<StudySession | null>(null);
@@ -109,6 +112,10 @@ export const UniversityWorkspace: React.FC = () => {
   const [editLectureTitle, setEditLectureTitle] = useState<string>('');
   const [editLectureNotes, setEditLectureNotes] = useState<string>('');
   const [editLecturePriority, setEditLecturePriority] = useState<'High' | 'Normal'>('Normal');
+  const [editLectureQuizIds, setEditLectureQuizIds] = useState<string[]>([]);
+
+  // Quick Link Session to Quizzes Modal
+  const [quickLinkSession, setQuickLinkSession] = useState<StudySession | null>(null);
 
   // Form State: Assignment
   const [asgnName, setAsgnName] = useState('');
@@ -257,6 +264,7 @@ export const UniversityWorkspace: React.FC = () => {
     setNewLectureNum(nextNum);
     setNewLectureTitle(`المحاضرة ${nextNum}`);
     setNewLectureNotes('');
+    setNewLectureQuizIds([]);
     setIsAddLectureOpen(true);
   };
 
@@ -264,7 +272,7 @@ export const UniversityWorkspace: React.FC = () => {
     e.preventDefault();
     if (!selectedSubject || !newLectureTitle.trim()) return;
 
-    await addStudySession({
+    const newId = await addStudySession({
       subjectId: selectedSubject.id,
       title: newLectureTitle.trim(),
       type: 'LECTURE',
@@ -277,8 +285,13 @@ export const UniversityWorkspace: React.FC = () => {
       notes: newLectureNotes.trim() || undefined
     });
 
+    if (newLectureQuizIds.length > 0) {
+      await linkLectureToQuizzes(newId, newLectureQuizIds);
+    }
+
     setNewLectureTitle('');
     setNewLectureNotes('');
+    setNewLectureQuizIds([]);
     setIsAddLectureOpen(false);
     fireConfettiSuccess();
   };
@@ -289,6 +302,10 @@ export const UniversityWorkspace: React.FC = () => {
     setEditLectureTitle(session.title);
     setEditLectureNotes(session.notes || '');
     setEditLecturePriority(session.priority || 'Normal');
+    const linked = academicQuizzes
+      .filter(q => q.lectureIds?.includes(session.id))
+      .map(q => q.id);
+    setEditLectureQuizIds(linked);
   };
 
   const handleSaveEditLecture = async (e: React.FormEvent) => {
@@ -301,6 +318,8 @@ export const UniversityWorkspace: React.FC = () => {
       notes: editLectureNotes.trim() || undefined,
       priority: editLecturePriority
     });
+
+    await linkLectureToQuizzes(editingLecture.id, editLectureQuizIds);
 
     setEditingLecture(null);
     fireConfettiSuccess();
@@ -817,73 +836,124 @@ export const UniversityWorkspace: React.FC = () => {
             </div>
 
             <div className="space-y-3">
-              {subjectSessions.map(session => (
-                <div
-                  key={session.id}
-                  className="glass-panel border border-slate-800/80 rounded-2xl p-4 space-y-3 shadow-lg"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] uppercase font-bold text-slate-300 bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-700/60 font-mono">
-                          محاضرة {session.lectureNumber || 1}
-                        </span>
-                        {session.materialReady ? (
-                          <span className="text-[10px] text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-700/40 font-bold">
-                            الداتا جاهزة 📂
+              {subjectSessions.map(session => {
+                const linkedQuizzes = academicQuizzes.filter(q => q.lectureIds?.includes(session.id));
+                return (
+                  <div
+                    key={session.id}
+                    className="glass-panel border border-slate-800/80 rounded-2xl p-4 space-y-3 shadow-lg"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] uppercase font-bold text-slate-300 bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-700/60 font-mono">
+                            محاضرة {session.lectureNumber || 1}
                           </span>
-                        ) : (
-                          <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
-                            الداتا غير متوفرة بعد
-                          </span>
+                          {session.materialReady ? (
+                            <span className="text-[10px] text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-700/40 font-bold">
+                              الداتا جاهزة 📂
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
+                              الداتا غير متوفرة بعد
+                            </span>
+                          )}
+                          {session.priority === 'High' && (
+                            <span className="text-[10px] text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-700/40 font-bold">
+                              High Priority ⭐
+                            </span>
+                          )}
+                        </div>
+
+                        <h4 className="text-sm font-bold text-white leading-snug pt-0.5">
+                          {session.title}
+                        </h4>
+                        {session.notes && (
+                          <p className="text-[11px] text-slate-400">{session.notes}</p>
                         )}
-                        {session.priority === 'High' && (
-                          <span className="text-[10px] text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-700/40 font-bold">
-                            High Priority ⭐
-                          </span>
+
+                        {linkedQuizzes.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1.5 pt-1.5">
+                            <span className="text-[10px] text-amber-400 font-bold flex items-center gap-1">
+                              <Brain className="w-3 h-3 text-amber-400" />
+                              كويزات مرتبطة ({linkedQuizzes.length}):
+                            </span>
+                            {linkedQuizzes.map(q => {
+                              const diff = getCalendarDaysDiff(q.quizDate);
+                              return (
+                                <span
+                                  key={q.id}
+                                  className={`text-[10px] px-2.5 py-0.5 rounded-full border flex items-center gap-1.5 font-bold ${
+                                    diff === 0
+                                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/50 animate-pulse'
+                                      : diff === 1
+                                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
+                                      : 'bg-amber-950/60 text-amber-200 border-amber-700/40'
+                                  }`}
+                                >
+                                  <span>🎯 {q.topic}</span>
+                                  <span className="font-mono text-[9px] opacity-80">({q.quizDate})</span>
+                                  {diff === 0 && <span className="text-[9px] font-black text-rose-400">اليوم! 🚨</span>}
+                                  {diff === 1 && <span className="text-[9px] font-black text-amber-400">غداً! ⚡</span>}
+                                  {diff > 1 && diff <= 3 && <span className="text-[9px] font-semibold text-sky-400">بعد {diff} أيام</span>}
+                                </span>
+                              );
+                            })}
+                          </div>
                         )}
                       </div>
 
-                      <h4 className="text-sm font-bold text-white leading-snug pt-0.5">
-                        {session.title}
-                      </h4>
-                      {session.notes && (
-                        <p className="text-[11px] text-slate-400">{session.notes}</p>
-                      )}
+                      <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setQuickLinkSession(session)}
+                          className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-bold flex items-center gap-1.5 pressable cursor-pointer shadow-md transition-all ${
+                            linkedQuizzes.length > 0
+                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+                              : 'bg-slate-800/80 text-slate-300 border-slate-700/60 hover:text-amber-300 hover:border-amber-500/40'
+                          }`}
+                          title="ربط المحاضرة بكويز"
+                        >
+                          <Brain className="w-3.5 h-3.5 text-amber-400" />
+                          <span className="hidden sm:inline">ربط بكويز</span>
+                          {linkedQuizzes.length > 0 && (
+                            <span className="w-4 h-4 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black flex items-center justify-center">
+                              {linkedQuizzes.length}
+                            </span>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setReviewingSession(session)}
+                          className="bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 border border-purple-500/50 text-[11px] font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 pressable cursor-pointer shadow-md"
+                        >
+                          <RotateCw className="w-3.5 h-3.5 text-purple-400" />
+                          <span>FSRS</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => openEditLectureModal(session)}
+                          className="p-1.5 text-slate-400 hover:text-sky-300 hover:bg-slate-800/80 rounded-lg transition pressable cursor-pointer"
+                          title="تعديل المحاضرة"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-sky-400" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (confirm(`حذف المحاضرة "${session.title}"؟`)) {
+                              await deleteStudySession(session.id);
+                            }
+                          }}
+                          className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-slate-800/80 rounded-lg transition"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setReviewingSession(session)}
-                        className="bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 border border-purple-500/50 text-[11px] font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 pressable cursor-pointer shadow-md"
-                      >
-                        <RotateCw className="w-3.5 h-3.5 text-purple-400" />
-                        <span>FSRS</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => openEditLectureModal(session)}
-                        className="p-1.5 text-slate-400 hover:text-sky-300 hover:bg-slate-800/80 rounded-lg transition pressable cursor-pointer"
-                        title="تعديل المحاضرة"
-                      >
-                        <Edit3 className="w-3.5 h-3.5 text-sky-400" />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (confirm(`حذف المحاضرة "${session.title}"؟`)) {
-                            await deleteStudySession(session.id);
-                          }
-                        }}
-                        className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-slate-800/80 rounded-lg transition"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
 
                   {/* Ahmed's 4 Toggle Checkboxes */}
                   <div className="grid grid-cols-4 gap-1.5 pt-2 border-t border-slate-800/60">
@@ -952,7 +1022,8 @@ export const UniversityWorkspace: React.FC = () => {
                     </button>
                   </div>
                 </div>
-              ))}
+              );
+            })}
 
               {subjectSessions.length === 0 && (
                 <div className="glass-panel p-6 rounded-2xl border border-dashed border-slate-800 text-center text-xs text-slate-400 space-y-2">
@@ -1956,6 +2027,78 @@ export const UniversityWorkspace: React.FC = () => {
                 </div>
               </div>
 
+              {/* Link to Quizzes in Add Lecture Modal */}
+              {(() => {
+                const subjectQuizzes = academicQuizzes.filter(q => q.subjectId === selectedSubject.id);
+                if (subjectQuizzes.length === 0) return null;
+
+                return (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] text-slate-300 font-bold flex items-center gap-1.5">
+                        <Brain className="w-3.5 h-3.5 text-amber-400" />
+                        <span>ربط بكويزات هذا المقرر ({newLectureQuizIds.length}):</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        {newLectureQuizIds.length < subjectQuizzes.length && (
+                          <button
+                            type="button"
+                            onClick={() => setNewLectureQuizIds(subjectQuizzes.map(q => q.id))}
+                            className="text-[10px] text-sky-400 hover:text-sky-300"
+                          >
+                            تحديد الكل
+                          </button>
+                        )}
+                        {newLectureQuizIds.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setNewLectureQuizIds([])}
+                            className="text-[10px] text-amber-400 hover:text-amber-300"
+                          >
+                            مسح التحديد
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="max-h-28 overflow-y-auto space-y-1 p-2 bg-slate-950/80 rounded-xl border border-slate-800">
+                      {subjectQuizzes.map(quiz => {
+                        const isSelected = newLectureQuizIds.includes(quiz.id);
+                        return (
+                          <button
+                            key={quiz.id}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                setNewLectureQuizIds(newLectureQuizIds.filter(id => id !== quiz.id));
+                              } else {
+                                setNewLectureQuizIds([...newLectureQuizIds, quiz.id]);
+                              }
+                            }}
+                            className={`w-full text-right px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-all ${
+                              isSelected 
+                                ? 'bg-amber-500/20 text-amber-200 border border-amber-500/40 font-bold' 
+                                : 'text-slate-400 hover:bg-slate-800/60 border border-transparent'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <span className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] ${
+                                isSelected ? 'bg-amber-500 border-amber-400 text-slate-950 font-black' : 'border-slate-700'
+                              }`}>
+                                {isSelected ? '✓' : ''}
+                              </span>
+                              <span className="truncate">{quiz.topic}</span>
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              {quiz.quizDate}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="flex gap-2 justify-end pt-2">
                 <button
                   type="button"
@@ -2045,6 +2188,78 @@ export const UniversityWorkspace: React.FC = () => {
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500 resize-none"
                 />
               </div>
+
+              {/* Link to Quizzes in Edit Lecture Modal */}
+              {(() => {
+                const subjectQuizzes = academicQuizzes.filter(q => q.subjectId === (editingLecture.subjectId || selectedSubject?.id));
+                if (subjectQuizzes.length === 0) return null;
+
+                return (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] text-slate-300 font-bold flex items-center gap-1.5">
+                        <Brain className="w-3.5 h-3.5 text-amber-400" />
+                        <span>ربط بكويزات هذا المقرر ({editLectureQuizIds.length}):</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        {editLectureQuizIds.length < subjectQuizzes.length && (
+                          <button
+                            type="button"
+                            onClick={() => setEditLectureQuizIds(subjectQuizzes.map(q => q.id))}
+                            className="text-[10px] text-sky-400 hover:text-sky-300"
+                          >
+                            تحديد الكل
+                          </button>
+                        )}
+                        {editLectureQuizIds.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setEditLectureQuizIds([])}
+                            className="text-[10px] text-amber-400 hover:text-amber-300"
+                          >
+                            مسح التحديد
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="max-h-28 overflow-y-auto space-y-1 p-2 bg-slate-950/80 rounded-xl border border-slate-800">
+                      {subjectQuizzes.map(quiz => {
+                        const isSelected = editLectureQuizIds.includes(quiz.id);
+                        return (
+                          <button
+                            key={quiz.id}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                setEditLectureQuizIds(editLectureQuizIds.filter(id => id !== quiz.id));
+                              } else {
+                                setEditLectureQuizIds([...editLectureQuizIds, quiz.id]);
+                              }
+                            }}
+                            className={`w-full text-right px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-all ${
+                              isSelected 
+                                ? 'bg-amber-500/20 text-amber-200 border border-amber-500/40 font-bold' 
+                                : 'text-slate-400 hover:bg-slate-800/60 border border-transparent'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <span className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] ${
+                                isSelected ? 'bg-amber-500 border-amber-400 text-slate-950 font-black' : 'border-slate-700'
+                              }`}>
+                                {isSelected ? '✓' : ''}
+                              </span>
+                              <span className="truncate">{quiz.topic}</span>
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              {quiz.quizDate}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="flex gap-2 justify-end pt-2">
                 <button
@@ -2214,18 +2429,29 @@ export const UniversityWorkspace: React.FC = () => {
                 return (
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="text-[11px] text-slate-400 font-bold block">
-                        تحديد المحاضرات الداخلة ({quizLectureIds.length}):
+                      <label className="text-[11px] text-slate-300 font-bold block">
+                        تحديد المحاضرات الداخلة ({quizLectureIds.length} من {targetSessions.length}):
                       </label>
-                      {quizLectureIds.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setQuizLectureIds([])}
-                          className="text-[10px] text-amber-400 hover:text-amber-300"
-                        >
-                          مسح التحديد
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {quizLectureIds.length < targetSessions.length && (
+                          <button
+                            type="button"
+                            onClick={() => setQuizLectureIds(targetSessions.map(s => s.id))}
+                            className="text-[10px] text-sky-400 hover:text-sky-300"
+                          >
+                            تحديد الكل
+                          </button>
+                        )}
+                        {quizLectureIds.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setQuizLectureIds([])}
+                            className="text-[10px] text-amber-400 hover:text-amber-300"
+                          >
+                            مسح التحديد
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="max-h-36 overflow-y-auto space-y-1 p-2 bg-slate-950/80 rounded-xl border border-slate-800">
@@ -2374,18 +2600,29 @@ export const UniversityWorkspace: React.FC = () => {
                 return (
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="text-[11px] text-slate-400 font-bold block">
-                        تحديد المحاضرات الداخلة ({editQuizLectureIds.length}):
+                      <label className="text-[11px] text-slate-300 font-bold block">
+                        تحديد المحاضرات الداخلة ({editQuizLectureIds.length} من {targetSessions.length}):
                       </label>
-                      {editQuizLectureIds.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setEditQuizLectureIds([])}
-                          className="text-[10px] text-amber-400 hover:text-amber-300"
-                        >
-                          مسح التحديد
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {editQuizLectureIds.length < targetSessions.length && (
+                          <button
+                            type="button"
+                            onClick={() => setEditQuizLectureIds(targetSessions.map(s => s.id))}
+                            className="text-[10px] text-sky-400 hover:text-sky-300"
+                          >
+                            تحديد الكل
+                          </button>
+                        )}
+                        {editQuizLectureIds.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setEditQuizLectureIds([])}
+                            className="text-[10px] text-amber-400 hover:text-amber-300"
+                          >
+                            مسح التحديد
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="max-h-36 overflow-y-auto space-y-1 p-2 bg-slate-950/80 rounded-xl border border-slate-800">
@@ -2908,6 +3145,145 @@ export const UniversityWorkspace: React.FC = () => {
             >
               إلغاء
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL: QUICK LINK LECTURE TO QUIZZES                     */}
+      {/* ======================================================== */}
+      {quickLinkSession && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-amber-500/40 rounded-3xl w-full max-w-sm p-5 space-y-4 shadow-2xl" dir="rtl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Brain className="w-5 h-5 text-amber-400" />
+                <h3 className="text-sm font-bold text-white">ربط المحاضرة بكويزات</h3>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setQuickLinkSession(null)}
+                className="text-slate-400 hover:text-slate-200 p-1 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="bg-slate-950/70 p-3 rounded-2xl border border-slate-800 space-y-1">
+                <div className="text-[11px] text-amber-400 font-bold">
+                  محاضرة {quickLinkSession.lectureNumber || 1}
+                </div>
+                <div className="text-sm font-extrabold text-white">
+                  {quickLinkSession.title}
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  انقر على أي كويز بالأسفل لربطه بالمحاضرة أو فك الربط فوراً وبنقرة واحدة.
+                </p>
+              </div>
+
+              {(() => {
+                const subjectQuizzes = academicQuizzes.filter(
+                  q => q.subjectId === (quickLinkSession.subjectId || selectedSubject?.id)
+                );
+
+                if (subjectQuizzes.length === 0) {
+                  return (
+                    <div className="text-center py-5 space-y-3">
+                      <p className="text-xs text-slate-400">
+                        لا توجد كويزات مسجلة لهذا المقرر حالياً.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const sessId = quickLinkSession.id;
+                          const subId = quickLinkSession.subjectId;
+                          setQuickLinkSession(null);
+                          setQuizSubId(subId);
+                          setQuizLectureIds([sessId]);
+                          setIsAddQuizOpen(true);
+                        }}
+                        className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl shadow-md cursor-pointer pressable"
+                      >
+                        + إضافة كويز جديد لهذا المقرر
+                      </button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-2">
+                    <label className="text-[11px] text-slate-300 font-bold block">
+                      الكويزات المتاحة لهذا المقرر ({subjectQuizzes.length}):
+                    </label>
+                    <div className="space-y-2 max-h-56 overflow-y-auto p-1">
+                      {subjectQuizzes.map(quiz => {
+                        const isLinked = quiz.lectureIds?.includes(quickLinkSession.id) ?? false;
+                        const diff = getCalendarDaysDiff(quiz.quizDate);
+                        return (
+                          <button
+                            key={quiz.id}
+                            type="button"
+                            onClick={async () => {
+                              await toggleLectureQuizLink(quickLinkSession.id, quiz.id);
+                            }}
+                            className={`w-full text-right p-3 rounded-2xl border transition-all flex items-center justify-between pressable cursor-pointer ${
+                              isLinked
+                                ? 'bg-amber-500/15 border-amber-500/50 text-white shadow-sm'
+                                : 'bg-slate-950/60 border-slate-800/80 text-slate-300 hover:bg-slate-850'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className={`w-5 h-5 rounded-lg flex items-center justify-center border text-xs font-bold ${
+                                isLinked
+                                  ? 'bg-amber-500 border-amber-400 text-slate-950'
+                                  : 'border-slate-700 bg-slate-900 text-transparent'
+                              }`}>
+                                ✓
+                              </span>
+                              <div>
+                                <div className="text-xs font-bold leading-tight">
+                                  {quiz.topic}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                                  {quiz.quizDate}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div>
+                              {diff === 0 ? (
+                                <span className="text-[9px] bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2 py-0.5 rounded-full font-bold">
+                                  اليوم! 🚨
+                                </span>
+                              ) : diff === 1 ? (
+                                <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">
+                                  غداً! ⚡
+                                </span>
+                              ) : (
+                                <span className="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-mono">
+                                  بعد {diff} ي
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="flex justify-end pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setQuickLinkSession(null)}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2 rounded-xl cursor-pointer"
+                >
+                  إغلاق
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

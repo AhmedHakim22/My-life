@@ -406,7 +406,19 @@ export function generateWeeklySchedulePlan(
     // Calculate priority score
     let score = t.priority === 'P1_URGENT_IMPORTANT' ? 60 : t.priority === 'P2_IMPORTANT' ? 35 : 15;
     if (t.goalId) score += 30;
-    if (t.studySessionId) score += 25;
+    if (t.studySessionId) {
+      score += 25;
+      // Boost if this session is covered by an upcoming quiz in this week
+      const isCoveredByWeekQuiz = quizzes.some(q =>
+        !q.prepared &&
+        q.lectureIds?.includes(t.studySessionId!) &&
+        q.quizDate &&
+        weekDays.some(d => d.dateStr === q.quizDate)
+      );
+      if (isCoveredByWeekQuiz) {
+        score += 45;
+      }
+    }
     if (t.dueDate && t.dueDate <= weekDays[6].dateStr) score += 20;
 
     // 120-minute tasks: Split into 2 x 60 min sessions if needed
@@ -444,6 +456,27 @@ export function generateWeeklySchedulePlan(
         deadline: t.dueDate,
         isNonEssentialCourse
       });
+    }
+  }
+
+  // Include upcoming week's quizzes as schedulable preparation candidates if not already placed
+  for (const quiz of quizzes) {
+    if (quiz.attended && quiz.prepared) continue;
+    if (!quiz.quizDate) continue;
+    const isQuizInThisWeek = weekDays.some(d => d.dateStr === quiz.quizDate);
+    if (isQuizInThisWeek) {
+      const alreadyScheduled = pinnedBlocks.some(b => b.taskId === `quiz-${quiz.id}`);
+      if (!alreadyScheduled) {
+        schedulableCandidates.push({
+          id: `candidate-quiz-${quiz.id}`,
+          taskId: `quiz-${quiz.id}`,
+          title: `🎯 مراجعة واستعداد لكويز: ${quiz.topic} (${quiz.subjectName})`,
+          durationMinutes: 45,
+          priorityScore: 90,
+          deadline: quiz.quizDate,
+          isNonEssentialCourse: false
+        });
+      }
     }
   }
 

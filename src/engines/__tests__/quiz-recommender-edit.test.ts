@@ -197,4 +197,103 @@ describe('Store Quiz Operations', () => {
     expect(savedQuiz?.quizDate).toBe('2026-11-03');
     expect(savedQuiz?.lectureIds).toEqual(['sess-1', 'sess-2', 'sess-3']);
   });
+
+  it('toggles lecture linking to quiz seamlessly via toggleLectureQuizLink', async () => {
+    const store = useAppStore.getState();
+
+    const quizId = await store.addQuiz({
+      topic: 'Quiz 2 - Waves',
+      subjectId: 'subj-phys',
+      subjectName: 'فيزياء بصرية',
+      quizDate: '2026-11-05',
+      lectureIds: ['sess-1'],
+      prepared: false,
+      attended: false
+    });
+
+    // Toggle to link sess-2
+    await store.toggleLectureQuizLink('sess-2', quizId);
+    let quiz = await db.academicQuizzes.get(quizId);
+    expect(quiz?.lectureIds).toContain('sess-1');
+    expect(quiz?.lectureIds).toContain('sess-2');
+
+    // Toggle again to unlink sess-1
+    await store.toggleLectureQuizLink('sess-1', quizId);
+    quiz = await db.academicQuizzes.get(quizId);
+    expect(quiz?.lectureIds).not.toContain('sess-1');
+    expect(quiz?.lectureIds).toContain('sess-2');
+  });
+
+  it('links a lecture to multiple quizzes via linkLectureToQuizzes', async () => {
+    const store = useAppStore.getState();
+
+    const q1 = await store.addQuiz({
+      topic: 'Quiz A',
+      subjectId: 'subj-math',
+      subjectName: 'رياضيات',
+      quizDate: '2026-11-10',
+      lectureIds: [],
+      prepared: false,
+      attended: false
+    });
+
+    const q2 = await store.addQuiz({
+      topic: 'Quiz B',
+      subjectId: 'subj-math',
+      subjectName: 'رياضيات',
+      quizDate: '2026-11-12',
+      lectureIds: ['sess-other'],
+      prepared: false,
+      attended: false
+    });
+
+    // Link sess-math-1 to both Quiz A and Quiz B
+    await store.linkLectureToQuizzes('sess-math-1', [q1, q2]);
+
+    const resQ1 = await db.academicQuizzes.get(q1);
+    const resQ2 = await db.academicQuizzes.get(q2);
+
+    expect(resQ1?.lectureIds).toContain('sess-math-1');
+    expect(resQ2?.lectureIds).toContain('sess-math-1');
+    expect(resQ2?.lectureIds).toContain('sess-other');
+
+    // Now update so sess-math-1 is only in Quiz A
+    await store.linkLectureToQuizzes('sess-math-1', [q1]);
+    const resQ1After = await db.academicQuizzes.get(q1);
+    const resQ2After = await db.academicQuizzes.get(q2);
+
+    expect(resQ1After?.lectureIds).toContain('sess-math-1');
+    expect(resQ2After?.lectureIds).not.toContain('sess-math-1');
+  });
+
+  it('automatically cleans up lectureId from quizzes when a study session is deleted', async () => {
+    const store = useAppStore.getState();
+
+    const sessId = await store.addStudySession({
+      subjectId: 'subj-chem',
+      title: 'محاضرة الكيمياء العضوية',
+      type: 'LECTURE',
+      lectureNumber: 1
+    });
+
+    const qId = await store.addQuiz({
+      topic: 'كويز كيمياء',
+      subjectId: 'subj-chem',
+      subjectName: 'كيمياء',
+      quizDate: '2026-11-08',
+      lectureIds: [sessId, 'sess-keep'],
+      prepared: false,
+      attended: false
+    });
+
+    let quiz = await db.academicQuizzes.get(qId);
+    expect(quiz?.lectureIds).toContain(sessId);
+
+    // Delete the study session
+    await store.deleteStudySession(sessId);
+
+    quiz = await db.academicQuizzes.get(qId);
+    expect(quiz?.lectureIds).not.toContain(sessId);
+    expect(quiz?.lectureIds).toContain('sess-keep');
+  });
 });

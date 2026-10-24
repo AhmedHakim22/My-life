@@ -245,6 +245,8 @@ interface AppState {
   toggleQuizAttended: (id: string) => Promise<void>;
   recordQuizScore: (id: string, score: number, outOf: number) => Promise<void>;
   deleteQuiz: (id: string) => Promise<void>;
+  toggleLectureQuizLink: (sessionId: string, quizId: string) => Promise<void>;
+  linkLectureToQuizzes: (sessionId: string, quizIds: string[]) => Promise<void>;
 
   addAssignment: (assignment: Omit<AcademicAssignment, 'id'>) => Promise<string>;
   toggleAssignmentCompleted: (id: string) => Promise<void>;
@@ -1502,6 +1504,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   deleteStudySession: async (sessionId) => {
     await db.studySessions.delete(sessionId);
     await deleteRemoteEntity('studySessions', sessionId);
+    const affectedQuizzes = get().academicQuizzes.filter(q => q.lectureIds?.includes(sessionId));
+    for (const q of affectedQuizzes) {
+      await db.academicQuizzes.update(q.id, {
+        lectureIds: (q.lectureIds || []).filter(id => id !== sessionId)
+      });
+    }
     await get().loadAllData();
     get().showToast('تم حذف الجلسة بنجاح 🗑️');
   },
@@ -1689,6 +1697,41 @@ export const useAppStore = create<AppState>((set, get) => ({
     scheduleAutoPush(100);
     await get().loadAllData();
     get().showToast('تم حذف الكويز بنجاح 🗑️');
+  },
+
+  toggleLectureQuizLink: async (sessionId, quizId) => {
+    const quiz = get().academicQuizzes.find(q => q.id === quizId);
+    if (!quiz) return;
+    const currentList = quiz.lectureIds || [];
+    const isLinked = currentList.includes(sessionId);
+    const updatedList = isLinked
+      ? currentList.filter(id => id !== sessionId)
+      : [...currentList, sessionId];
+    
+    await db.academicQuizzes.update(quizId, {
+      lectureIds: updatedList.length > 0 ? updatedList : []
+    });
+    scheduleAutoPush(100);
+    await get().loadAllData();
+    get().showToast(isLinked ? 'تم إلغاء ربط المحاضرة بالكويز' : 'تم ربط المحاضرة بالكويز بنجاح 🎯');
+  },
+
+  linkLectureToQuizzes: async (sessionId, quizIds) => {
+    const { academicQuizzes } = get();
+    for (const quiz of academicQuizzes) {
+      const isCurrentlyLinked = quiz.lectureIds?.includes(sessionId) ?? false;
+      const shouldBeLinked = quizIds.includes(quiz.id);
+      if (shouldBeLinked && !isCurrentlyLinked) {
+        const updatedList = [...(quiz.lectureIds || []), sessionId];
+        await db.academicQuizzes.update(quiz.id, { lectureIds: updatedList });
+      } else if (!shouldBeLinked && isCurrentlyLinked) {
+        const updatedList = (quiz.lectureIds || []).filter(id => id !== sessionId);
+        await db.academicQuizzes.update(quiz.id, { lectureIds: updatedList });
+      }
+    }
+    scheduleAutoPush(100);
+    await get().loadAllData();
+    get().showToast('تم حفظ ربط المحاضرة بالكويزات 🎯');
   },
 
   addAssignment: async (assignmentData) => {
