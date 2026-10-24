@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { db, seedInitialDataIfNeeded, seedAhmedStudyPlannerIfNeeded, cleanupLegacyDemoArtifacts, requestPersistentStorage, repairDuplicateLectureNumbersIfNeeded, seedAhmed2027GoalsIfNeeded } from '../db';
+import { db, seedInitialDataIfNeeded, seedAhmedStudyPlannerIfNeeded, cleanupLegacyDemoArtifacts, requestPersistentStorage, repairDuplicateLectureNumbersIfNeeded, seedAhmed2027GoalsIfNeeded, seedAhmed2026BridgeGoalsIfNeeded } from '../db';
 import type {
   LifeDomain,
   Goal,
@@ -475,9 +475,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     await cleanupLegacyDemoArtifacts();
     // Repair any duplicate/missing lecture numbers across subjects
     await repairDuplicateLectureNumbersIfNeeded();
-    // Automatic seed of Ahmed's 2027 Goals Architecture (idempotent, preserves user data, runs in browser)
+    // Automatic seed of Ahmed's 2027 Goals Architecture & 2026 Nov/Dec Bridge (idempotent, preserves user data, runs in browser)
     if (typeof process === 'undefined' || !process.env?.VITEST) {
       await seedAhmed2027GoalsIfNeeded();
+      await seedAhmed2026BridgeGoalsIfNeeded();
     }
 
     const [

@@ -29,6 +29,7 @@ import type { Goal, Horizon, GoalMilestone, Task } from '../types';
 import { fireConfettiSuccess } from '../lib/confetti';
 import { getCairoDateString } from '../lib/dateUtils';
 import { AHMED_2027_PLAN_CONFIG } from '../db/ahmedGoals2027Data';
+import { AHMED_2026_BRIDGE_CONFIG } from '../db/ahmedGoals2026BridgeData';
 
 export const GoalsWorkspace: React.FC = () => {
   const { 
@@ -61,7 +62,14 @@ export const GoalsWorkspace: React.FC = () => {
 
   // Filter States
   const [selectedHorizon, setSelectedHorizon] = useState<Horizon | 'ALL'>('ALL');
-  const [selectedMonth, setSelectedMonth] = useState<string>('2027-01');
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const now = new Date();
+    const cur = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    if (cur <= '2026-11') return '2026-11';
+    if (cur === '2026-12') return '2026-12';
+    if (cur >= '2027-01' && cur <= '2027-12') return cur;
+    return '2026-11';
+  });
   const [selectedDomainFilter, setSelectedDomainFilter] = useState<string>('ALL');
   const [selectedParentGoalFilter, setSelectedParentGoalFilter] = useState<string>('ALL');
   const [showArchived, setShowArchived] = useState(false);
@@ -72,10 +80,10 @@ export const GoalsWorkspace: React.FC = () => {
     new Set(['V-FAITH', 'V-FAMILY', 'V-SCIENCE', 'V-FALCON', 'V-FINANCE', 'V-AI', 'V-HEALTH', 'V-READ'])
   );
   const [expandedAnnuals, setExpandedAnnuals] = useState<Set<string>>(
-    new Set(['A-QURAN', 'A-READ', 'A-FALCON', 'A-UNI'])
+    new Set(['A-QURAN', 'A-READ', 'A-FALCON', 'A-UNI', 'B26-A-UNI', 'B26-A-SCIENCE', 'B26-A-FAITH', 'B26-A-READ'])
   );
   const [expandedQuarters, setExpandedQuarters] = useState<Set<string>>(
-    new Set(['Q1-QURAN', 'Q1-READ', 'Q1-FALCON', 'Q1-UNI'])
+    new Set(['Q1-QURAN', 'Q1-READ', 'Q1-FALCON', 'Q1-UNI', 'B26-Q4-UNI', 'B26-Q4-READ'])
   );
 
   // Modals state
@@ -120,20 +128,22 @@ export const GoalsWorkspace: React.FC = () => {
   const [editMilestoneDate, setEditMilestoneDate] = useState('');
   const [editMilestoneStatus, setEditMilestoneStatus] = useState<GoalMilestone['status']>('PENDING');
 
-  // 12 Months of 2027
-  const MONTHS_2027 = [
-    { key: '2027-01', label: 'يناير 2027', short: 'يناير', num: 1 },
-    { key: '2027-02', label: 'فبراير 2027', short: 'فبراير', num: 2 },
-    { key: '2027-03', label: 'مارس 2027', short: 'مارس', num: 3 },
-    { key: '2027-04', label: 'أبريل 2027', short: 'أبريل', num: 4 },
-    { key: '2027-05', label: 'مايو 2027', short: 'مايو', num: 5 },
-    { key: '2027-06', label: 'يونيو 2027', short: 'يونيو', num: 6 },
-    { key: '2027-07', label: 'يوليو 2027', short: 'يوليو', num: 7 },
-    { key: '2027-08', label: 'أغسطس 2027', short: 'أغسطس', num: 8 },
-    { key: '2027-09', label: 'سبتمبر 2027', short: 'سبتمبر', num: 9 },
-    { key: '2027-10', label: 'أكتوبر 2027', short: 'أكتوبر', num: 10 },
-    { key: '2027-11', label: 'نوفمبر 2027', short: 'نوفمبر', num: 11 },
-    { key: '2027-12', label: 'ديسمبر 2027', short: 'ديسمبر', num: 12 },
+  // Months of 2026 Bridge & 2027 Strategic Architecture
+  const PLAN_MONTHS = [
+    { key: '2026-11', label: 'نوفمبر 2026', short: 'نوفمبر 26', num: 11, year: 2026, isBridge: true },
+    { key: '2026-12', label: 'ديسمبر 2026', short: 'ديسمبر 26', num: 12, year: 2026, isBridge: true },
+    { key: '2027-01', label: 'يناير 2027', short: 'يناير', num: 1, year: 2027 },
+    { key: '2027-02', label: 'فبراير 2027', short: 'فبراير', num: 2, year: 2027 },
+    { key: '2027-03', label: 'مارس 2027', short: 'مارس', num: 3, year: 2027 },
+    { key: '2027-04', label: 'أبريل 2027', short: 'أبريل', num: 4, year: 2027 },
+    { key: '2027-05', label: 'مايو 2027', short: 'مايو', num: 5, year: 2027 },
+    { key: '2027-06', label: 'يونيو 2027', short: 'يونيو', num: 6, year: 2027 },
+    { key: '2027-07', label: 'يوليو 2027', short: 'يوليو', num: 7, year: 2027 },
+    { key: '2027-08', label: 'أغسطس 2027', short: 'أغسطس', num: 8, year: 2027 },
+    { key: '2027-09', label: 'سبتمبر 2027', short: 'سبتمبر', num: 9, year: 2027 },
+    { key: '2027-10', label: 'أكتوبر 2027', short: 'أكتوبر', num: 10, year: 2027 },
+    { key: '2027-11', label: 'نوفمبر 2027', short: 'نوفمبر 27', num: 11, year: 2027 },
+    { key: '2027-12', label: 'ديسمبر 2027', short: 'ديسمبر 27', num: 12, year: 2027 },
   ];
 
   const formatEgyptianDate = (dateStr?: string) => {
@@ -195,7 +205,14 @@ export const GoalsWorkspace: React.FC = () => {
     const matchesArchived = showArchived ? g.isArchived : !g.isArchived;
     if (!matchesArchived) return false;
     if (g.horizon !== 'MONTHLY') return false;
-    const matchesMonth = selectedMonth === 'ALL' || (g.targetDate && g.targetDate.startsWith(selectedMonth)) || (g.refId && g.refId.startsWith('M' + selectedMonth.slice(5)));
+    const matchesMonth = selectedMonth === 'ALL' || 
+      (g.targetDate && g.targetDate.startsWith(selectedMonth)) || 
+      (g.startDate && g.startDate.startsWith(selectedMonth)) ||
+      (g.refId && (
+        (selectedMonth === '2026-11' && g.refId.includes('M11')) ||
+        (selectedMonth === '2026-12' && g.refId.includes('M12')) ||
+        g.refId.startsWith('M' + selectedMonth.slice(5))
+      ));
     const matchesDomain = selectedDomainFilter === 'ALL' || g.domainId === selectedDomainFilter;
     const matchesParent = selectedParentGoalFilter === 'ALL' || g.parentGoalId === selectedParentGoalFilter;
     return matchesMonth && matchesDomain && matchesParent;
@@ -208,7 +225,14 @@ export const GoalsWorkspace: React.FC = () => {
     const matchesHorizon = selectedHorizon === 'ALL' || g.horizon === selectedHorizon;
     const matchesDomain = selectedDomainFilter === 'ALL' || g.domainId === selectedDomainFilter;
     const matchesParent = selectedParentGoalFilter === 'ALL' || g.parentGoalId === selectedParentGoalFilter;
-    const matchesMonth = selectedHorizon !== 'MONTHLY' || selectedMonth === 'ALL' || (g.targetDate && g.targetDate.startsWith(selectedMonth));
+    const matchesMonth = selectedHorizon !== 'MONTHLY' || selectedMonth === 'ALL' || 
+      (g.targetDate && g.targetDate.startsWith(selectedMonth)) ||
+      (g.startDate && g.startDate.startsWith(selectedMonth)) ||
+      (g.refId && (
+        (selectedMonth === '2026-11' && g.refId.includes('M11')) ||
+        (selectedMonth === '2026-12' && g.refId.includes('M12')) ||
+        g.refId.startsWith('M' + selectedMonth.slice(5))
+      ));
     return matchesHorizon && matchesDomain && matchesParent && matchesMonth;
   });
 
@@ -481,6 +505,16 @@ export const GoalsWorkspace: React.FC = () => {
                     مكتمل 🏆
                   </span>
                 )}
+                {goal.bridge2026 && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-950/90 text-purple-300 border border-purple-700/60 flex items-center gap-1">
+                    <span>🌉 تمهيد 2026</span>
+                  </span>
+                )}
+                {goal.priority === 'protected' && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-950/90 text-rose-300 border border-rose-700/60 flex items-center gap-1">
+                    <span>🛡️ فترة ميدتيرم محمية</span>
+                  </span>
+                )}
               </div>
 
               <h2 className="text-base font-extrabold text-white leading-tight">
@@ -529,6 +563,18 @@ export const GoalsWorkspace: React.FC = () => {
             </div>
           )}
 
+          {/* Related 2027 Goals Bridge Connection */}
+          {goal.relatedExisting2027GoalIds && goal.relatedExisting2027GoalIds.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 text-[11px] bg-slate-950/60 text-sky-300 p-2 rounded-xl border border-sky-800/40">
+              <span className="font-bold text-sky-200">🔗 يمهّد لأهداف 2027 السنوية:</span>
+              {goal.relatedExisting2027GoalIds.map(gid => (
+                <span key={gid} className="px-1.5 py-0.5 rounded bg-sky-950/80 border border-sky-700/60 text-sky-300 font-mono text-[10px] font-bold">
+                  {gid}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Explainable Progress Bar */}
           <div className="space-y-1">
             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
@@ -552,14 +598,27 @@ export const GoalsWorkspace: React.FC = () => {
 
           {/* Expand / Collapse & Quick Action Buttons */}
           <div className="flex items-center justify-between pt-2 border-t border-slate-800/50">
-            <button
-              type="button"
-              onClick={() => setExpandedGoalId(isExpanded ? null : goal.id)}
-              className="text-xs font-bold text-sky-400 hover:text-sky-300 flex items-center gap-1 pressable cursor-pointer"
-            >
-              <span>{isExpanded ? 'إخفاء التفاصيل' : 'عرض المعالم والمهام'}</span>
-              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setExpandedGoalId(isExpanded ? null : goal.id)}
+                className="text-xs font-bold text-sky-400 hover:text-sky-300 flex items-center gap-1 pressable cursor-pointer"
+              >
+                <span>{isExpanded ? 'إخفاء التفاصيل' : 'عرض المعالم والمهام'}</span>
+                {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+
+              {linkedTasks.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setExpandedGoalId(isExpanded ? null : goal.id)}
+                  className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 hover:bg-emerald-900/60 px-2 py-0.5 rounded-lg border border-emerald-800/40 flex items-center gap-1 cursor-pointer pressable"
+                  title="عرض المهام المرتبطة"
+                >
+                  <span>📋 {linkedTasks.filter(t => t.status === 'DONE').length}/{linkedTasks.length} مهام</span>
+                </button>
+              )}
+            </div>
 
             <div className="flex items-center gap-1">
               <button
@@ -774,29 +833,44 @@ export const GoalsWorkspace: React.FC = () => {
                     return (
                       <div
                         key={t.id}
-                        className={`p-2 rounded-xl border flex items-center justify-between ${
+                        className={`p-2.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
                           isDone 
                             ? 'bg-slate-950/30 border-slate-900 text-slate-500 line-through' 
-                            : 'bg-slate-900/50 border-slate-800 text-slate-200'
+                            : 'bg-slate-900/60 border-slate-800 text-slate-200'
                         }`}
                       >
                         <button
                           type="button"
                           onClick={() => toggleTaskStatus(t.id)}
-                          className="flex items-center gap-2 flex-1 min-w-0 text-right pressable cursor-pointer"
+                          className="flex items-start gap-2.5 flex-1 min-w-0 text-right pressable cursor-pointer"
                           title={isDone ? 'اضغط لإلغاء الإنجاز وإعادة المهمة' : 'اضغط لإنجاز المهمة'}
                         >
                           {isDone ? (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                           ) : (
-                            <Circle className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            <Circle className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
                           )}
-                          <span className="text-xs truncate">{t.title}</span>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs font-medium leading-relaxed block">{t.title}</span>
+                          </div>
                         </button>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="text-[10px] font-mono text-slate-500">
-                            {t.estimatedMinutes} دقيقة
-                          </span>
+                        <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                          {t.dueDate && (
+                            <span className="text-[10px] font-mono text-sky-300 bg-sky-950/60 px-2 py-0.5 rounded border border-sky-800/40 flex items-center gap-1">
+                              <Calendar className="w-2.5 h-2.5 text-sky-400" />
+                              <span>{formatEgyptianDate(t.dueDate)}</span>
+                            </span>
+                          )}
+                          {t.priority === 'P1_URGENT_IMPORTANT' && (
+                            <span className="text-[9px] font-bold text-rose-300 bg-rose-950/80 px-1.5 py-0.5 rounded border border-rose-800/50">
+                              عاجل
+                            </span>
+                          )}
+                          {t.estimatedMinutes > 0 && (
+                            <span className="text-[10px] font-mono text-slate-400 bg-slate-950/40 px-1.5 py-0.5 rounded border border-slate-800/40">
+                              {t.estimatedMinutes} د
+                            </span>
+                          )}
                           <button
                             type="button"
                             onClick={() => deleteTask(t.id)}
@@ -882,7 +956,7 @@ export const GoalsWorkspace: React.FC = () => {
           <div className="text-xl font-black text-purple-400 mt-1 font-mono">{achievedGoalsCount}</div>
         </div>
         <div className="apple-card p-3.5 rounded-3xl">
-          <span className="text-[10px] text-slate-400 font-bold">أهداف شهرية 2027</span>
+          <span className="text-[10px] text-slate-400 font-bold">إجمالي الأهداف الشهرية</span>
           <div className="text-xl font-black text-amber-400 mt-1 font-mono">{totalMonthlyGoals}</div>
         </div>
       </div>
@@ -935,25 +1009,31 @@ export const GoalsWorkspace: React.FC = () => {
       {/* 4. VIEW A: Current Month Mobile-First Focus */}
       {activeView === 'CURRENT_MONTH' && (
         <div className="space-y-3">
-          {/* 12-Month Horizontal Carousel Switcher */}
+          {/* 14-Month Horizontal Carousel Switcher (Nov 2026 - Dec 2027) */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between px-1">
               <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
                 <Calendar className="w-3 h-3 text-sky-400" />
-                <span>اختر شهر التنفيذ (2027):</span>
+                <span>اختر شهر التنفيذ (2026 / 2027):</span>
               </span>
               <span className="text-[10px] font-mono text-sky-400">
-                11 هدفاً شهرياً لكل شهر
+                {selectedMonth.startsWith('2026') ? '8 أهداف تمهيدية + مهامها ومواعيدها' : '11 هدفاً شهرياً'}
               </span>
             </div>
 
             <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-              {MONTHS_2027.map(m => {
+              {PLAN_MONTHS.map(m => {
                 const isSelected = selectedMonth === m.key;
                 const monthGoalsCount = goals.filter(g => 
                   g.horizon === 'MONTHLY' && 
                   !g.isArchived && 
-                  ((g.targetDate && g.targetDate.startsWith(m.key)) || (g.refId && g.refId.startsWith('M' + m.key.slice(5))))
+                  ((g.targetDate && g.targetDate.startsWith(m.key)) || 
+                   (g.startDate && g.startDate.startsWith(m.key)) ||
+                   (g.refId && (
+                      (m.key === '2026-11' && g.refId.includes('M11')) ||
+                      (m.key === '2026-12' && g.refId.includes('M12')) ||
+                      g.refId.startsWith('M' + m.key.slice(5))
+                   )))
                 ).length;
 
                 return (
@@ -963,13 +1043,22 @@ export const GoalsWorkspace: React.FC = () => {
                     onClick={() => setSelectedMonth(m.key)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap border transition-all flex items-center gap-1.5 pressable cursor-pointer ${
                       isSelected
-                        ? 'bg-sky-500 text-slate-950 border-sky-400 font-extrabold shadow-md shadow-sky-500/25'
-                        : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-slate-200'
+                        ? m.isBridge
+                          ? 'bg-purple-600 text-white border-purple-400 font-extrabold shadow-md shadow-purple-600/30'
+                          : 'bg-sky-500 text-slate-950 border-sky-400 font-extrabold shadow-md shadow-sky-500/25'
+                        : m.isBridge
+                          ? 'bg-purple-950/40 border-purple-800/60 text-purple-300 hover:text-purple-200'
+                          : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-slate-200'
                     }`}
                   >
                     <span>{m.label}</span>
+                    {m.isBridge && (
+                      <span className="text-[9px] px-1 py-0.2 rounded bg-purple-900/80 text-purple-200 border border-purple-700/50">
+                        تمهيد
+                      </span>
+                    )}
                     <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                      isSelected ? 'bg-slate-950/30 text-slate-950' : 'bg-slate-800 text-slate-400'
+                      isSelected ? 'bg-slate-950/30 text-inherit' : 'bg-slate-800 text-slate-400'
                     }`}>
                       {monthGoalsCount}
                     </span>
@@ -1019,7 +1108,9 @@ export const GoalsWorkspace: React.FC = () => {
                 لا توجد أهداف شهرية مطابقة للشهر والمجال المحددين
               </h3>
               <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                خطتك لعام 2027 تحتوي على 11 هدفاً شهرياً لكل شهر. يمكنك إعادة ضبط الفلتر لعرض جميع مجالات هذا الشهر.
+                {selectedMonth.startsWith('2026')
+                  ? 'خطة نوفمبر وديسمبر 2026 تحتوي على 8 أهداف تمهيدية مع مهامها ومواعيدها الدقيقة. يمكنك إعادة ضبط الفلتر لعرض جميع مجالات هذا الشهر.'
+                  : 'خطتك لعام 2027 تحتوي على 11 هدفاً شهرياً لكل شهر. يمكنك إعادة ضبط الفلتر لعرض جميع مجالات هذا الشهر.'}
               </p>
               {selectedDomainFilter !== 'ALL' && (
                 <button

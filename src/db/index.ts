@@ -565,3 +565,4 @@ export async function repairDuplicateLectureNumbersIfNeeded(): Promise<void> {
 }
 
 export { seedAhmed2027GoalsIfNeeded, importAhmed2027GoalsPlan } from '../engines/ahmedGoalsImporter';
+export { seedAhmed2026BridgeGoalsIfNeeded, importAhmed2026BridgeGoalsPlan } from '../engines/ahmedGoals2026BridgeImporter';

@@ -1,19 +1,22 @@
 # Project State — Personal Life Coach OS (MASAAR V2)
-**Last Updated:** 2026-10-24T03:30:00+03:00  
-**Current Stage:** MASAAR V2 — Strategic Goals 2027 Integration Complete  
+**Last Updated:** 2026-10-24T04:15:00+03:00  
+**Current Stage:** MASAAR V2 — Strategic Goals 2027 + Nov/Dec 2026 Bridge Architecture Complete  
 **Working Mode:** LOCAL-FIRST PRODUCTION READY (PWA Offline First, Dexie v6 Schema, Supabase RLS Hardened, Vercel SPA Deploy Ready)  
 **Build Status:** Clean Production Build (`dist/` generated, 0 TypeScript errors, 0 Vite errors)  
 **Security Status:** 0 Vulnerabilities (`npm audit` clean, 0 CVEs, Permissive MIT/Apache licenses, Hardened RLS with User Isolation)  
-**Test Status:** 100% Tests Passing (89/89 tests passing across 20 test suites via Vitest)
+**Test Status:** 100% Tests Passing (97/97 tests passing across 21 test suites via Vitest)
 
 ## Core MASAAR V2 Highlights:
-1. **Ahmed 2027 Strategic Goals Plan Integration:**
-   - 195 structured goals across 4 hierarchical tiers (8 Grand Visions 2031, 11 Annual Goals 2027, 44 Quarterly Goals Q1-Q4, 132 Monthly Goals — 11 per month).
-   - Strict preservation of existing goals (especially "قراءة 75" `2030-01-01` with 0 progress overwritten, 0 text wiped).
-   - Zero XP awards on import; all goals start as planned and truthful.
-   - Mobile-First Current Month Focus (11 goals with 12-month horizontal switcher `يناير 2027` .. `ديسمبر 2027`).
+1. **Ahmed 2026 Nov/Dec Bridge Plan & 2027 Strategic Goals Integration:**
+   - 32 Bridge Goals for November & December 2026 (8 Annual Bridge, 8 Quarterly Q4 Bridge, 16 Monthly Goals: 8 for Nov 2026, 8 for Dec 2026).
+   - 64 actionable execution tasks with precise due dates and estimated durations directly linked to monthly goals.
+   - 195 structured goals for 2027 across 4 hierarchical tiers (8 Grand Visions 2031, 11 Annual Goals 2027, 44 Quarterly Goals Q1-Q4, 132 Monthly Goals).
+   - Strict preservation of existing 2027 goals and pre-existing "قراءة 75" with 0 progress overwritten, 0 duplicates.
+   - Protected Midterm Exam window (2026-11-07 to 2026-11-21) marked with `P1_URGENT_IMPORTANT` and `isLocked: true`.
+   - Zero XP awards on import; all tasks remain `TODO` and Truthful.
+   - Mobile-First Current Month Focus with 14-month horizontal switcher (`نوفمبر 2026 (تمهيد)` .. `ديسمبر 2027`), defaulting to upcoming month `2026-11`.
    - Breadcrumb navigation (`رؤية ← سنوي ← ربع سنوي ← شهري`) with interactive parent filters.
-   - Interactive 4-level Visual Strategic Tree (`Vision -> Annual -> Quarter -> Month`) with expand/collapse controls.
+   - Interactive Visual Strategic Tree (`Vision -> Annual -> Quarter -> Month`) showing both 2026 bridge goals and 2027 commitments.
    - Action templates ("مقترحات التنفيذ") with one-click conversion to daily tasks.
 2. **Apple HIG 3-Way Blended Design System:** Eliminates AI-generated "neon glow soup" and replace with:
    - **Apple Health/Fitness:** Deep OLED canvas (`#07080b`), bold white metric numbers, calm `#8e8e93` subtitles, and squircle widgets (`.apple-widget`).

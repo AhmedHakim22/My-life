@@ -38,6 +38,10 @@ export interface Goal {
   blessedIntentionSuggestion?: string;
   successCriteria?: string;
   actionTemplates?: string[];
+  relatedExisting2027GoalIds?: string[];
+  bridge2026?: boolean;
+  startDate?: string;
+  priority?: string;
   metadata?: Record<string, any>;
 }
 
@@ -280,6 +284,8 @@ export interface Task {
   isLocked: boolean; // Fixed commitments cannot be auto-postponed
   postponementCount: number;
   goalId?: string;
+  planId?: string;
+  refId?: string;
   skillId?: string;
   studySessionId?: string;
   createdAt: string;
