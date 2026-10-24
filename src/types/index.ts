@@ -471,6 +471,8 @@ export interface AvailabilityRule {
   label: string;
 }
 
+export type WeekMode = 'NORMAL' | 'EXAMS' | 'VACATION' | 'CRISIS';
+
 export interface ScheduleBlock {
   id: string;
   taskId?: string;
@@ -483,11 +485,19 @@ export interface ScheduleBlock {
   isLocked: boolean;
   goalId?: string;
   subjectCode?: string;
+  // Enhanced hybrid planner fields
+  planId?: string;
+  date?: string; // YYYY-MM-DD in Cairo local
+  origin?: 'AUTO' | 'MANUAL' | 'FIXED';
+  isUserPinned?: boolean;
+  weeklyItemId?: string;
+  partIndex?: number;
+  updatedAt?: string;
 }
 
 export interface WeeklySchedulePlan {
   id: string;
-  weekStartDate: string; // YYYY-MM-DD
+  weekStartDate: string; // Saturday; YYYY-MM-DD
   totalWakefulMinutes: number;
   fixedCommitmentMinutes: number;
   prayerBufferMinutes: number;
@@ -499,6 +509,34 @@ export interface WeeklySchedulePlan {
   isOverloaded: boolean;
   status: 'DRAFT' | 'COMMITTED';
   generatedAt: string;
+  // Enhanced hybrid planner fields
+  mode?: WeekMode;
+  revision?: number;
+  lastEditedAt?: string;
+  plannerVersion?: number;
+}
+
+export type WeeklyItemSourceType = 'TASK' | 'GOAL_TEMPLATE' | 'RECURRING_RULE';
+export type WeeklyItemStatus = 'PLANNED' | 'SCHEDULED' | 'DEFERRED' | 'SKIPPED';
+
+export interface WeeklyItem {
+  id: string;
+  weekStartDate: string; // Saturday; YYYY-MM-DD
+  goalId?: string;
+  taskId?: string;
+  sourceType: WeeklyItemSourceType;
+  sourceKey: string;
+  labelSnapshot: string;
+  plannedMinutes: number;
+  deadline?: string;
+  status: WeeklyItemStatus;
+  isUserPinned: boolean;
+  partIndex?: number;
+  carriedFromItemId?: string;
+  notes?: string;
+  unplacedReason?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ==========================================

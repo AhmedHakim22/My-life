@@ -53,7 +53,8 @@ export const GoalsWorkspace: React.FC = () => {
     addTask,
     deleteTask,
     linkIntentionToGoal,
-    unlinkIntentionFromGoal
+    unlinkIntentionFromGoal,
+    setActiveTab
   } = useAppStore();
 
   // Primary View Switcher: Mobile Month Focus vs Full Strategic Hierarchy vs Visual Tree
@@ -616,6 +617,18 @@ export const GoalsWorkspace: React.FC = () => {
                   title="عرض المهام المرتبطة"
                 >
                   <span>📋 {linkedTasks.filter(t => t.status === 'DONE').length}/{linkedTasks.length} مهام</span>
+                </button>
+              )}
+
+              {goal.horizon === 'MONTHLY' && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('SCHEDULE')}
+                  className="text-[10px] font-bold text-sky-300 bg-sky-950/60 hover:bg-sky-900/60 px-2 py-0.5 rounded-lg border border-sky-800/40 flex items-center gap-1 cursor-pointer pressable"
+                  title="الانتقال للمخطط الأسبوعي وتوزيع المهام"
+                >
+                  <Calendar className="w-3 h-3 text-sky-400" />
+                  <span>خطط للأسبوع</span>
                 </button>
               )}
             </div>

@@ -36,12 +36,15 @@ import type {
   WorkoutLog,
   AvailabilityRule,
   ScheduleBlock,
-  WeeklySchedulePlan
+  WeeklySchedulePlan,
+  WeeklyItem,
+  WeekMode
 } from '../types';
 import { getCairoPrayerTimes, type DayPrayersResult, type PrayerDstMode } from '../engines/prayer';
 import type { Challenge, ChallengeDayLog } from '../types';
 import { CHALLENGE_90_DAYS_PRESET } from '../engines/challengesPresets';
-import { getCairoDateString, getCairoTomorrowDateString } from '../lib/dateUtils';
+import { getCairoDateString, getCairoTomorrowDateString, getCairoSaturdayWeekStart, type ArabicDay } from '../lib/dateUtils';
+import { generateWeeklySchedulePlan, minutesToTimeString, timeStringToMinutes } from '../engines/scheduler';
 import { recommendBestNextAction, type NextActionRecommendation } from '../engines/recommender';
 import { calculateUserRank, generateXPIdempotencyKey, type UserRankProgress } from '../engines/gamification';
 import { evaluateHabitStreak } from '../engines/habits';
@@ -119,6 +122,7 @@ interface AppState {
   availabilityRules: AvailabilityRule[];
   scheduleBlocks: ScheduleBlock[];
   schedulePlans: WeeklySchedulePlan[];
+  weeklyItems: WeeklyItem[];
   tombstones: Tombstone[];
   xpResetEvents: XPResetEvent[];
   challenges: Challenge[];
@@ -256,6 +260,14 @@ interface AppState {
   updateTimetableSlot: (id: string, updates: Partial<Omit<TimetableSlot, 'id'>>) => Promise<void>;
   deleteTimetableSlot: (id: string) => Promise<void>;
 
+  // Weekly Hybrid Planner Actions
+  saveWeeklyPlan: (plan: WeeklySchedulePlan, blocks: ScheduleBlock[], items?: WeeklyItem[]) => Promise<void>;
+  togglePinBlock: (blockId: string) => Promise<void>;
+  moveBlockToDay: (blockId: string, targetDay: ArabicDay, targetDate: string, newStartTime?: string) => Promise<void>;
+  splitScheduleBlock: (blockId: string, splitMinutes?: number) => Promise<void>;
+  removeBlockFromWeek: (blockId: string) => Promise<void>;
+  replanWeek: (weekStartDate: string, mode?: WeekMode) => Promise<{ plan: WeeklySchedulePlan; scheduleBlocks: ScheduleBlock[]; weeklyItems: WeeklyItem[]; unplacedItems: WeeklyItem[] }>;
+
   toggleLectureStep: (sessionId: string, step: 'study' | 'revise' | 'solve' | 'material') => Promise<void>;
 
   // 4. Book Actions
@@ -369,6 +381,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   availabilityRules: [],
   scheduleBlocks: [],
   schedulePlans: [],
+  weeklyItems: [],
   tombstones: [],
   xpResetEvents: [],
   challenges: [],
@@ -518,6 +531,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       availabilityRules,
       scheduleBlocks,
       schedulePlans,
+      loadedWeeklyItems,
       tombstones,
       xpResetEvents,
       loadedChallenges,
@@ -557,6 +571,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       db.availabilityRules.toArray(),
       db.scheduleBlocks.toArray(),
       db.schedulePlans.toArray(),
+      db.weeklyItems.toArray(),
       db.tombstones.toArray(),
       db.xpResetEvents.toArray(),
       db.challenges.toArray(),
@@ -630,6 +645,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       availabilityRules,
       scheduleBlocks,
       schedulePlans,
+      weeklyItems: loadedWeeklyItems,
       tombstones,
       xpResetEvents,
       challenges,
@@ -1810,6 +1826,134 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().showToast('تم حذف الحصة من الجدول 🗑️');
   },
 
+  // Weekly Hybrid Planner Actions
+  saveWeeklyPlan: async (plan, blocks, items = []) => {
+    await db.schedulePlans.put(plan);
+    // Replace unpinned blocks for this plan, keep user-pinned blocks
+    const existing = await db.scheduleBlocks.where('planId').equals(plan.id).toArray();
+    for (const eb of existing) {
+      if (!eb.isUserPinned) {
+        await db.scheduleBlocks.delete(eb.id);
+      }
+    }
+    for (const b of blocks) {
+      await db.scheduleBlocks.put(b);
+    }
+    for (const it of items) {
+      await db.weeklyItems.put(it);
+    }
+    scheduleAutoPush(100);
+    await get().loadAllData();
+    get().showToast('تم اعتماد وحفظ خطة الأسبوع بنجاح 💾');
+  },
+
+  togglePinBlock: async (blockId) => {
+    const block = await db.scheduleBlocks.get(blockId);
+    if (!block) return;
+    const newPinned = !block.isUserPinned;
+    await db.scheduleBlocks.update(blockId, {
+      isUserPinned: newPinned,
+      origin: newPinned ? 'MANUAL' : block.origin,
+      updatedAt: new Date().toISOString()
+    });
+    scheduleAutoPush(100);
+    await get().loadAllData();
+    get().showToast(newPinned ? 'تم تثبيت موعد الجلسة في الجدول 📌' : 'تم إلغاء التثبيت — أصبحت الجلسة مرنة 🔓');
+  },
+
+  moveBlockToDay: async (blockId, targetDay, targetDate, newStartTime) => {
+    const block = await db.scheduleBlocks.get(blockId);
+    if (!block) return;
+    const start = newStartTime || block.startTime;
+    const end = minutesToTimeString(timeStringToMinutes(start) + block.durationMinutes);
+    await db.scheduleBlocks.update(blockId, {
+      day: targetDay,
+      date: targetDate,
+      startTime: start,
+      endTime: end,
+      origin: 'MANUAL',
+      isUserPinned: true,
+      updatedAt: new Date().toISOString()
+    });
+    scheduleAutoPush(100);
+    await get().loadAllData();
+    get().showToast(`تم نقل الجلسة إلى يوم ${targetDay} بنجاح 📅`);
+  },
+
+  splitScheduleBlock: async (blockId, splitMinutes = 60) => {
+    const block = await db.scheduleBlocks.get(blockId);
+    if (!block) return;
+    if (block.durationMinutes <= 45) {
+      get().showToast('مدة الجلسة قصيرة بالفعل ولا تحتمل التقسيم ⚠️');
+      return;
+    }
+    const part1Duration = Math.min(splitMinutes, Math.floor(block.durationMinutes / 2));
+    const part2Duration = block.durationMinutes - part1Duration;
+    const nowIso = new Date().toISOString();
+
+    // Update first part
+    await db.scheduleBlocks.update(blockId, {
+      durationMinutes: part1Duration,
+      endTime: minutesToTimeString(timeStringToMinutes(block.startTime) + part1Duration),
+      partIndex: 1,
+      title: block.title.includes('جلسة') ? block.title : `${block.title} (جلسة 1/2)`,
+      updatedAt: nowIso
+    });
+
+    // Create second part block
+    const p2Start = timeStringToMinutes(block.startTime) + part1Duration + 15;
+    const p2End = p2Start + part2Duration;
+    const p2Id = `${block.id}-p2-${Date.now()}`;
+    await db.scheduleBlocks.put({
+      ...block,
+      id: p2Id,
+      startTime: minutesToTimeString(p2Start),
+      endTime: minutesToTimeString(p2End),
+      durationMinutes: part2Duration,
+      partIndex: 2,
+      title: block.title.includes('جلسة') ? `${block.title} (2)` : `${block.title} (جلسة 2/2)`,
+      isUserPinned: false,
+      updatedAt: nowIso
+    });
+
+    scheduleAutoPush(100);
+    await get().loadAllData();
+    get().showToast('تم تقسيم الجلسة إلى فترتين متزنتين ✂️');
+  },
+
+  removeBlockFromWeek: async (blockId) => {
+    const block = await db.scheduleBlocks.get(blockId);
+    if (!block) return;
+    await db.scheduleBlocks.delete(blockId);
+    await deleteRemoteEntity('scheduleBlocks', blockId);
+    scheduleAutoPush(100);
+    await get().loadAllData();
+    get().showToast('تمت إزالة الجلسة من جدول الأسبوع (المهمة الأصلية محفوظة بأمان) ✓');
+  },
+
+  replanWeek: async (weekStartDate, mode) => {
+    const { tasks, timetableSlots, availabilityRules, goals, academicQuizzes } = get();
+    // Gather pinned blocks from database for this week
+    const allBlocks = await db.scheduleBlocks.toArray();
+    const existingPlan = await db.schedulePlans.get(`plan-week-${weekStartDate}`);
+    const pinned = allBlocks.filter(b => (b.planId === `plan-week-${weekStartDate}` || !b.planId) && b.isUserPinned);
+
+    const result = generateWeeklySchedulePlan({
+      tasks,
+      timetableSlots,
+      availabilityRules,
+      goals,
+      weekStartDate,
+      mode: mode || existingPlan?.mode || 'NORMAL',
+      pinnedBlocks: pinned,
+      existingPlan,
+      quizzes: academicQuizzes
+    });
+
+    await get().saveWeeklyPlan(result.plan, result.scheduleBlocks, [...result.weeklyItems, ...result.unplacedItems]);
+    return result;
+  },
+
   // 4. Book Actions
   addBook: async (title, author, totalPages = 0, coverUrl, categoryId = 'UNCATEGORIZED', subcategory) => {
     const now = new Date().toISOString();
@@ -2323,6 +2467,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       availabilityRules: await db.availabilityRules.toArray(),
       scheduleBlocks: await db.scheduleBlocks.toArray(),
       schedulePlans: await db.schedulePlans.toArray(),
+      weeklyItems: await db.weeklyItems.toArray(),
       challenges: await db.challenges.toArray(),
       challengeLogs: await db.challengeLogs.toArray()
     };
@@ -2374,6 +2519,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         db.availabilityRules,
         db.scheduleBlocks,
         db.schedulePlans,
+        db.weeklyItems,
         db.challenges,
         db.challengeLogs
       ], async () => {
@@ -2416,6 +2562,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (data.availabilityRules?.length) await db.availabilityRules.bulkPut(data.availabilityRules);
         if (data.scheduleBlocks?.length) await db.scheduleBlocks.bulkPut(data.scheduleBlocks);
         if (data.schedulePlans?.length) await db.schedulePlans.bulkPut(data.schedulePlans);
+        if (data.weeklyItems?.length) await db.weeklyItems.bulkPut(data.weeklyItems);
         if (data.challenges?.length) await db.challenges.bulkPut(data.challenges);
         if (data.challengeLogs?.length) await db.challengeLogs.bulkPut(data.challengeLogs);
       });

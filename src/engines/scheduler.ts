@@ -4,9 +4,18 @@ import type {
   AvailabilityRule, 
   ScheduleBlock, 
   WeeklySchedulePlan,
-  Goal
+  WeeklyItem,
+  WeekMode,
+  Goal,
+  AcademicQuiz
 } from '../types';
-import type { DayPrayersResult } from './prayer';
+import { getCairoPrayerTimes, type DayPrayersResult } from './prayer';
+import { 
+  getCairoSaturdayWeekStart, 
+  getWeekDates, 
+  isDateInMidtermExamPeriod, 
+  type ArabicDay 
+} from '../lib/dateUtils';
 
 export interface TimeInterval {
   startMinutes: number; // minutes from 00:00 (e.g. 08:00 = 480)
@@ -16,7 +25,8 @@ export interface TimeInterval {
 }
 
 export interface DayCapacityResult {
-  day: 'السبت' | 'الأحد' | 'الاثنين' | 'الثلاثاء' | 'الأربعاء' | 'الخميس' | 'الجمعة';
+  day: ArabicDay;
+  dateStr?: string;
   wakefulMinutes: number;
   fixedCommitmentMinutes: number;
   prayerBufferMinutes: number;
@@ -30,8 +40,9 @@ export interface DayCapacityResult {
  * Parses "HH:mm" into minutes from start of day.
  */
 export function timeStringToMinutes(timeStr: string): number {
+  if (!timeStr) return 0;
   const [h, m] = timeStr.split(':').map(Number);
-  return h * 60 + m;
+  return (h || 0) * 60 + (m || 0);
 }
 
 /**
@@ -73,11 +84,12 @@ export function mergeIntervals(intervals: { start: number; end: number }[]): { s
  * Calculates Day Capacity respecting Hard Constraints, Sleep, and Prayer Buffers.
  */
 export function computeDayCapacity(
-  day: 'السبت' | 'الأحد' | 'الاثنين' | 'الثلاثاء' | 'الأربعاء' | 'الخميس' | 'الجمعة',
+  day: ArabicDay,
   daySlots: TimetableSlot[],
   prayers: DayPrayersResult,
   availabilityRules: AvailabilityRule[] = [],
-  safetyBufferRatio = 0.15 // 15% configurable safety buffer
+  safetyBufferRatio = 0.15,
+  pinnedBlocksForDay: ScheduleBlock[] = []
 ): DayCapacityResult {
   // 1. Wakeful window: Default 06:30 to 23:30 (7 hours sleep protected = 1020 wakeful minutes)
   let wakefulStart = 6 * 60 + 30; // 06:30
@@ -86,8 +98,16 @@ export function computeDayCapacity(
   // Override from sleep rules if provided
   const sleepRule = availabilityRules.find(r => r.dayOfWeek === day && r.type === 'SLEEP');
   if (sleepRule) {
-    wakefulStart = timeStringToMinutes(sleepRule.endTime);
-    wakefulEnd = timeStringToMinutes(sleepRule.startTime);
+    const sStart = timeStringToMinutes(sleepRule.startTime);
+    const sEnd = timeStringToMinutes(sleepRule.endTime);
+    // If sleep crosses midnight (e.g. 23:00 to 06:30)
+    if (sStart > sEnd) {
+      wakefulStart = sEnd;
+      wakefulEnd = sStart;
+    } else {
+      wakefulStart = Math.max(0, sEnd);
+      wakefulEnd = Math.min(24 * 60, sStart);
+    }
   }
 
   const wakefulMinutes = Math.max(0, wakefulEnd - wakefulStart);
@@ -148,6 +168,16 @@ export function computeDayCapacity(
     });
   }
 
+  // D. User Pinned Blocks for this day (Hard constraints for auto-scheduling)
+  for (const pinned of pinnedBlocksForDay) {
+    const pStart = timeStringToMinutes(pinned.startTime);
+    const pEnd = timeStringToMinutes(pinned.endTime);
+    rawIntervals.push({
+      start: Math.max(wakefulStart, pStart),
+      end: Math.min(wakefulEnd, pEnd)
+    });
+  }
+
   // 3. Mathematical Interval Union
   const mergedCommitments = mergeIntervals(rawIntervals);
   const totalBlockedMinutes = mergedCommitments.reduce((sum, int) => sum + (int.end - int.start), 0);
@@ -191,34 +221,91 @@ export function computeDayCapacity(
   };
 }
 
+export interface GenerateWeeklyPlanOptions {
+  tasks: Task[];
+  timetableSlots: TimetableSlot[];
+  prayers?: DayPrayersResult;
+  availabilityRules?: AvailabilityRule[];
+  goals?: Goal[];
+  weekStartDate?: string; // Saturday; YYYY-MM-DD (defaults to current Cairo Saturday)
+  mode?: WeekMode;
+  pinnedBlocks?: ScheduleBlock[];
+  existingPlan?: WeeklySchedulePlan;
+  safetyBufferRatio?: number;
+  quizzes?: AcademicQuiz[];
+}
+
+export interface GenerateWeeklyPlanResult {
+  plan: WeeklySchedulePlan;
+  scheduleBlocks: ScheduleBlock[];
+  weeklyItems: WeeklyItem[];
+  unplacedItems: WeeklyItem[];
+}
+
 /**
  * Generates Weekly Schedule Plan, allocating tasks without overlapping hard constraints.
- * Detects and reports Overload truthfully.
+ * Supports both options object and legacy positional parameters.
  */
 export function generateWeeklySchedulePlan(
-  tasks: Task[],
-  timetableSlots: TimetableSlot[],
-  prayers: DayPrayersResult,
-  availabilityRules: AvailabilityRule[] = [],
-  goals: Goal[] = [],
-  safetyBufferRatio = 0.15
-): { plan: WeeklySchedulePlan; scheduleBlocks: ScheduleBlock[] } {
-  const days: ('السبت' | 'الأحد' | 'الاثنين' | 'الثلاثاء' | 'الأربعاء' | 'الخميس' | 'الجمعة')[] = [
-    'السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'
-  ];
+  tasksOrOptions: Task[] | GenerateWeeklyPlanOptions,
+  legacyTimetableSlots: TimetableSlot[] = [],
+  legacyPrayers?: DayPrayersResult,
+  legacyAvailabilityRules: AvailabilityRule[] = [],
+  legacyGoals: Goal[] = [],
+  legacySafetyBufferRatio = 0.15
+): GenerateWeeklyPlanResult {
+  // Normalize options
+  let opts: GenerateWeeklyPlanOptions;
+  if (Array.isArray(tasksOrOptions)) {
+    opts = {
+      tasks: tasksOrOptions,
+      timetableSlots: legacyTimetableSlots,
+      prayers: legacyPrayers,
+      availabilityRules: legacyAvailabilityRules,
+      goals: legacyGoals,
+      safetyBufferRatio: legacySafetyBufferRatio
+    };
+  } else {
+    opts = tasksOrOptions;
+  }
 
-  const now = new Date().toISOString();
-  const todayStr = now.split('T')[0];
+  const {
+    tasks,
+    timetableSlots,
+    availabilityRules = [],
+    goals = [],
+    pinnedBlocks = [],
+    safetyBufferRatio = 0.15,
+    quizzes = []
+  } = opts;
+
+  const targetWeekStart = opts.weekStartDate || getCairoSaturdayWeekStart();
+  const weekDays = getWeekDates(targetWeekStart);
+  const nowIso = new Date().toISOString();
+  const planId = `plan-week-${targetWeekStart}`;
+
+  // Auto-detect Mode if not explicitly set
+  const hasExamsInWeek = weekDays.some(d => isDateInMidtermExamPeriod(d.dateStr));
+  const weekMode: WeekMode = opts.mode || (hasExamsInWeek ? 'EXAMS' : 'NORMAL');
 
   const scheduleBlocks: ScheduleBlock[] = [];
+  const weeklyItems: WeeklyItem[] = [];
+  const unplacedItems: WeeklyItem[] = [];
+
   let totalWakeful = 0;
   let totalFixed = 0;
   let totalAvailableFlexible = 0;
 
-  // 1. Compute Day Capacities
-  const dayCapacities = days.map(day => {
-    const daySlots = timetableSlots.filter(s => s.day === day);
-    const cap = computeDayCapacity(day, daySlots, prayers, availabilityRules, safetyBufferRatio);
+  // 1. Compute Day Capacities for all 7 Cairo calendar dates with per-date prayers
+  const dayContexts = weekDays.map(({ dateStr, arabicDay }) => {
+    const dayDate = new Date(`${dateStr}T12:00:00Z`);
+    const dayPrayers = getCairoPrayerTimes(dayDate);
+    const daySlots = timetableSlots.filter(s => s.day === arabicDay);
+    const dayPinned = pinnedBlocks.filter(b => (b.date === dateStr || b.day === arabicDay) && b.isUserPinned);
+
+    const cap = computeDayCapacity(arabicDay, daySlots, dayPrayers, availabilityRules, safetyBufferRatio, dayPinned);
+    cap.dateStr = dateStr;
+
     totalWakeful += cap.wakefulMinutes;
     totalFixed += cap.fixedCommitmentMinutes;
     totalAvailableFlexible += cap.availableFlexibleMinutes;
@@ -226,9 +313,11 @@ export function generateWeeklySchedulePlan(
     // Add fixed university slots as locked blocks
     for (const slot of daySlots) {
       scheduleBlocks.push({
-        id: `block-slot-${slot.id}`,
+        id: `block-slot-${dateStr}-${slot.id}`,
+        planId,
+        date: dateStr,
+        day: arabicDay,
         title: slot.subjectName,
-        day,
         startTime: slot.startTime,
         endTime: slot.endTime || minutesToTimeString(timeStringToMinutes(slot.startTime) + 90),
         durationMinutes: slot.endTime 
@@ -236,71 +325,239 @@ export function generateWeeklySchedulePlan(
           : 90,
         type: 'FIXED_CLASS',
         isLocked: true,
-        subjectCode: slot.subjectCode
+        subjectCode: slot.subjectCode,
+        origin: 'FIXED'
       });
     }
 
-    return cap;
+    // Preserve pinned blocks
+    for (const pb of dayPinned) {
+      scheduleBlocks.push({
+        ...pb,
+        planId,
+        date: dateStr,
+        day: arabicDay,
+        origin: pb.origin || 'MANUAL',
+        isUserPinned: true,
+        isLocked: true
+      });
+    }
+
+    return { dateStr, arabicDay, cap, isExamDay: isDateInMidtermExamPeriod(dateStr) };
   });
 
-  // 2. Rank Tasks for Scheduling
-  // Goal-linked tasks (+30), P1 urgency (+50), P2 (+30), P3 (+10)
-  const pendingTasks = tasks.filter(t => t.status !== 'DONE');
-  const rankedTasks = [...pendingTasks].sort((a, b) => {
-    let scoreA = a.priority === 'P1_URGENT_IMPORTANT' ? 50 : a.priority === 'P2_IMPORTANT' ? 30 : 10;
-    let scoreB = b.priority === 'P1_URGENT_IMPORTANT' ? 50 : b.priority === 'P2_IMPORTANT' ? 30 : 10;
-    if (a.goalId) scoreA += 30;
-    if (b.goalId) scoreB += 30;
-    return scoreB - scoreA;
-  });
+  // Track task IDs already locked in pinned blocks
+  const pinnedTaskIds = new Set(pinnedBlocks.map(b => b.taskId).filter(Boolean));
 
-  const totalRequiredFlexibleMinutes = rankedTasks.reduce((sum, t) => sum + (t.estimatedMinutes || 45), 0);
+  // 2. Filter & Prepare Candidate Tasks
+  // Exclude DONE, CANCELLED, and already pinned tasks
+  const candidateTasks = tasks.filter(t => 
+    t.status !== 'DONE' && 
+    (t as any).status !== 'CANCELLED' && 
+    !pinnedTaskIds.has(t.id)
+  );
 
-  // 3. Allocate Tasks into Feasible Free Gaps
-  let remainingTasks = [...rankedTasks];
+  interface SchedulableItem {
+    id: string;
+    taskId?: string;
+    goalId?: string;
+    title: string;
+    durationMinutes: number;
+    priorityScore: number;
+    partIndex?: number;
+    deadline?: string;
+    isNonEssentialCourse: boolean;
+  }
 
-  for (const cap of dayCapacities) {
+  const schedulableCandidates: SchedulableItem[] = [];
+
+  for (const t of candidateTasks) {
+    const rawMin = t.estimatedMinutes !== undefined ? t.estimatedMinutes : 45;
+
+    // 0-minute tasks: Milestone / Status Checkpoint (do NOT artificially expand to 45m)
+    if (rawMin === 0) {
+      unplacedItems.push({
+        id: `witem-${targetWeekStart}-task-${t.id}`,
+        weekStartDate: targetWeekStart,
+        goalId: t.goalId,
+        taskId: t.id,
+        sourceType: 'TASK',
+        sourceKey: t.id,
+        labelSnapshot: t.title,
+        plannedMinutes: 0,
+        deadline: t.dueDate,
+        status: 'PLANNED',
+        isUserPinned: false,
+        unplacedReason: 'نقطة متابعة / إنجاز بدون مدة زمنية (0 دقيقة)',
+        createdAt: nowIso,
+        updatedAt: nowIso
+      });
+      continue;
+    }
+
+    // Check if this task is an elective course that should be suspended during Midterm exams (Nov 7-21)
+    const isNonEssentialCourse = Boolean(
+      (t.goalId && (t.goalId.includes('B26-M11-FAMILY') || t.goalId.includes('B26-M11-FALCON') || t.goalId.includes('B26-M11-AI'))) ||
+      t.title.includes('كورس الزواج') ||
+      t.title.includes('كورس التسويق') ||
+      t.title.includes('كورس الذكاء')
+    );
+
+    // Calculate priority score
+    let score = t.priority === 'P1_URGENT_IMPORTANT' ? 60 : t.priority === 'P2_IMPORTANT' ? 35 : 15;
+    if (t.goalId) score += 30;
+    if (t.studySessionId) score += 25;
+    if (t.dueDate && t.dueDate <= weekDays[6].dateStr) score += 20;
+
+    // 120-minute tasks: Split into 2 x 60 min sessions if needed
+    if (rawMin === 120) {
+      schedulableCandidates.push({
+        id: `${t.id}-p1`,
+        taskId: t.id,
+        goalId: t.goalId,
+        title: `${t.title} (جلسة 1/2)`,
+        durationMinutes: 60,
+        priorityScore: score + 2,
+        partIndex: 1,
+        deadline: t.dueDate,
+        isNonEssentialCourse
+      });
+      schedulableCandidates.push({
+        id: `${t.id}-p2`,
+        taskId: t.id,
+        goalId: t.goalId,
+        title: `${t.title} (جلسة 2/2)`,
+        durationMinutes: 60,
+        priorityScore: score,
+        partIndex: 2,
+        deadline: t.dueDate,
+        isNonEssentialCourse
+      });
+    } else {
+      schedulableCandidates.push({
+        id: t.id,
+        taskId: t.id,
+        goalId: t.goalId,
+        title: t.title,
+        durationMinutes: rawMin,
+        priorityScore: score,
+        deadline: t.dueDate,
+        isNonEssentialCourse
+      });
+    }
+  }
+
+  // Sort candidates descending by score
+  schedulableCandidates.sort((a, b) => b.priorityScore - a.priorityScore);
+
+  const totalRequiredFlexibleMinutes = schedulableCandidates.reduce((sum, c) => sum + c.durationMinutes, 0);
+
+  // 3. Best-fit Allocation into Feasible Free Gaps
+  let remainingCandidates = [...schedulableCandidates];
+
+  for (const { dateStr, arabicDay, cap, isExamDay } of dayContexts) {
     let dayRemainingAvailable = cap.availableFlexibleMinutes;
 
     for (const gap of cap.freeGaps) {
       let gapPointer = gap.startMinutes;
 
-      while (remainingTasks.length > 0 && dayRemainingAvailable >= 30) {
-        const task = remainingTasks[0];
-        const taskDuration = task.estimatedMinutes || 45;
+      while (remainingCandidates.length > 0 && dayRemainingAvailable >= 30) {
+        // Find best-fitting candidate for this gap
+        const candidateIndex = remainingCandidates.findIndex(cand => {
+          // If today is an Exam Day (Nov 7-21), do NOT schedule elective non-essential courses!
+          if (isExamDay && cand.isNonEssentialCourse) return false;
+          return (gapPointer + cand.durationMinutes <= gap.endMinutes) && (dayRemainingAvailable >= cand.durationMinutes);
+        });
 
-        if (gapPointer + taskDuration <= gap.endMinutes && dayRemainingAvailable >= taskDuration) {
-          scheduleBlocks.push({
-            id: `sched-task-${task.id}`,
-            taskId: task.id,
-            title: task.title,
-            day: cap.day,
-            startTime: minutesToTimeString(gapPointer),
-            endTime: minutesToTimeString(gapPointer + taskDuration),
-            durationMinutes: taskDuration,
-            type: 'TASK',
-            isLocked: false,
-            goalId: task.goalId
-          });
-
-          gapPointer += taskDuration;
-          dayRemainingAvailable -= taskDuration;
-          remainingTasks.shift();
-        } else {
-          // Cannot fit this task in this gap
+        if (candidateIndex === -1) {
+          // No fitting candidate found for the rest of this gap
           break;
         }
+
+        const [candidate] = remainingCandidates.splice(candidateIndex, 1);
+        const startTimeStr = minutesToTimeString(gapPointer);
+        const endTimeStr = minutesToTimeString(gapPointer + candidate.durationMinutes);
+
+        // Add Schedule Block
+        scheduleBlocks.push({
+          id: `sched-task-${dateStr}-${candidate.id}`,
+          planId,
+          date: dateStr,
+          day: arabicDay,
+          taskId: candidate.taskId,
+          goalId: candidate.goalId,
+          title: candidate.title,
+          startTime: startTimeStr,
+          endTime: endTimeStr,
+          durationMinutes: candidate.durationMinutes,
+          type: 'TASK',
+          isLocked: false,
+          isUserPinned: false,
+          partIndex: candidate.partIndex,
+          origin: 'AUTO',
+          updatedAt: nowIso
+        });
+
+        // Add corresponding WeeklyItem
+        weeklyItems.push({
+          id: `witem-${targetWeekStart}-${candidate.id}`,
+          weekStartDate: targetWeekStart,
+          goalId: candidate.goalId,
+          taskId: candidate.taskId,
+          sourceType: 'TASK',
+          sourceKey: candidate.taskId || candidate.id,
+          labelSnapshot: candidate.title,
+          plannedMinutes: candidate.durationMinutes,
+          deadline: candidate.deadline,
+          status: 'SCHEDULED',
+          isUserPinned: false,
+          partIndex: candidate.partIndex,
+          createdAt: nowIso,
+          updatedAt: nowIso
+        });
+
+        // Advance pointer with a 10m buffer between sessions
+        gapPointer += candidate.durationMinutes + 10;
+        dayRemainingAvailable -= candidate.durationMinutes;
       }
     }
   }
 
-  // 4. Overload Calculation
-  const unscheduledMinutes = Math.max(0, totalRequiredFlexibleMinutes - totalAvailableFlexible);
+  // 4. Collect Unplaced Tasks Truthfully
+  for (const unplaced of remainingCandidates) {
+    const reason = unplaced.isNonEssentialCourse && hasExamsInWeek
+      ? 'مؤجلة لما بعد الامتحانات (فترة الميدتيرم 7–21 نوفمبر)'
+      : 'ضيق الوقت والسعة المتاحة هذا الأسبوع';
+
+    unplacedItems.push({
+      id: `witem-${targetWeekStart}-${unplaced.id}`,
+      weekStartDate: targetWeekStart,
+      goalId: unplaced.goalId,
+      taskId: unplaced.taskId,
+      sourceType: 'TASK',
+      sourceKey: unplaced.taskId || unplaced.id,
+      labelSnapshot: unplaced.title,
+      plannedMinutes: unplaced.durationMinutes,
+      deadline: unplaced.deadline,
+      status: 'DEFERRED',
+      isUserPinned: false,
+      partIndex: unplaced.partIndex,
+      unplacedReason: reason,
+      createdAt: nowIso,
+      updatedAt: nowIso
+    });
+  }
+
+  // 5. Accurate Unscheduled Minutes (from actually unplaced timed items)
+  const unscheduledMinutes = unplacedItems
+    .filter(item => item.plannedMinutes > 0)
+    .reduce((sum, item) => sum + item.plannedMinutes, 0);
+
   const isOverloaded = unscheduledMinutes > 0;
 
   const plan: WeeklySchedulePlan = {
-    id: `plan-week-${todayStr}`,
-    weekStartDate: todayStr,
+    id: planId,
+    weekStartDate: targetWeekStart,
     totalWakefulMinutes: totalWakeful,
     fixedCommitmentMinutes: totalFixed,
     prayerBufferMinutes: 7 * 150,
@@ -310,9 +567,12 @@ export function generateWeeklySchedulePlan(
     requiredFlexibleMinutes: totalRequiredFlexibleMinutes,
     unscheduledMinutes,
     isOverloaded,
-    status: 'DRAFT',
-    generatedAt: now
+    status: opts.existingPlan?.status || 'DRAFT',
+    generatedAt: nowIso,
+    mode: weekMode,
+    revision: (opts.existingPlan?.revision || 0) + 1,
+    plannerVersion: 2
   };
 
-  return { plan, scheduleBlocks };
+  return { plan, scheduleBlocks, weeklyItems, unplacedItems };
 }

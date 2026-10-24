@@ -39,6 +39,7 @@ import type {
   AvailabilityRule,
   ScheduleBlock,
   WeeklySchedulePlan,
+  WeeklyItem,
   Challenge,
   ChallengeDayLog
 } from '../types';
@@ -86,6 +87,7 @@ export class MasaarDatabase extends Dexie {
   availabilityRules!: Table<AvailabilityRule, string>;
   scheduleBlocks!: Table<ScheduleBlock, string>;
   schedulePlans!: Table<WeeklySchedulePlan, string>;
+  weeklyItems!: Table<WeeklyItem, string>;
   // Version 5 Entities (Challenges Engine)
   challenges!: Table<Challenge, string>;
   challengeLogs!: Table<ChallengeDayLog, string>;
@@ -155,6 +157,12 @@ export class MasaarDatabase extends Dexie {
 
     this.version(6).stores({
       goals: 'id, domainId, parentGoalId, horizon, status, isArchived, planId, refId'
+    });
+
+    this.version(7).stores({
+      scheduleBlocks: 'id, planId, date, day, startTime, type, isLocked, taskId, isUserPinned, weeklyItemId',
+      schedulePlans: 'id, weekStartDate, status, mode',
+      weeklyItems: 'id, weekStartDate, goalId, taskId, sourceType, sourceKey, status, isUserPinned'
     });
   }
 }

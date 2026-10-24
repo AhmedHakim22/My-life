@@ -73,6 +73,7 @@ export const TABLE_MAPPINGS = [
   { dexie: 'availabilityRules', remote: 'availability_rules', pk: 'id' },
   { dexie: 'scheduleBlocks', remote: 'schedule_blocks', pk: 'id' },
   { dexie: 'schedulePlans', remote: 'schedule_plans', pk: 'id' },
+  { dexie: 'weeklyItems', remote: 'weekly_items', pk: 'id' },
   { dexie: 'challenges', remote: 'challenges', pk: 'id' },
   { dexie: 'challengeLogs', remote: 'challenge_logs', pk: 'id' }
 ] as const;
@@ -183,6 +184,7 @@ export const SHADOW_SYNC_COLLECTIONS = [
   'availabilityRules',
   'scheduleBlocks',
   'schedulePlans',
+  'weeklyItems',
   'intentions',
   'goalIntentions',
   'domains',

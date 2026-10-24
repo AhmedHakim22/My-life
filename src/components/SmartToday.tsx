@@ -29,7 +29,7 @@ import {
 import { useAppStore } from '../stores/appStore';
 import { CloudSyncModal } from './CloudSyncModal';
 import { fireConfettiSuccess } from '../lib/confetti';
-import { getCairoDateString } from '../lib/dateUtils';
+import { getCairoDateString, getCairoSaturdayWeekStart } from '../lib/dateUtils';
 import { generateWeeklySchedulePlan } from '../engines/scheduler';
 import { getCalendarDaysDiff } from '../engines/recommender';
 import type { StudySession } from '../types';
@@ -66,6 +66,7 @@ export const SmartToday: React.FC = () => {
     studySessions,
     academicQuizzes,
     academicAssignments,
+    schedulePlans,
     toggleLectureStep,
     toggleQuizPrepared,
     toggleAssignmentCompleted,
@@ -131,15 +132,16 @@ export const SmartToday: React.FC = () => {
 
   const activeGoalsCount = goals.filter(g => !g.isArchived && g.status !== 'ACHIEVED').length;
 
-  // Weekly capacity overload
-  const { plan: weeklyPlan } = generateWeeklySchedulePlan(
+  // Weekly capacity overload (saved committed plan if exists, else dynamic calculation)
+  const currentSat = getCairoSaturdayWeekStart();
+  const savedCommittedPlan = schedulePlans.find(p => p.weekStartDate === currentSat && p.status === 'COMMITTED');
+  const weeklyPlan = savedCommittedPlan || generateWeeklySchedulePlan({
     tasks,
     timetableSlots,
-    prayers,
     availabilityRules,
     goals,
-    0.15
-  );
+    weekStartDate: currentSat
+  }).plan;
 
   const handleCompleteTask = async (taskId: string) => {
     fireConfettiSuccess();
