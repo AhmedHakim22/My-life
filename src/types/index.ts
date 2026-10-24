@@ -143,6 +143,11 @@ export interface BookDetails {
   currentPage: number;
   shelf: 'Want to Read' | 'Reading' | 'Finished' | 'Paused' | 'Dropped';
   rating?: number;
+  categoryId?: string;
+  subcategory?: string;
+  level?: string;
+  priority?: string;
+  note?: string;
 }
 
 export interface ReadingSession {

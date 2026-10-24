@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { db, seedInitialDataIfNeeded, seedAhmedStudyPlannerIfNeeded, cleanupLegacyDemoArtifacts, requestPersistentStorage, repairDuplicateLectureNumbersIfNeeded, seedAhmed2027GoalsIfNeeded, seedAhmed2026BridgeGoalsIfNeeded } from '../db';
+import { db, seedInitialDataIfNeeded, seedAhmedStudyPlannerIfNeeded, cleanupLegacyDemoArtifacts, requestPersistentStorage, repairDuplicateLectureNumbersIfNeeded, seedAhmed2027GoalsIfNeeded, seedAhmed2026BridgeGoalsIfNeeded, seedAhmedBooks181IfNeeded } from '../db';
 import type {
   LifeDomain,
   Goal,
@@ -182,7 +182,7 @@ interface AppState {
 
   // Content Management: Books & Resources CRUD + Deletion Tombstones
   deleteBook: (resourceId: string) => Promise<void>;
-  editBook: (resourceId: string, updates: { title?: string; author?: string; totalPages?: number; shelf?: 'Reading' | 'Want to Read' | 'Finished' }) => Promise<void>;
+  editBook: (resourceId: string, updates: { title?: string; author?: string; totalPages?: number; shelf?: 'Reading' | 'Want to Read' | 'Finished' | 'Paused' | 'Dropped'; categoryId?: string; subcategory?: string }) => Promise<void>;
   archiveBook: (resourceId: string) => Promise<void>;
   deleteLearningResource: (resourceId: string) => Promise<void>;
 
@@ -258,7 +258,7 @@ interface AppState {
   toggleLectureStep: (sessionId: string, step: 'study' | 'revise' | 'solve' | 'material') => Promise<void>;
 
   // 4. Book Actions
-  addBook: (title: string, author?: string, totalPages?: number, coverUrl?: string) => Promise<void>;
+  addBook: (title: string, author?: string, totalPages?: number, coverUrl?: string, categoryId?: string, subcategory?: string) => Promise<string>;
   updateBookPage: (resourceId: string, newPage: number) => Promise<void>;
 
   // 5. Skill & Course Actions
@@ -475,10 +475,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     await cleanupLegacyDemoArtifacts();
     // Repair any duplicate/missing lecture numbers across subjects
     await repairDuplicateLectureNumbersIfNeeded();
-    // Automatic seed of Ahmed's 2027 Goals Architecture & 2026 Nov/Dec Bridge (idempotent, preserves user data, runs in browser)
+    // Automatic seed of Ahmed's 2027 Goals Architecture, 2026 Nov/Dec Bridge & 181 Books (idempotent, preserves user data, runs in browser)
     if (typeof process === 'undefined' || !process.env?.VITEST) {
       await seedAhmed2027GoalsIfNeeded();
       await seedAhmed2026BridgeGoalsIfNeeded();
+      await seedAhmedBooks181IfNeeded();
     }
 
     const [
@@ -1274,14 +1275,19 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   editBook: async (resourceId, updates) => {
     const now = new Date().toISOString();
-    if (updates.title) {
-      await db.learningResources.update(resourceId, { title: updates.title, updatedAt: now });
-    }
+    const resUpdates: any = { updatedAt: now };
+    if (updates.title !== undefined) resUpdates.title = updates.title;
+    if (updates.categoryId !== undefined) resUpdates.categoryId = updates.categoryId;
+    await db.learningResources.update(resourceId, resUpdates);
+
     const bookDetailsUpdates: any = { updatedAt: now };
     if (updates.author !== undefined) bookDetailsUpdates.author = updates.author;
     if (updates.totalPages !== undefined) bookDetailsUpdates.totalPages = updates.totalPages;
     if (updates.shelf !== undefined) bookDetailsUpdates.shelf = updates.shelf;
+    if (updates.categoryId !== undefined) bookDetailsUpdates.categoryId = updates.categoryId;
+    if (updates.subcategory !== undefined) bookDetailsUpdates.subcategory = updates.subcategory;
     await db.bookDetails.update(resourceId, bookDetailsUpdates);
+
     await get().loadAllData();
     get().showToast('تم حفظ تعديلات الكتاب ✏️');
   },
@@ -1792,7 +1798,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   // 4. Book Actions
-  addBook: async (title, author, totalPages = 200, coverUrl) => {
+  addBook: async (title, author, totalPages = 0, coverUrl, categoryId = 'UNCATEGORIZED', subcategory) => {
     const now = new Date().toISOString();
     const resId = `res-book-${Date.now()}`;
 
@@ -1801,7 +1807,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       type: 'BOOK',
       title,
       sourceUrl: '',
-      provider: 'مكتبة شخصية',
+      provider: author || 'مؤلف غير محدد',
+      categoryId,
       status: 'IN_PROGRESS',
       createdAt: now,
       updatedAt: now
@@ -1810,14 +1817,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     await db.bookDetails.add({
       resourceId: resId,
       author: author || 'مؤلف غير محدد',
-      totalPages,
+      totalPages: totalPages || 0,
       currentPage: 0,
       shelf: 'Want to Read',
-      coverUrl
+      coverUrl,
+      categoryId,
+      subcategory
     });
 
     await get().loadAllData();
     get().showToast(`تمت إضافة كتاب "${title}" إلى المكتبة بنجاح 📖`);
+    return resId;
   },
 
   updateBookPage: async (resourceId, newPage) => {
