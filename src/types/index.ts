@@ -246,6 +246,7 @@ export interface AcademicQuiz {
   subjectName: string;
   quizDate: string;  // YYYY-MM-DD
   syllabusScope?: string;
+  lectureIds?: string[]; // IDs of studySessions (lectures) covered by this quiz
   prepared: boolean;
   attended: boolean;
   myScore?: number;

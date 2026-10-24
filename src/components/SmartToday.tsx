@@ -31,6 +31,8 @@ import { CloudSyncModal } from './CloudSyncModal';
 import { fireConfettiSuccess } from '../lib/confetti';
 import { getCairoDateString } from '../lib/dateUtils';
 import { generateWeeklySchedulePlan } from '../engines/scheduler';
+import { getCalendarDaysDiff } from '../engines/recommender';
+import type { StudySession } from '../types';
 
 export const SmartToday: React.FC = () => {
   const { 
@@ -92,6 +94,13 @@ export const SmartToday: React.FC = () => {
     day: 'numeric',
     month: 'long'
   });
+
+  // Approaching quizzes within 3 days for alert banner
+  const imminentQuizzes = academicQuizzes.filter(q => {
+    if (q.prepared && q.attended) return false;
+    const diff = getCalendarDaysDiff(q.quizDate, now);
+    return diff >= 0 && diff <= 3;
+  }).sort((a, b) => getCalendarDaysDiff(a.quizDate, now) - getCalendarDaysDiff(b.quizDate, now));
 
   const arabicDays: ('الأحد' | 'الاثنين' | 'الثلاثاء' | 'الأربعاء' | 'الخميس' | 'الجمعة' | 'السبت')[] = [
     'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'
@@ -488,6 +497,93 @@ export const SmartToday: React.FC = () => {
         </section>
       )}
 
+      {/* Urgent Approaching Quizzes Banner (Today, Tomorrow, or <= 3 days) */}
+      {imminentQuizzes.length > 0 && (
+        <section className="space-y-2.5">
+          {imminentQuizzes.map(quiz => {
+            const diff = getCalendarDaysDiff(quiz.quizDate, now);
+            const attachedSessions = (quiz.lectureIds || [])
+              .map(id => studySessions.find(s => s.id === id))
+              .filter((s): s is StudySession => Boolean(s));
+            const hasUnstudied = attachedSessions.some(s => !s.studyDone);
+
+            return (
+              <div 
+                key={quiz.id}
+                className="apple-card rounded-[24px] p-4 border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-transparent space-y-2.5 relative overflow-hidden shadow-xl"
+              >
+                <div className="flex items-start justify-between gap-2.5">
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] bg-amber-500/25 text-amber-300 border border-amber-500/40 font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
+                        <AlertTriangle className="w-3 h-3 text-amber-400" />
+                        {diff === 0 ? 'كويز اليوم! 🚨' : diff === 1 ? 'كويز غداً! ⚡' : `كويز بعد ${diff} أيام 📅`}
+                      </span>
+                      <span className="text-[10px] text-slate-300 bg-white/[0.08] px-2 py-0.5 rounded-md font-mono">
+                        {quiz.subjectName}
+                      </span>
+                    </div>
+
+                    <h3 className="text-sm sm:text-base font-black text-white leading-snug">
+                      {quiz.topic}
+                    </h3>
+
+                    {quiz.syllabusScope && (
+                      <p className="text-[11px] text-slate-300 font-medium">نطاق المنهج: {quiz.syllabusScope}</p>
+                    )}
+
+                    {/* Covered Lectures Badges */}
+                    {attachedSessions.length > 0 && (
+                      <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                        <span className="text-[10px] text-slate-400 font-semibold">المحاضرات:</span>
+                        {attachedSessions.map(sess => (
+                          <span
+                            key={sess.id}
+                            className={`text-[9px] px-2 py-0.5 rounded-md border font-mono ${
+                              sess.studyDone 
+                                ? 'bg-emerald-950/60 border-emerald-700/40 text-emerald-300' 
+                                : 'bg-amber-950/60 border-amber-700/40 text-amber-300 font-bold'
+                            }`}
+                          >
+                            {sess.lectureNumber ? `م${sess.lectureNumber}` : sess.title} {sess.studyDone ? '✓' : '⚠️ لم تُدرس'}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 shrink-0 items-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        fireConfettiSuccess();
+                        toggleQuizPrepared(quiz.id);
+                        showToast(quiz.prepared ? 'تم التراجع عن الاستعداد للكويز' : 'كفو! تم تسجيل الاستعداد التام للكويز 🎯');
+                      }}
+                      className={`text-xs font-bold py-2 px-3 rounded-xl border flex items-center gap-1.5 transition-all pressable cursor-pointer shadow-sm ${
+                        quiz.prepared
+                          ? 'bg-amber-500 text-slate-950 border-amber-400 font-black'
+                          : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border-amber-500/40'
+                      }`}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>{quiz.prepared ? 'مستعد ☑' : 'جاهز؟'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('UNIVERSITY')}
+                      className="text-[10px] text-slate-400 hover:text-white underline px-1 py-0.5"
+                    >
+                      عرض في الجامعة
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </section>
+      )}
+
       {/* 4. Postponement Intervention Alert (3-Miss Threshold) */}
       {bestNextAction?.isPostponementIntervention && (
         <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-3.5 flex items-start gap-3 text-right shadow-sm">
@@ -861,7 +957,13 @@ export const SmartToday: React.FC = () => {
                   )}
                   <button
                     type="button"
-                    onClick={() => deleteTask(task.id)}
+                    onClick={() => {
+                      if (task.id.startsWith('synth-')) {
+                        showToast('تم استبعاد هذا المقترح مؤقتاً ✕');
+                      } else {
+                        deleteTask(task.id);
+                      }
+                    }}
                     className="p-1.5 rounded-xl text-[#8e8e93] hover:text-rose-400 hover:bg-rose-500/15 pressable cursor-pointer transition-colors"
                     title="حذف المهمة"
                     aria-label="حذف المهمة"

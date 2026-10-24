@@ -2,6 +2,20 @@ import type { Task, UniversitySubject, StudySession, Goal, AcademicQuiz, Academi
 import type { DayPrayersResult } from './prayer';
 import { getCairoDateString } from '../lib/dateUtils';
 
+/**
+ * Calculates calendar day difference between target date 'YYYY-MM-DD' and currentDate.
+ * 0 = Today, 1 = Tomorrow, 2 = Day after tomorrow, negative = past.
+ */
+export function getCalendarDaysDiff(targetDateStr: string, currentDate: Date = new Date()): number {
+  if (!targetDateStr) return 999;
+  const parts = targetDateStr.split('-').map(Number);
+  if (parts.length < 3 || isNaN(parts[0]) || isNaN(parts[1]) || isNaN(parts[2])) return 999;
+  const targetMidnight = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+  const currentMidnight = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0, 0);
+  const diffMs = targetMidnight.getTime() - currentMidnight.getTime();
+  return Math.round(diffMs / (1000 * 60 * 60 * 24));
+}
+
 export interface NextActionRecommendation {
   task: Task;
   score: number;
@@ -172,11 +186,9 @@ export function recommendBestNextAction(
 
     let daysToExam: number | null = null;
     if (subject?.examDate) {
-      const examMs = new Date(subject.examDate).getTime();
-      daysToExam = Math.max(0, Math.round((examMs - currentDate.getTime()) / (1000 * 60 * 60 * 24)));
+      daysToExam = Math.max(0, getCalendarDaysDiff(subject.examDate, currentDate));
     } else if (subject?.midExamDate) {
-      const examMs = new Date(subject.midExamDate).getTime();
-      daysToExam = Math.max(0, Math.round((examMs - currentDate.getTime()) / (1000 * 60 * 60 * 24)));
+      daysToExam = Math.max(0, getCalendarDaysDiff(subject.midExamDate, currentDate));
     }
 
     let synthTitle = '';
@@ -206,6 +218,40 @@ export function recommendBestNextAction(
       estimatedMinutes = 45;
     }
 
+    // Check if this lecture is directly covered by an upcoming Quiz!
+    const coveringQuizzes = quizzes.filter(q =>
+      !q.prepared &&
+      q.lectureIds?.includes(session.id) &&
+      getCalendarDaysDiff(q.quizDate, currentDate) >= 0 &&
+      getCalendarDaysDiff(q.quizDate, currentDate) <= 7
+    );
+
+    let isQuizLinked = false;
+    let quizBoostPriority = false;
+    if (coveringQuizzes.length > 0) {
+      const closestQuiz = coveringQuizzes.sort((a, b) =>
+        getCalendarDaysDiff(a.quizDate, currentDate) - getCalendarDaysDiff(b.quizDate, currentDate)
+      )[0];
+      const qDiff = getCalendarDaysDiff(closestQuiz.quizDate, currentDate);
+      isQuizLinked = true;
+      if (qDiff === 0) {
+        synthScore += 80;
+        synthRationale = `🚨 داخلة في كويز اليوم (${closestQuiz.topic})! ${synthRationale}`;
+        quizBoostPriority = true;
+      } else if (qDiff === 1) {
+        synthScore += 75;
+        synthRationale = `⚡ داخلة في كويز غداً (${closestQuiz.topic})! ${synthRationale}`;
+        quizBoostPriority = true;
+      } else if (qDiff <= 3) {
+        synthScore += 50;
+        synthRationale = `🎯 داخلة في كويز بعد ${qDiff} أيام (${closestQuiz.topic}). ${synthRationale}`;
+        quizBoostPriority = true;
+      } else {
+        synthScore += 30;
+        synthRationale = `مشمولة في كويز قادم (${closestQuiz.topic}). ${synthRationale}`;
+      }
+    }
+
     // Proximity to Exam boost
     if (daysToExam !== null) {
       if (daysToExam <= 7) {
@@ -233,7 +279,7 @@ export function recommendBestNextAction(
     const synthTask: Task = {
       id: `synth-study-${session.id}`,
       title: synthTitle,
-      priority: daysToExam !== null && daysToExam <= 14 ? 'P1_URGENT_IMPORTANT' : 'P2_IMPORTANT',
+      priority: quizBoostPriority || (daysToExam !== null && daysToExam <= 14) ? 'P1_URGENT_IMPORTANT' : 'P2_IMPORTANT',
       status: 'TODO',
       estimatedMinutes,
       isLocked: false,
@@ -258,21 +304,72 @@ export function recommendBestNextAction(
   for (const quiz of quizzes) {
     if (quiz.prepared && quiz.attended) continue;
 
-    let daysToQuiz = 7;
-    if (quiz.quizDate) {
-      const qMs = new Date(quiz.quizDate).getTime();
-      daysToQuiz = Math.max(0, Math.round((qMs - currentDate.getTime()) / (1000 * 60 * 60 * 24)));
-    }
+    const daysToQuiz = getCalendarDaysDiff(quiz.quizDate, currentDate);
+    if (daysToQuiz < 0) continue; // Past quiz
 
     if (daysToQuiz <= 14) {
-      const quizScore = 75 + Math.max(0, 14 - daysToQuiz);
+      let quizScore = 80;
+      let rationale = '';
+      let priority: Task['priority'] = 'P2_IMPORTANT';
+
+      if (daysToQuiz === 0) {
+        // Quiz is TODAY!
+        quizScore = quiz.prepared ? 120 : 220;
+        priority = 'P1_URGENT_IMPORTANT';
+        rationale = `🚨 كويز اليوم في مادة ${quiz.subjectName}: "${quiz.topic}"!`;
+      } else if (daysToQuiz === 1) {
+        // Quiz is TOMORROW!
+        quizScore = quiz.prepared ? 110 : 200;
+        priority = 'P1_URGENT_IMPORTANT';
+        rationale = `⚡ كويز غداً في مادة ${quiz.subjectName}: "${quiz.topic}" — الاستعداد إلزامي اليوم!`;
+      } else if (daysToQuiz === 2) {
+        quizScore = quiz.prepared ? 95 : 175;
+        priority = 'P1_URGENT_IMPORTANT';
+        rationale = `كويز بعد يومين في مادة ${quiz.subjectName}: "${quiz.topic}".`;
+      } else if (daysToQuiz === 3) {
+        quizScore = quiz.prepared ? 90 : 155;
+        priority = 'P1_URGENT_IMPORTANT';
+        rationale = `كويز بعد 3 أيام في مادة ${quiz.subjectName}: "${quiz.topic}".`;
+      } else if (daysToQuiz <= 7) {
+        quizScore = 120 + (7 - daysToQuiz) * 3;
+        rationale = `كويز قادم بعد ${daysToQuiz} أيام في مادة ${quiz.subjectName}: "${quiz.topic}".`;
+      } else {
+        quizScore = 85 + (14 - daysToQuiz);
+        rationale = `كويز قادم بعد ${daysToQuiz} يوماً في مادة ${quiz.subjectName}.`;
+      }
+
+      // Check for attached lectures or syllabus scope
+      let coveredLecturesText = '';
+      if (quiz.lectureIds && quiz.lectureIds.length > 0) {
+        const coveredNames = quiz.lectureIds
+          .map(id => sessionMap.get(id))
+          .filter((s): s is StudySession => Boolean(s))
+          .map(s => s.lectureNumber ? `محاضرة ${s.lectureNumber}` : s.title);
+
+        if (coveredNames.length > 0) {
+          coveredLecturesText = ` (يشمل: ${coveredNames.join('، ')})`;
+          rationale += ` يشمل: ${coveredNames.join('، ')}.`;
+        }
+      } else if (quiz.syllabusScope) {
+        coveredLecturesText = ` (${quiz.syllabusScope})`;
+        rationale += ` نطاق المنهج: ${quiz.syllabusScope}.`;
+      }
+
       const estMin = 35;
       const fits = estMin <= freeWindow;
+      if (fits) {
+        quizScore += 10;
+        rationale += ` (وقتها ${estMin} دقيقة مناسب قبل الصلاة)`;
+      }
 
       const synthQuizTask: Task = {
         id: `synth-quiz-${quiz.id}`,
-        title: `التحضير لكويز: ${quiz.topic} — ${quiz.subjectName}`,
-        priority: daysToQuiz <= 3 ? 'P1_URGENT_IMPORTANT' : 'P2_IMPORTANT',
+        title: daysToQuiz === 0
+          ? `🚨 كويز اليوم: ${quiz.topic} — ${quiz.subjectName}${coveredLecturesText}`
+          : daysToQuiz === 1
+          ? `🎯 الاستعداد لكويز غداً: ${quiz.topic} — ${quiz.subjectName}${coveredLecturesText}`
+          : `التحضير لكويز: ${quiz.topic} — ${quiz.subjectName}${coveredLecturesText}`,
+        priority,
         status: 'TODO',
         estimatedMinutes: estMin,
         isLocked: false,
@@ -285,7 +382,7 @@ export function recommendBestNextAction(
       scoredCandidates.push({
         task: synthQuizTask,
         score: quizScore,
-        rationaleArabic: `كويز ${quiz.topic} مقرر بعد ${daysToQuiz} أيام في مادة ${quiz.subjectName} 📝`,
+        rationaleArabic: rationale,
         category: 'STUDY',
         freeWindowFit: fits,
         isPostponementIntervention: false
@@ -297,11 +394,8 @@ export function recommendBestNextAction(
   for (const assign of assignments) {
     if (assign.completed && assign.submitted) continue;
 
-    let daysToDue = 5;
-    if (assign.deadline) {
-      const dMs = new Date(assign.deadline).getTime();
-      daysToDue = Math.max(0, Math.round((dMs - currentDate.getTime()) / (1000 * 60 * 60 * 24)));
-    }
+    const daysToDue = getCalendarDaysDiff(assign.deadline || '', currentDate);
+    if (daysToDue < 0) continue;
 
     if (daysToDue <= 10) {
       const assignScore = 70 + Math.max(0, 10 - daysToDue);

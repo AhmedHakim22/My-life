@@ -29,6 +29,7 @@ import {
 import { useAppStore } from '../stores/appStore';
 import type { StudySessionStatus, StudySession, Skill, UniversitySubject, AcademicQuiz, AcademicAssignment, StudentActivityTask, TimetableSlot } from '../types';
 import { fireConfettiSuccess } from '../lib/confetti';
+import { getCalendarDaysDiff } from '../engines/recommender';
 
 export const UniversityWorkspace: React.FC = () => {
   const { 
@@ -46,6 +47,7 @@ export const UniversityWorkspace: React.FC = () => {
     deleteStudySession,
     toggleLectureStep,
     addQuiz,
+    updateQuiz,
     toggleQuizPrepared,
     toggleQuizAttended,
     recordQuizScore,
@@ -118,6 +120,15 @@ export const UniversityWorkspace: React.FC = () => {
   const [quizSubId, setQuizSubId] = useState('');
   const [quizDate, setQuizDate] = useState('');
   const [quizSyllabus, setQuizSyllabus] = useState('');
+  const [quizLectureIds, setQuizLectureIds] = useState<string[]>([]);
+
+  // Editing Quiz State
+  const [editingQuiz, setEditingQuiz] = useState<AcademicQuiz | null>(null);
+  const [editQuizTopic, setEditQuizTopic] = useState('');
+  const [editQuizSubId, setEditQuizSubId] = useState('');
+  const [editQuizDate, setEditQuizDate] = useState('');
+  const [editQuizSyllabus, setEditQuizSyllabus] = useState('');
+  const [editQuizLectureIds, setEditQuizLectureIds] = useState<string[]>([]);
 
   // Form State: Activity
   const [actName, setActName] = useState('NASA Space Apps');
@@ -327,13 +338,43 @@ export const UniversityWorkspace: React.FC = () => {
       subjectName: targetSub?.name || 'مقرر عام',
       quizDate: quizDate || new Date().toISOString().split('T')[0],
       syllabusScope: quizSyllabus.trim() || undefined,
+      lectureIds: quizLectureIds.length > 0 ? quizLectureIds : undefined,
       prepared: false,
       attended: false
     });
 
     setQuizTopic('');
     setQuizSyllabus('');
+    setQuizDate('');
+    setQuizLectureIds([]);
     setIsAddQuizOpen(false);
+    fireConfettiSuccess();
+  };
+
+  const openEditQuizModal = (quiz: AcademicQuiz) => {
+    setEditingQuiz(quiz);
+    setEditQuizTopic(quiz.topic);
+    setEditQuizSubId(quiz.subjectId);
+    setEditQuizDate(quiz.quizDate);
+    setEditQuizSyllabus(quiz.syllabusScope || '');
+    setEditQuizLectureIds(quiz.lectureIds || []);
+  };
+
+  const handleUpdateQuiz = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingQuiz || !editQuizTopic.trim()) return;
+    const targetSub = universitySubjects.find(s => s.id === editQuizSubId) || universitySubjects.find(s => s.id === editingQuiz.subjectId);
+
+    await updateQuiz(editingQuiz.id, {
+      topic: editQuizTopic.trim(),
+      subjectId: targetSub?.id || editingQuiz.subjectId,
+      subjectName: targetSub?.name || editingQuiz.subjectName,
+      quizDate: editQuizDate || editingQuiz.quizDate,
+      syllabusScope: editQuizSyllabus.trim() || undefined,
+      lectureIds: editQuizLectureIds.length > 0 ? editQuizLectureIds : undefined
+    });
+
+    setEditingQuiz(null);
     fireConfettiSuccess();
   };
 
@@ -1071,31 +1112,92 @@ export const UniversityWorkspace: React.FC = () => {
                 className="glass-panel border border-slate-800 rounded-2xl p-4 space-y-3"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md font-mono">
                         {quiz.subjectName}
                       </span>
                       <span className="text-[10px] text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-700/40 font-mono">
                         تاريخ الكويز: {quiz.quizDate}
                       </span>
+                      {(() => {
+                        const diff = getCalendarDaysDiff(quiz.quizDate);
+                        if (diff === 0) return <span className="text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2 py-0.5 rounded-full font-bold animate-pulse">كويز اليوم! 🚨</span>;
+                        if (diff === 1) return <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">كويز غداً! ⚡</span>;
+                        if (diff > 1 && diff <= 3) return <span className="text-[10px] bg-sky-500/20 text-sky-300 border border-sky-500/40 px-2 py-0.5 rounded-full font-bold">بعد {diff} أيام 📅</span>;
+                        return null;
+                      })()}
                     </div>
 
                     <h4 className="text-sm font-bold text-white leading-snug">
                       {quiz.topic}
                     </h4>
+
                     {quiz.syllabusScope && (
                       <p className="text-[11px] text-slate-400">نطاق المنهج: {quiz.syllabusScope}</p>
                     )}
+
+                    {/* Attached Lectures List & Readiness Check */}
+                    {quiz.lectureIds && quiz.lectureIds.length > 0 && (() => {
+                      const attachedSessions = quiz.lectureIds
+                        .map(id => studySessions.find(s => s.id === id))
+                        .filter((s): s is StudySession => Boolean(s));
+                      const hasUnstudied = attachedSessions.some(s => !s.studyDone);
+
+                      return (
+                        <div className="space-y-1 pt-1">
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                            <span className="font-semibold text-slate-300">المحاضرات الداخلة:</span>
+                            {hasUnstudied ? (
+                              <span className="text-[10px] text-rose-400 font-bold bg-rose-950/60 px-1.5 py-0.5 rounded border border-rose-800/50">
+                                محاضرات لم تُدرس بعد ⚠️
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/50">
+                                جاهزة للمراجعة ✓
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {attachedSessions.map(sess => (
+                              <span
+                                key={sess.id}
+                                className={`text-[10px] px-2 py-0.5 rounded-md border font-medium flex items-center gap-1 ${
+                                  sess.studyDone 
+                                    ? 'bg-emerald-950/50 border-emerald-700/40 text-emerald-300' 
+                                    : 'bg-amber-950/50 border-amber-700/40 text-amber-300'
+                                }`}
+                              >
+                                <span>{sess.studyDone ? '✓' : '○'}</span>
+                                <span>{sess.lectureNumber ? `م${sess.lectureNumber}` : sess.title}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => deleteQuiz(quiz.id)}
-                    className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-slate-800/80 rounded-lg transition"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => openEditQuizModal(quiz)}
+                      className="p-1.5 text-slate-400 hover:text-amber-300 hover:bg-slate-800/80 rounded-lg transition"
+                      title="تعديل الكويز"
+                      aria-label="تعديل الكويز"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteQuiz(quiz.id)}
+                      className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-slate-800/80 rounded-lg transition"
+                      title="حذف الكويز"
+                      aria-label="حذف الكويز"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Ahmed's Prepared vs Attended Checkboxes */}
@@ -2100,6 +2202,75 @@ export const UniversityWorkspace: React.FC = () => {
                 />
               </div>
 
+              {/* Select lectures included in this quiz */}
+              {(() => {
+                const currentSubId = quizSubId || selectedSubject?.id;
+                const targetSessions = studySessions
+                  .filter(s => s.subjectId === currentSubId)
+                  .sort((a, b) => (a.lectureNumber || 0) - (b.lectureNumber || 0));
+
+                if (targetSessions.length === 0) return null;
+
+                return (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] text-slate-400 font-bold block">
+                        تحديد المحاضرات الداخلة ({quizLectureIds.length}):
+                      </label>
+                      {quizLectureIds.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setQuizLectureIds([])}
+                          className="text-[10px] text-amber-400 hover:text-amber-300"
+                        >
+                          مسح التحديد
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="max-h-36 overflow-y-auto space-y-1 p-2 bg-slate-950/80 rounded-xl border border-slate-800">
+                      {targetSessions.map(sess => {
+                        const isSelected = quizLectureIds.includes(sess.id);
+                        return (
+                          <button
+                            key={sess.id}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                setQuizLectureIds(quizLectureIds.filter(id => id !== sess.id));
+                              } else {
+                                setQuizLectureIds([...quizLectureIds, sess.id]);
+                              }
+                            }}
+                            className={`w-full text-right px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-all ${
+                              isSelected 
+                                ? 'bg-amber-500/20 text-amber-200 border border-amber-500/40 font-bold' 
+                                : 'text-slate-400 hover:bg-slate-800/60 border border-transparent'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <span className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] ${
+                                isSelected ? 'bg-amber-500 border-amber-400 text-slate-950 font-black' : 'border-slate-700'
+                              }`}>
+                                {isSelected ? '✓' : ''}
+                              </span>
+                              <span className="truncate">
+                                {sess.lectureNumber ? `م${sess.lectureNumber}: ` : ''}{sess.title}
+                              </span>
+                            </div>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+                              sess.studyDone ? 'text-emerald-400 bg-emerald-950/60' : 'text-amber-400 bg-amber-950/60'
+                            }`}>
+                              {sess.studyDone ? 'مدروسة' : 'لم تدرس'}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div>
                 <label className="text-[11px] text-slate-400 font-bold block mb-1">النطاق والمنهج (اختياري):</label>
                 <input
@@ -2124,6 +2295,166 @@ export const UniversityWorkspace: React.FC = () => {
                   className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl shadow-md pressable cursor-pointer"
                 >
                   حفظ موعد الكويز
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL: EDIT QUIZ                                         */}
+      {/* ======================================================== */}
+      {editingQuiz && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-amber-500/40 rounded-3xl w-full max-w-sm p-5 space-y-4 shadow-2xl" dir="rtl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-amber-400" />
+                <h3 className="text-sm font-bold text-white">تعديل بيانات الكويز</h3>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setEditingQuiz(null)}
+                className="text-slate-400 hover:text-slate-200 p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateQuiz} className="space-y-3">
+              <div>
+                <label className="text-[11px] text-slate-400 font-bold block mb-1">موضوع الكويز:</label>
+                <input
+                  type="text"
+                  value={editQuizTopic}
+                  onChange={e => setEditQuizTopic(e.target.value)}
+                  placeholder="مثال: Quiz 1"
+                  required
+                  autoFocus
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] text-slate-400 font-bold block mb-1">المقرر:</label>
+                <select
+                  value={editQuizSubId}
+                  onChange={e => {
+                    setEditQuizSubId(e.target.value);
+                    setEditQuizLectureIds([]);
+                  }}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                >
+                  {universitySubjects.map(s => (
+                    <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] text-slate-400 font-bold block mb-1">تاريخ الكويز:</label>
+                <input
+                  type="date"
+                  value={editQuizDate}
+                  onChange={e => setEditQuizDate(e.target.value)}
+                  required
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 font-mono"
+                />
+              </div>
+
+              {/* Select lectures included in this quiz */}
+              {(() => {
+                const targetSessions = studySessions
+                  .filter(s => s.subjectId === editQuizSubId)
+                  .sort((a, b) => (a.lectureNumber || 0) - (b.lectureNumber || 0));
+
+                if (targetSessions.length === 0) return null;
+
+                return (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] text-slate-400 font-bold block">
+                        تحديد المحاضرات الداخلة ({editQuizLectureIds.length}):
+                      </label>
+                      {editQuizLectureIds.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setEditQuizLectureIds([])}
+                          className="text-[10px] text-amber-400 hover:text-amber-300"
+                        >
+                          مسح التحديد
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="max-h-36 overflow-y-auto space-y-1 p-2 bg-slate-950/80 rounded-xl border border-slate-800">
+                      {targetSessions.map(sess => {
+                        const isSelected = editQuizLectureIds.includes(sess.id);
+                        return (
+                          <button
+                            key={sess.id}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                setEditQuizLectureIds(editQuizLectureIds.filter(id => id !== sess.id));
+                              } else {
+                                setEditQuizLectureIds([...editQuizLectureIds, sess.id]);
+                              }
+                            }}
+                            className={`w-full text-right px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-all ${
+                              isSelected 
+                                ? 'bg-amber-500/20 text-amber-200 border border-amber-500/40 font-bold' 
+                                : 'text-slate-400 hover:bg-slate-800/60 border border-transparent'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <span className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] ${
+                                isSelected ? 'bg-amber-500 border-amber-400 text-slate-950 font-black' : 'border-slate-700'
+                              }`}>
+                                {isSelected ? '✓' : ''}
+                              </span>
+                              <span className="truncate">
+                                {sess.lectureNumber ? `م${sess.lectureNumber}: ` : ''}{sess.title}
+                              </span>
+                            </div>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+                              sess.studyDone ? 'text-emerald-400 bg-emerald-950/60' : 'text-amber-400 bg-amber-950/60'
+                            }`}>
+                              {sess.studyDone ? 'مدروسة' : 'لم تدرس'}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div>
+                <label className="text-[11px] text-slate-400 font-bold block mb-1">النطاق والمنهج (اختياري):</label>
+                <input
+                  type="text"
+                  value={editQuizSyllabus}
+                  onChange={e => setEditQuizSyllabus(e.target.value)}
+                  placeholder="مثال: المحاضرة 1 و 2 فقط"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingQuiz(null)}
+                  className="text-xs text-slate-400 hover:text-slate-200 px-3 py-1.5"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl shadow-md pressable cursor-pointer"
+                >
+                  حفظ التعديلات
                 </button>
               </div>
             </form>

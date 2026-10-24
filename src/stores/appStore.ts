@@ -236,6 +236,7 @@ interface AppState {
 
   // Ahmed's Study Planner Actions
   addQuiz: (quiz: Omit<AcademicQuiz, 'id'>) => Promise<string>;
+  updateQuiz: (id: string, updates: Partial<Omit<AcademicQuiz, 'id'>>) => Promise<void>;
   toggleQuizPrepared: (id: string) => Promise<void>;
   toggleQuizAttended: (id: string) => Promise<void>;
   recordQuizScore: (id: string, score: number, outOf: number) => Promise<void>;
@@ -1287,7 +1288,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (updates.categoryId !== undefined) bookDetailsUpdates.categoryId = updates.categoryId;
     if (updates.subcategory !== undefined) bookDetailsUpdates.subcategory = updates.subcategory;
     await db.bookDetails.update(resourceId, bookDetailsUpdates);
-
+    scheduleAutoPush(100);
     await get().loadAllData();
     get().showToast('تم حفظ تعديلات الكتاب ✏️');
   },
@@ -1604,9 +1605,17 @@ export const useAppStore = create<AppState>((set, get) => ({
       ...quizData,
       id
     });
+    scheduleAutoPush(100);
     await get().loadAllData();
     get().showToast(`تمت إضافة كويز: ${quizData.topic} 🧠`);
     return id;
+  },
+
+  updateQuiz: async (id, updates) => {
+    await db.academicQuizzes.update(id, updates);
+    scheduleAutoPush(100);
+    await get().loadAllData();
+    get().showToast('تم تحديث بيانات الكويز بنجاح ✏️');
   },
 
   toggleQuizPrepared: async (id) => {
@@ -1626,6 +1635,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       }).catch(() => {});
       get().showToast('تم الاستعداد للكويز جاهزية تامة! (+20 XP) 🎯');
     }
+    scheduleAutoPush(100);
     await get().loadAllData();
   },
 
@@ -1646,11 +1656,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       }).catch(() => {});
       get().showToast('تم أداء الكويز بحمد الله! (+30 XP) 🏆');
     }
+    scheduleAutoPush(100);
     await get().loadAllData();
   },
 
   recordQuizScore: async (id, score, outOf) => {
     await db.academicQuizzes.update(id, { myScore: score, outOf });
+    scheduleAutoPush(100);
     await get().loadAllData();
     get().showToast(`تم تسجيل نتيجة الكويز: ${score} من ${outOf} 📝`);
   },
@@ -1658,6 +1670,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   deleteQuiz: async (id) => {
     await db.academicQuizzes.delete(id);
     await deleteRemoteEntity('academicQuizzes', id);
+    scheduleAutoPush(100);
     await get().loadAllData();
     get().showToast('تم حذف الكويز بنجاح 🗑️');
   },
@@ -1825,6 +1838,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       subcategory
     });
 
+    scheduleAutoPush(100);
     await get().loadAllData();
     get().showToast(`تمت إضافة كتاب "${title}" إلى المكتبة بنجاح 📖`);
     return resId;
