@@ -42,6 +42,7 @@ export const JournalWorkspace: React.FC = () => {
 
   // Word Export Modal state
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [exportTitle, setExportTitle] = useState('مذكرات ومحطات مَسار');
   const [exportSubtitle, setExportSubtitle] = useState('توثيق الرحلة، خلاصة التجارب، والأفكار الملهمة');
   const [exportAuthor, setExportAuthor] = useState('أحمد حكيم');
@@ -137,23 +138,31 @@ export const JournalWorkspace: React.FC = () => {
     setEntryToDelete(null);
   };
 
-  const handleExecuteExport = () => {
-    const result = exportJournalToWord(journalEntries, {
-      bookTitle: exportTitle.trim() || 'مذكرات ومحطات مَسار',
-      subtitle: exportSubtitle.trim(),
-      authorName: exportAuthor.trim() || 'أحمد حكيم',
-      filterTag: exportTag,
-      sortOrder: exportSortOrder,
-      includeCoverPage,
-      includeStatsSummary,
-      includeTableOfContents,
-      includeBookAppendix,
-      books: booksForAppendix
-    });
+  const handleExecuteExport = async () => {
+    setIsExporting(true);
+    try {
+      const result = await exportJournalToWord(journalEntries, {
+        bookTitle: exportTitle.trim() || 'مذكرات ومحطات مَسار',
+        subtitle: exportSubtitle.trim(),
+        authorName: exportAuthor.trim() || 'أحمد حكيم',
+        filterTag: exportTag,
+        sortOrder: exportSortOrder,
+        includeCoverPage,
+        includeStatsSummary,
+        includeTableOfContents,
+        includeBookAppendix,
+        books: booksForAppendix
+      });
 
-    fireConfettiSuccess();
-    showToast(`تم تصدير "${result.filename}" بنجاح! جاهز للفتح في Word 📖`);
-    setIsExportModalOpen(false);
+      fireConfettiSuccess();
+      showToast(`تم تصدير "${result.filename}" بنجاح بصيغة Word DOCX الأصلية 📖`);
+      setIsExportModalOpen(false);
+    } catch (err) {
+      console.error('Word export error:', err);
+      showToast('حدث خطأ أثناء تصدير ملف الوورد، يرجى المحاولة مرة أخرى');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleSelectTagForExport = (tag: string) => {
@@ -205,7 +214,7 @@ export const JournalWorkspace: React.FC = () => {
           <div>
             <div className="text-xs font-black text-white flex items-center gap-1.5">
               <span>تصدير كتاب المذكرات والخواطر</span>
-              <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-mono font-bold border border-emerald-500/30">Word DOC</span>
+              <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-mono font-bold border border-emerald-500/30">Word DOCX</span>
             </div>
             <p className="text-[10px] text-slate-300 line-clamp-1 mt-0.5">
               حوّل تدويناتك واقتباساتك إلى كتاب وورد منسق ومجهز للطباعة ({journalEntries.length} تدوينات)
@@ -531,7 +540,7 @@ export const JournalWorkspace: React.FC = () => {
                   <BookOpen className="w-5 h-5 stroke-[2.2]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-white">تصدير كتاب مذكراتك (Word DOC) 📖</h3>
+                  <h3 className="text-sm font-black text-white">تصدير كتاب مذكراتك (Word DOCX) 📖</h3>
                   <p className="text-[10px] text-emerald-400">تنسيق طباعي عربي أنيق قابل للتعديل والطباعة</p>
                 </div>
               </div>
@@ -755,7 +764,7 @@ export const JournalWorkspace: React.FC = () => {
               </div>
 
               <div className="text-left text-[10px] text-emerald-400 font-mono">
-                Microsoft Word (.doc)
+                Microsoft Word (.docx) الأصلي
               </div>
             </div>
 
@@ -771,12 +780,12 @@ export const JournalWorkspace: React.FC = () => {
 
               <button
                 type="button"
-                disabled={exportFilteredEntries.length === 0}
+                disabled={exportFilteredEntries.length === 0 || isExporting}
                 onClick={handleExecuteExport}
                 className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 disabled:opacity-50 text-slate-950 text-xs font-black shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <FileDown className="w-4 h-4 stroke-[2.5]" />
-                <span>تحميل ملف Word المنسق الآن 📥</span>
+                <span>{isExporting ? 'جاري تجهيز مستند DOCX...' : 'تحميل ملف Word المنسق الآن (.docx) 📥'}</span>
               </button>
             </div>
           </div>

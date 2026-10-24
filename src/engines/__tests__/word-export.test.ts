@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { 
   generateJournalWordHtml, 
+  generateJournalDocx,
   calculateWordCount, 
   formatArabicDateFriendly,
   exportJournalToWord
@@ -137,11 +138,40 @@ describe('Word Exporter for Journal & Autobiography', () => {
     expect(result.htmlContent).toContain('&lt;script&gt;');
   });
 
-  it('runs exportJournalToWord in non-browser environment safely without crashing', () => {
+  it('generates a native OpenXML .docx document with docx MIME type and headers/footers', async () => {
+    const res = await generateJournalDocx(sampleEntries, {
+      bookTitle: 'مذكرات ومحطات مَسار',
+      authorName: 'أحمد حكيم',
+      subtitle: 'مسيرة التعلم والإنجاز',
+      includeCoverPage: true,
+      includeStatsSummary: true,
+      includeTableOfContents: true,
+      includeBookAppendix: true,
+      books: [
+        {
+          title: 'العادات الذرية',
+          author: 'جيمس كلير',
+          currentPage: 150,
+          totalPages: 320,
+          shelf: 'Reading'
+        }
+      ]
+    });
+
+    expect(res.filename.endsWith('.docx')).toBe(true);
+    expect(res.blob.type).toBe('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    expect(res.totalEntries).toBe(3);
+    expect(res.totalWords).toBeGreaterThan(30);
+    expect(res.blob.size).toBeGreaterThan(5000);
+  });
+
+  it('runs exportJournalToWord in non-browser environment safely without crashing', async () => {
     // In Node / Vitest, window is undefined or mock
-    const res = exportJournalToWord(sampleEntries);
+    const res = await exportJournalToWord(sampleEntries);
     expect(res).toBeDefined();
     expect(res.totalEntries).toBe(3);
     expect(res.blob).toBeInstanceOf(Blob);
+    expect(res.filename.endsWith('.docx')).toBe(true);
+    expect(res.blob.type).toBe('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
   });
 });
