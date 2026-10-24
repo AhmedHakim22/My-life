@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Sparkles, 
   CheckCircle2, 
@@ -24,15 +24,16 @@ import {
   Trash2,
   Trophy,
   Plus,
-  Check
+  Check,
+  X
 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { CloudSyncModal } from './CloudSyncModal';
 import { fireConfettiSuccess } from '../lib/confetti';
-import { getCairoDateString, getCairoSaturdayWeekStart } from '../lib/dateUtils';
+import { getCairoDateString, getCairoTomorrowDateString, getCairoSaturdayWeekStart } from '../lib/dateUtils';
 import { generateWeeklySchedulePlan } from '../engines/scheduler';
 import { getCalendarDaysDiff } from '../engines/recommender';
-import type { StudySession } from '../types';
+import type { StudySession, Task } from '../types';
 
 export const SmartToday: React.FC = () => {
   const { 
@@ -78,14 +79,31 @@ export const SmartToday: React.FC = () => {
   const [lastCompletedHabitId, setLastCompletedHabitId] = useState<string | null>(null);
   const [justReadBookId, setJustReadBookId] = useState<string | null>(null);
   const [showCompletedTasks, setShowCompletedTasks] = useState(false);
+  const [interventionTask, setInterventionTask] = useState<Task | null>(null);
+  const [dismissedSynthIds, setDismissedSynthIds] = useState<string[]>([]);
 
   const currentReadingBook = bookDetails.find(b => b.shelf === 'Reading') || bookDetails[0];
   const pendingTasks = tasks.filter(t => t.status === 'TODO' || t.status === 'IN_PROGRESS');
   const completedTasks = tasks.filter(t => t.status === 'DONE');
   const activeChallenges = challenges.filter(c => c.status === 'ACTIVE');
+
+  // Filter out any dismissed synthetic academic tasks
+  const activeBestNextAction = useMemo(() => {
+    if (!bestNextAction) return null;
+    if (dismissedSynthIds.includes(bestNextAction.task.id)) {
+      const alt = bestNextAction.alternativeTasks.find(t => !dismissedSynthIds.includes(t.id));
+      if (!alt) return null;
+      return {
+        ...bestNextAction,
+        task: alt
+      };
+    }
+    return bestNextAction;
+  }, [bestNextAction, dismissedSynthIds]);
+
   // Truthful Top 3 ranked priorities according to recommendation engine
-  const todayTasks = bestNextAction 
-    ? [bestNextAction.task, ...bestNextAction.alternativeTasks].slice(0, 3)
+  const todayTasks = activeBestNextAction 
+    ? [activeBestNextAction.task, ...activeBestNextAction.alternativeTasks.filter(t => !dismissedSynthIds.includes(t.id))].slice(0, 3)
     : pendingTasks.slice(0, 3);
 
   // Format today date in Arabic
@@ -412,7 +430,7 @@ export const SmartToday: React.FC = () => {
       </section>
 
       {/* 3. Hero Card: Best Next Action (Apple Intelligence Hero Card) */}
-      {bestNextAction ? (
+      {activeBestNextAction ? (
         <section className="apple-card-glow rounded-[26px] p-5 shadow-2xl relative overflow-hidden border border-sky-400/25">
           {/* Top highlight pill */}
           <div className="flex items-center justify-between mb-3.5 relative z-10">
@@ -422,13 +440,13 @@ export const SmartToday: React.FC = () => {
             </span>
 
             <span className="text-[10px] font-mono text-[#8e8e93] bg-white/[0.04] px-2.5 py-0.5 rounded-full border border-white/[0.08] font-bold">
-              {bestNextAction.task.estimatedMinutes} دقيقة
+              {activeBestNextAction.task.estimatedMinutes} دقيقة
             </span>
           </div>
 
           <div className="space-y-3.5 relative z-10">
             <h2 className="text-base sm:text-lg font-black text-white leading-snug">
-              {bestNextAction.task.title}
+              {activeBestNextAction.task.title}
             </h2>
 
             {/* Explainable Reasoning Inset Card */}
@@ -438,7 +456,7 @@ export const SmartToday: React.FC = () => {
                 <span>لماذا اختار مَسار هذه الخطوة بالذات؟</span>
               </div>
               <p className="text-xs text-slate-300 leading-relaxed pr-5 font-normal">
-                {bestNextAction.rationaleArabic}
+                {activeBestNextAction.rationaleArabic}
               </p>
             </div>
 
@@ -446,7 +464,7 @@ export const SmartToday: React.FC = () => {
             <div className="flex items-center gap-2 pt-1">
               <button
                 type="button"
-                onClick={() => handleCompleteTask(bestNextAction.task.id)}
+                onClick={() => handleCompleteTask(activeBestNextAction.task.id)}
                 className="apple-btn-primary flex-1 min-h-[48px] text-xs py-3 px-4 rounded-2xl flex items-center justify-center gap-2 pressable cursor-pointer shadow-md"
               >
                 <CheckCircle2 className="w-4 h-4 stroke-[3]" />
@@ -455,11 +473,14 @@ export const SmartToday: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => {
-                  if (bestNextAction.task.id.startsWith('synth-')) {
-                    showToast('تم تأجيل هذا المقترح الأكاديمي مؤقتاً ⏳');
+                onClick={async () => {
+                  if (activeBestNextAction.task.id.startsWith('synth-')) {
+                    setDismissedSynthIds(prev => [...prev, activeBestNextAction.task.id]);
+                    showToast('تم تأجيل هذا المقترح الأكاديمي مؤقتاً لليوم ⏳');
+                  } else if (activeBestNextAction.task.postponementCount >= 2) {
+                    setInterventionTask(activeBestNextAction.task);
                   } else {
-                    postponeTask(bestNextAction.task.id);
+                    await postponeTask(activeBestNextAction.task.id);
                   }
                 }}
                 className="min-h-[48px] bg-white/[0.06] hover:bg-white/[0.1] text-white font-bold text-xs py-3 px-4 rounded-2xl flex items-center justify-center gap-1.5 border border-white/[0.08] pressable cursor-pointer"
@@ -471,11 +492,12 @@ export const SmartToday: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => {
-                  if (bestNextAction.task.id.startsWith('synth-')) {
+                onClick={async () => {
+                  if (activeBestNextAction.task.id.startsWith('synth-')) {
+                    setDismissedSynthIds(prev => [...prev, activeBestNextAction.task.id]);
                     showToast('تم استبعاد هذا المقترح لليوم ✕');
                   } else {
-                    deleteTask(bestNextAction.task.id);
+                    await deleteTask(activeBestNextAction.task.id);
                   }
                 }}
                 className="min-h-[48px] bg-white/[0.06] hover:bg-rose-500/20 hover:text-rose-300 text-slate-400 font-bold text-xs py-3 px-3.5 rounded-2xl flex items-center justify-center border border-white/[0.08] pressable cursor-pointer transition-colors"
@@ -587,15 +609,26 @@ export const SmartToday: React.FC = () => {
       )}
 
       {/* 4. Postponement Intervention Alert (3-Miss Threshold) */}
-      {bestNextAction?.isPostponementIntervention && (
-        <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-3.5 flex items-start gap-3 text-right shadow-sm">
-          <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <h4 className="text-xs font-bold text-amber-200">تدخل ودي لإعادة جدولة الأولويات (3 تأجيلات متتالية)</h4>
-            <p className="text-xs text-amber-300/90 leading-relaxed">
-              {bestNextAction.interventionProposal}
-            </p>
+      {activeBestNextAction?.isPostponementIntervention && (
+        <div 
+          onClick={() => setInterventionTask(activeBestNextAction.task)}
+          className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-3.5 flex items-start justify-between gap-3 text-right shadow-sm cursor-pointer hover:bg-amber-500/15 transition-all"
+        >
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h4 className="text-xs font-bold text-amber-200">تدخل ودي لإعادة جدولة الأولويات (3 تأجيلات متتالية)</h4>
+              <p className="text-xs text-amber-300/90 leading-relaxed">
+                {activeBestNextAction.interventionProposal}
+              </p>
+            </div>
           </div>
+          <button
+            type="button"
+            className="text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-xl shrink-0 cursor-pointer"
+          >
+            حل المشكلة
+          </button>
         </div>
       )}
 
@@ -1193,6 +1226,151 @@ export const SmartToday: React.FC = () => {
           })}
         </div>
       </section>
+
+      {/* 3-Miss Gentle Intervention Modal */}
+      {interventionTask && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="glass-panel border border-amber-500/40 rounded-3xl p-5 max-w-md w-full space-y-4 shadow-2xl relative">
+            <button
+              type="button"
+              onClick={() => setInterventionTask(null)}
+              className="absolute top-4 left-4 p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2.5 border-b border-slate-800 pb-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-white">تدخل الـ 3 تأجيلات الودود 🛡️</h3>
+                <p className="text-[11px] text-amber-400">تعديل مسار المهمة بدون أي شعور بالذنب</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-950/70 p-3 rounded-2xl border border-slate-800 space-y-1">
+              <span className="text-[10px] text-slate-400 font-bold block">المهمة المتكرر تأجيلها:</span>
+              <p className="text-xs font-black text-white">{interventionTask.title}</p>
+              <span className="text-[10px] text-amber-400/90 font-mono">
+                تم تأجيلها {interventionTask.postponementCount} مرات متتالية
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              لما مهمة تتأجل 3 مرات، ده معناه إنها ممكن تكون تقيلة أو محتاجة تفكيك أو توقيتها مش مناسب دلوقتي. اختار الحل الأنسب ليك:
+            </p>
+
+            <div className="space-y-2">
+              {/* Option 1: Split Task */}
+              <button
+                type="button"
+                onClick={async () => {
+                  const halfMins = Math.max(15, Math.round((interventionTask.estimatedMinutes || 30) / 2));
+                  await addTask(
+                    `[1/2] ${interventionTask.title}`,
+                    interventionTask.priority,
+                    halfMins,
+                    getCairoDateString(),
+                    interventionTask.goalId,
+                    interventionTask.skillId,
+                    interventionTask.studySessionId
+                  );
+                  await addTask(
+                    `[2/2] ${interventionTask.title}`,
+                    interventionTask.priority,
+                    halfMins,
+                    getCairoTomorrowDateString(),
+                    interventionTask.goalId,
+                    interventionTask.skillId,
+                    interventionTask.studySessionId
+                  );
+                  await deleteTask(interventionTask.id);
+                  setInterventionTask(null);
+                  showToast('تم تقسيم المهمة إلى خطوتين خفيفتين بنجاح! ✂️✨');
+                }}
+                className="w-full text-right p-3 rounded-2xl border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 transition-all flex items-start gap-3 cursor-pointer pressable"
+              >
+                <div className="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0 mt-0.5 text-sm">
+                  ✂️
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-sky-200">تقسيم المهمة لخطوتين أصغر</h4>
+                  <p className="text-[11px] text-slate-300">
+                    هنقسمها لخطوتين خفيفتين (جزء النهاردة وجزء بكرة) لتسهيل البداية بدون مماطلة.
+                  </p>
+                </div>
+              </button>
+
+              {/* Option 2: Defer to Next Month / Next Week */}
+              <button
+                type="button"
+                onClick={async () => {
+                  const targetDate = interventionTask.dueDate && interventionTask.dueDate > '2026-11-01'
+                    ? interventionTask.dueDate
+                    : '2026-11-01';
+                  await postponeTask(interventionTask.id, 'ترحيل للأولويات القادمة بعد الامتحانات', targetDate);
+                  setInterventionTask(null);
+                  showToast('تم ترحيل المهمة لموعدها بعد الميد (شهر نوفمبر) 🗓️');
+                }}
+                className="w-full text-right p-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all flex items-start gap-3 cursor-pointer pressable"
+              >
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5 text-sm">
+                  🗓️
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-emerald-200">ترحيل المهمة لموعدها الصحيح (شهر 11 بعد الميد)</h4>
+                  <p className="text-[11px] text-slate-300">
+                    إزاحتها من جدول هذا الشهر ووضعها في أولويات شهر نوفمبر القادم.
+                  </p>
+                </div>
+              </button>
+
+              {/* Option 3: Safe Guilt-Free Dismissal */}
+              <button
+                type="button"
+                onClick={async () => {
+                  await deleteTask(interventionTask.id);
+                  setInterventionTask(null);
+                  showToast('تم استبعاد المهمة بأمان وبدون أي عقوبات XP لتفريغ ذهنك 🍃');
+                }}
+                className="w-full text-right p-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 transition-all flex items-start gap-3 cursor-pointer pressable"
+              >
+                <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 mt-0.5 text-sm">
+                  🗑️
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-rose-200">استبعاد المهمة تماماً بدون تأنيب ضمير</h4>
+                  <p className="text-[11px] text-slate-300">
+                    حذف المهمة من المهام النشطة نهائياً بدون أي خصم XP أو تأثير سلبي على رتبتك.
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            <div className="pt-1 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={async () => {
+                  await postponeTask(interventionTask.id);
+                  setInterventionTask(null);
+                }}
+                className="text-[11px] text-slate-400 hover:text-slate-200 underline cursor-pointer"
+              >
+                تأجيل ليوم الغد فقط
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setInterventionTask(null)}
+                className="py-1.5 px-3 rounded-xl bg-slate-800 text-xs font-bold text-slate-300 hover:bg-slate-700 cursor-pointer"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cloud Sync Modal */}
       <CloudSyncModal 

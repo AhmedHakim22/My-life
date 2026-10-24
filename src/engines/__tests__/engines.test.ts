@@ -4,7 +4,7 @@ import { calculateNextRevision } from '../fsrs';
 import { calculateUserRank, generateXPIdempotencyKey, SCIENTIFIC_RANKS } from '../gamification';
 import { evaluateHabitStreak } from '../habits';
 import { recommendBestNextAction } from '../recommender';
-import type { StudySession, XPTransaction, Habit, Task, UniversitySubject } from '../../types';
+import type { StudySession, XPTransaction, Habit, Task, UniversitySubject, Goal } from '../../types';
 
 describe('1. Cairo Prayer Engine (adhan-js)', () => {
   it('should compute valid astronomical prayer times for Cairo coordinates', () => {
@@ -321,5 +321,100 @@ describe('5. Deterministic Best Next Action Recommender', () => {
     expect(recommendation?.rationaleArabic).toContain('امتحان Molecular Spectroscopy بعد 4 أيام فقط');
     expect(recommendation?.task.priority).toBe('P1_URGENT_IMPORTANT');
     expect(recommendation?.score).toBeGreaterThanOrEqual(100);
+  });
+
+  it('excludes tasks belonging to future goals (e.g. November goal when evaluated in October)', () => {
+    const novemberGoal: Goal = {
+      id: 'B26-M11-AI',
+      title: 'استئناف كورس AI بعد الميد بواقع ساعتين',
+      whyItMatters: 'الميد له الأولوية أولًا ثم أعود للتعلم تدريجيًا.',
+      horizon: 'MONTHLY',
+      startDate: '2026-11-01',
+      targetDate: '2026-11-30',
+      status: 'NOT_STARTED',
+      progressPercentage: 0,
+      isArchived: false,
+      createdAt: '',
+      updatedAt: ''
+    };
+
+    const novemberTask: Task = {
+      id: 'AI11-03',
+      title: 'كورس AI: 60 دقيقة تعلم وتلخيص تطبيق عملي واحد',
+      priority: 'P2_IMPORTANT',
+      status: 'TODO',
+      estimatedMinutes: 60,
+      isLocked: false,
+      postponementCount: 0,
+      goalId: 'B26-M11-AI',
+      dueDate: '2026-11-29',
+      createdAt: '',
+      updatedAt: ''
+    };
+
+    // Evaluated on October 24, 2026
+    const rec = recommendBestNextAction(
+      [novemberTask],
+      prayers,
+      [],
+      [],
+      new Date('2026-10-24T10:00:00Z'),
+      [novemberGoal]
+    );
+
+    // Must be excluded completely because goal is in November and task is far in future!
+    expect(rec).toBeNull();
+  });
+
+  it('excludes tasks postponed to tomorrow from appearing in today recommendations', () => {
+    const postponedTask: Task = {
+      id: 'task-deferred-today',
+      title: 'مراجعة أوراق التقديم',
+      priority: 'P2_IMPORTANT',
+      status: 'TODO',
+      estimatedMinutes: 30,
+      isLocked: false,
+      postponementCount: 1, // Postponed once to tomorrow
+      dueDate: '2026-10-25', // Tomorrow relative to 2026-10-24
+      createdAt: '',
+      updatedAt: ''
+    };
+
+    const rec = recommendBestNextAction(
+      [postponedTask],
+      prayers,
+      [],
+      [],
+      new Date('2026-10-24T10:00:00Z'),
+      []
+    );
+
+    expect(rec).toBeNull();
+  });
+
+  it('excludes far-future tasks (> 2 days) from today recommendations', () => {
+    const futureTask: Task = {
+      id: 'task-next-week',
+      title: 'شراء خامات التغليف',
+      priority: 'P1_URGENT_IMPORTANT',
+      status: 'TODO',
+      estimatedMinutes: 30,
+      isLocked: false,
+      postponementCount: 0,
+      dueDate: '2026-11-05', // 12 days in the future
+      createdAt: '',
+      updatedAt: ''
+    };
+
+    const rec = recommendBestNextAction(
+      [futureTask],
+      prayers,
+      [],
+      [],
+      new Date('2026-10-24T10:00:00Z'),
+      []
+    );
+
+    expect(rec).toBeNull();
   });
 });

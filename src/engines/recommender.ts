@@ -76,20 +76,70 @@ export function recommendBestNextAction(
   // 1. Score explicitly recorded pending tasks
   // -------------------------------------------------------------------------
   for (const task of pendingTasks) {
-    let score = 50; // base score
-    let rationale = '';
+    // A. Goal Horizon Check: Skip tasks whose linked goal is archived or hasn't started yet
+    if (task.goalId) {
+      const linkedGoal = goalMap.get(task.goalId);
+      if (linkedGoal) {
+        if (linkedGoal.isArchived) {
+          continue; // Archived goal -> skip
+        }
+        // If the goal belongs to a future horizon (e.g. November 2026 starts 2026-11-01 while today is in October 2026)
+        if (linkedGoal.startDate && linkedGoal.startDate > todayStr) {
+          continue; // DO NOT recommend tasks for future goals that haven't started yet!
+        }
+      }
+    }
+
+    // B. Due Date Horizon & Postponement Check
+    let dueDateBonus = 0;
+    let dueDateRationale = '';
+
+    if (task.dueDate) {
+      const daysDiff = getCalendarDaysDiff(task.dueDate, currentDate);
+
+      // If task is scheduled in the future (> 1 day, e.g. in 2 days, next week, or next month):
+      if (daysDiff > 1) {
+        continue; // Future tasks belong to future days, not today's immediate queue!
+      }
+
+      // If the task was postponed 1 or 2 times to tomorrow/day after:
+      // It was deferred by the user, so do not recommend it today
+      if (daysDiff > 0 && task.postponementCount > 0 && task.postponementCount < 3) {
+        continue;
+      }
+
+      if (daysDiff === 1) {
+        // Unpostponed task scheduled for tomorrow: heavy penalty so today's tasks & studies come first
+        dueDateBonus = -40;
+      } else if (daysDiff === 0) {
+        // Due today!
+        dueDateBonus = 25;
+        dueDateRationale = 'مستحقة اليوم';
+      } else if (daysDiff < 0) {
+        // Overdue! High urgency
+        dueDateBonus = 40;
+        const overdueDays = Math.abs(daysDiff);
+        const overdueSuffix = overdueDays === 1 ? 'يوم' : 'أيام';
+        dueDateRationale = `مهمة متأخرة منذ ${overdueDays} ${overdueSuffix} — إنجازها يريح بالك`;
+      }
+    }
+
+    let score = 50 + dueDateBonus; // base score + due date modifier
+    let rationale = dueDateRationale;
     let category: 'STUDY' | 'BUSINESS' | 'HABIT' | 'GENERAL' = 'GENERAL';
 
-    // A. Goal impact weighting (High strategic alignment)
+    // Goal impact weighting (High strategic alignment)
     if (task.goalId) {
       const linkedGoal = goalMap.get(task.goalId);
       if (linkedGoal && !linkedGoal.isArchived) {
         score += 30;
-        rationale = `تدفع مباشرة نحو هدفك: "${linkedGoal.title}"`;
+        rationale = rationale 
+          ? `تدفع مباشرة نحو هدفك: "${linkedGoal.title}" • ${rationale}`
+          : `تدفع مباشرة نحو هدفك: "${linkedGoal.title}"`;
       }
     }
 
-    // B. Priority weighting
+    // Priority weighting
     if (task.priority === 'P1_URGENT_IMPORTANT') {
       score += 35;
       rationale = rationale ? `${rationale} (أولوية قصوى P1)` : 'مهمة ذات أولوية قصوى وأثر مباشر';
@@ -98,7 +148,7 @@ export function recommendBestNextAction(
       if (!rationale) rationale = 'مهمة استراتيجية هامة P2';
     }
 
-    // C. Proximity to Exam or Hard Deadline
+    // Proximity to Exam or Hard Deadline
     if (task.studySessionId) {
       category = 'STUDY';
       const session = sessionMap.get(task.studySessionId);
@@ -122,15 +172,7 @@ export function recommendBestNextAction(
       if (!rationale) rationale = 'مسؤولية مهنية لتطوير العمل ومشاريعك';
     }
 
-    // D. Due Date proximity
-    if (task.dueDate) {
-      if (task.dueDate <= todayStr) {
-        score += 25;
-        if (!rationale) rationale = 'مستحقة اليوم';
-      }
-    }
-
-    // E. Prayer Time Window Fit
+    // Prayer Time Window Fit
     const fitsTimeWindow = task.estimatedMinutes <= freeWindow;
     if (fitsTimeWindow) {
       score += 15;
@@ -139,12 +181,13 @@ export function recommendBestNextAction(
       score -= 10;
     }
 
-    // F. Postponement Check (3-miss threshold)
+    // Postponement Check (3-miss threshold)
     const isPostponementIntervention = task.postponementCount >= 3;
     let interventionProposal: string | undefined;
 
     if (isPostponementIntervention) {
-      score += 10;
+      // Stuck task intervention: reduce score so it doesn't block daily priority while surfacing intervention
+      score -= 25;
       interventionProposal = `المهمة دي اتأجلت ${task.postponementCount} مرات.. نقترح تقسيمها لخطوتين أصغر أو تقليل نطاقها.`;
     }
 
